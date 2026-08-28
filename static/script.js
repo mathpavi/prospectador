@@ -2470,3 +2470,59 @@ window.rejectInternationalLead = rejectInternationalLead;
 window.markInternationalContacted = markInternationalContacted;
 window.deleteInternationalLead = deleteInternationalLead;
 window.loadInternationalTab = loadInternationalTab;
+
+// ==========================================
+// 8. DATABASE BACKUP & RESTORE
+// ==========================================
+window.uploadDatabaseBackup = function(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    if (!confirm(`Tem certeza que deseja restaurar o banco com o arquivo "${file.name}"? Todos os dados atuais do servidor serão substituídos pelos do arquivo.`)) {
+        input.value = '';
+        return;
+    }
+    
+    const statusDiv = document.getElementById('restore-db-status');
+    if (statusDiv) {
+        statusDiv.style.display = 'block';
+        statusDiv.style.color = 'var(--text-muted)';
+        statusDiv.innerHTML = '⏳ Enviando e restaurando banco de dados... Aguarde alguns segundos.';
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    fetch('/api/backup/restore', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            if (statusDiv) {
+                statusDiv.style.color = 'var(--danger)';
+                statusDiv.innerHTML = `❌ Erro: ${data.error}`;
+            }
+            showToast(data.error, 'error');
+        } else {
+            if (statusDiv) {
+                statusDiv.style.color = 'var(--success)';
+                statusDiv.innerHTML = `✅ ${data.message} Recarregando aplicação...`;
+            }
+            showToast(data.message, 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        }
+    })
+    .catch(err => {
+        if (statusDiv) {
+            statusDiv.style.color = 'var(--danger)';
+            statusDiv.innerHTML = `❌ Erro de conexão ao enviar: ${err}`;
+        }
+        showToast('Erro ao enviar arquivo.', 'error');
+    })
+    .finally(() => {
+        input.value = '';
+    });
+};

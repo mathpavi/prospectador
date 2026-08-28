@@ -941,6 +941,26 @@
                         </button>
                     </div>
                     
+                    <!-- Section E: Backup & Migration -->
+                    <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 30px;">
+                        💾 Backup & Migração do Banco de Dados
+                    </h3>
+                    <div style="background: rgba(255,255,255,0.02); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 12px;">
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+                            Faça o download do seu banco de dados completo para backup ou envie o arquivo <code>prospector.db</code> do seu computador para sincronizar todos os seus leads e configurações locais.
+                        </p>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                            <a href="/api/backup/download" class="btn btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                                📥 Baixar Banco Atual (.db)
+                            </a>
+                            <label class="btn btn-primary" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; margin: 0;">
+                                📤 Restaurar / Subir Banco (.db)
+                                <input type="file" id="restore-db-input" accept=".db,.sqlite,.sqlite3" style="display: none;" onchange="uploadDatabaseBackup(this)">
+                            </label>
+                        </div>
+                        <div id="restore-db-status" style="margin-top: 10px; font-size: 0.85rem; display: none;"></div>
+                    </div>
+                    
                 </form>
             </div>
         </div>

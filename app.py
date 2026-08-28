@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
+import sqlite3
 import database
 import agent
 import mailer
@@ -107,6 +108,57 @@ def api_settings():
             
         database.save_settings(data)
         return jsonify({"message": "Configurações salvas com sucesso!"})
+
+# Database Backup & Restore Endpoints
+@app.route('/api/backup/download', methods=['GET'])
+def api_backup_download():
+    if os.path.exists(database.DB_PATH):
+        return send_file(
+            database.DB_PATH,
+            as_attachment=True,
+            download_name=f"prospector_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db",
+            mimetype='application/x-sqlite3'
+        )
+    return jsonify({"error": "Banco de dados não encontrado"}), 404
+
+@app.route('/api/backup/restore', methods=['POST'])
+def api_backup_restore():
+    if 'file' not in request.files:
+        return jsonify({"error": "Nenhum arquivo enviado"}), 400
+        
+    file = request.files['file']
+    if not file.filename or not (file.filename.endswith('.db') or file.filename.endswith('.sqlite') or file.filename.endswith('.sqlite3')):
+        return jsonify({"error": "Formato inválido. Envie um arquivo .db ou .sqlite"}), 400
+        
+    temp_path = database.DB_PATH + '.tmp'
+    try:
+        # Save to a temporary location first, then test
+        file.save(temp_path)
+        
+        # Verify it's a valid sqlite3 db
+        test_conn = sqlite3.connect(temp_path)
+        test_cursor = test_conn.cursor()
+        test_cursor.execute("SELECT COUNT(*) FROM prospects")
+        count = test_cursor.fetchone()[0]
+        test_conn.close()
+        
+        # Replace the main db file safely
+        if os.path.exists(database.DB_PATH):
+            os.replace(temp_path, database.DB_PATH)
+        else:
+            os.rename(temp_path, database.DB_PATH)
+            
+        # Re-initialize DB migrations to be 100% sure schema is updated
+        database.init_db()
+        
+        return jsonify({
+            "message": f"Banco de dados restaurado com sucesso! {count} leads carregados.",
+            "leads_count": count
+        })
+    except Exception as e:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        return jsonify({"error": f"Falha ao restaurar banco de dados: {str(e)}"}), 500
 
 # SMTP Test Endpoint
 @app.route('/api/smtp/test', methods=['POST'])
