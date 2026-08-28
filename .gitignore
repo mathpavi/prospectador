@@ -1,0 +1,16 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+*.db
+*.sqlite
+*.sqlite3
+search_debug.jsonl
+autopilot_history.jsonl
+.DS_Store
+*.log
+static/screenshots/
+.user_uploaded/

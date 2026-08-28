@@ -1,0 +1,357 @@
+{
+    "success": true,
+    "data": {
+        "atividades_secundarias": [
+            {
+                "classe": 35204,
+                "desc_classe": "35204 - PRODUCAO DE GAS; PROCESSAMENTO DE GAS NATURAL; DISTRIBUICAO DE COMBUSTIVEIS GASOSOS POR REDES URBANAS",
+                "desc_divisao": "35 - ELETRICIDADE, GAS E OUTRAS UTILIDADES",
+                "desc_grupo": "352 - PRODUCAO E DISTRIBUICAO DE COMBUSTIVEIS GASOSOS POR REDES URBANAS",
+                "desc_secao": "D - ELETRICIDADE E GAS",
+                "desc_subclasse": "3520401 - PRODUCAO DE GAS; PROCESSAMENTO DE GAS NATURAL",
+                "divisao": 35,
+                "grupo": 352,
+                "ramo_de_atividade": "SERVICOS DE SANEAMENTO BASICO",
+                "secao": "D",
+                "segmento": "SERVICOS",
+                "subclasse": 3520401
+            },
+            {
+                "classe": 35204,
+                "desc_classe": "35204 - PRODUCAO DE GAS; PROCESSAMENTO DE GAS NATURAL; DISTRIBUICAO DE COMBUSTIVEIS GASOSOS POR REDES URBANAS",
+                "desc_divisao": "35 - ELETRICIDADE, GAS E OUTRAS UTILIDADES",
+                "desc_grupo": "352 - PRODUCAO E DISTRIBUICAO DE COMBUSTIVEIS GASOSOS POR REDES URBANAS",
+                "desc_secao": "D - ELETRICIDADE E GAS",
+                "desc_subclasse": "3520402 - DISTRIBUICAO DE COMBUSTIVEIS GASOSOS POR REDES URBANAS",
+                "divisao": 35,
+                "grupo": 352,
+                "ramo_de_atividade": "SERVICOS DE SANEAMENTO BASICO",
+                "secao": "D",
+                "segmento": "SERVICOS",
+                "subclasse": 3520402
+            },
+            {
+                "classe": 86305,
+                "desc_classe": "86305 - ATIVIDADES DE ATENCAO AMBULATORIAL EXECUTADAS POR MEDICOS E ODONTOLOGOS",
+                "desc_divisao": "86 - ATIVIDADES DE ATENCAO A SAUDE HUMANA",
+                "desc_grupo": "863 - ATIVIDADES DE ATENCAO AMBULATORIAL EXECUTADAS POR MEDICOS E ODONTOLOGOS",
+                "desc_secao": "Q - SAUDE HUMANA E SERVICOS SOCIAIS",
+                "desc_subclasse": "8630599 - ATIVIDADES DE ATENCAO AMBULATORIAL NAO ESPECIFICADAS ANTERIORMENTE",
+                "divisao": 86,
+                "grupo": 863,
+                "ramo_de_atividade": "SERVICOS DE SAUDE",
+                "secao": "Q",
+                "segmento": "SERVICOS",
+                "subclasse": 8630599
+            },
+            {
+                "classe": 46818,
+                "desc_classe": "46818 - COMERCIO ATACADISTA DE COMBUSTIVEIS SOLIDOS, LIQUIDOS E GASOSOS, EXCETO GAS NATURAL E GLP",
+                "desc_divisao": "46 - COMERCIO POR ATACADO, EXCETO VEICULOS AUTOMOTORES E MOTOCICLETAS",
+                "desc_grupo": "468 - COMERCIO ATACADISTA ESPECIALIZADO EM OUTROS PRODUTOS",
+                "desc_secao": "G - COMERCIO; REPARACAO DE VEICULOS AUTOMOTORES E MOTOCICLETAS",
+                "desc_subclasse": "4681801 - COMERCIO ATACADISTA DE ALCOOL CARBURANTE, BIODIESEL, GASOLINA E DEMAIS DERIVADOS DE PETROLEO, EXCETO LUBRIFICANTES, NAO REALIZADO POR TRANSPORTADOR RETALHISTA (TRR)",
+                "divisao": 46,
+                "grupo": 468,
+                "ramo_de_atividade": "ATACADO",
+                "secao": "G",
+                "segmento": "COMERCIO",
+                "subclasse": 4681801
+            },
+            {
+                "classe": 19217,
+                "desc_classe": "19217 - FABRICACAO DE PRODUTOS DO REFINO DE PETROLEO",
+                "desc_divisao": "19 - FABRICACAO DE COQUE, DE PRODUTOS DERIVADOS DO PETROLEO E DE BIOCOMBUSTIVEIS",
+                "desc_grupo": "192 - FABRICACAO DE PRODUTOS DERIVADOS DO PETROLEO",
+                "desc_secao": "C - INDUSTRIAS DE TRANSFORMACAO",
+                "desc_subclasse": "1921700 - FABRICACAO DE PRODUTOS DO REFINO DE PETROLEO",
+                "divisao": 19,
+                "grupo": 192,
+                "ramo_de_atividade": "BENS DE CAPITAL",
+                "secao": "C",
+                "segmento": "INDUSTRIA",
+                "subclasse": 1921700
+            }
+        ],
+        "bairro": "CENTRO",
+        "capital_social": 205431960490,
+        "cep": 20031170,
+        "cnae_principal_classe": 6000,
+        "cnae_principal_desc_classe": "6000 - EXTRACAO DE PETROLEO E GAS NATURAL",
+        "cnae_principal_desc_divisao": "6 - EXTRACAO DE PETROLEO E GAS NATURAL",
+        "cnae_principal_desc_grupo": "60 - EXTRACAO DE PETROLEO E GAS NATURAL",
+        "cnae_principal_desc_secao": "B - INDUSTRIAS EXTRATIVAS",
+        "cnae_principal_desc_subclasse": "600001 - EXTRACAO DE PETROLEO E GAS NATURAL",
+        "cnae_principal_subclasse": 600001,
+        "cnpj": "33000167000101",
+        "data_inicio_atividade": "1966-09-28",
+        "dv_cnpj": 1,
+        "empresa_publico_privada": "MISTA",
+        "endereco": "AVENIDA REPUBLICA DO CHILE 65 - CENTRO - 20031170",
+        "facebook": [
+            {
+                "url": "facebook.com/MPBemMovimento"
+            },
+            {
+                "url": "facebook.com/petrobras"
+            }
+        ],
+        "faixa_faturamento_grupo": "1B OU SUPERIOR",
+        "faixa_funcionarios_grupo": "30000 OU MAIS",
+        "faturamento": 203379188230.70847,
+        "faturamento_grupo": 501317000000,
+        "forma_de_tributacao": "LUCRO REAL",
+        "forma_de_tributacao_ajustada": "LUCRO REAL",
+        "forma_de_tributacao_modelada": "LUCRO REAL",
+        "instagram": [
+            {
+                "url": "instagram.com/mpbplay"
+            },
+            {
+                "url": "instagram.com/petrobras"
+            }
+        ],
+        "lat": -22.9098125,
+        "linkedin_url": "linkedin.com/company/petrobras",
+        "lon": -43.17943749999999,
+        "macrorregiao": "SUDESTE",
+        "matriz": true,
+        "mesorregiao": "METROPOLITANA DO RIO DE JANEIRO",
+        "microrregiao": "RIO DE JANEIRO",
+        "municipio": "RIO DE JANEIRO",
+        "natureza_juridica": "SOCIEDADE DE ECONOMIA MISTA",
+        "nivel_de_atividade": "MUITO ALTA",
+        "nome_fantasia": "PETROBRAS - EDISE",
+        "opcao_pelo_mei": false,
+        "opcao_pelo_simples": false,
+        "perfil_socioeconomico_bairro_desc": "MEDIO",
+        "porte": "DEMAIS",
+        "qtde_filiais": 487,
+        "raiz_cnpj": "33000167",
+        "ramo_de_atividade": "MINERACAO",
+        "razao_social": "PETROLEO BRASILEIRO S A PETROBRAS",
+        "segmento": "INDUSTRIA",
+        "sites": [
+            {
+                "confiabilidade": 0.1762,
+                "pertence_contador": false,
+                "site": "blogspetrobras.com.br"
+            },
+            {
+                "confiabilidade": 0.1869,
+                "pertence_contador": false,
+                "site": "mpbplay.com.br"
+            },
+            {
+                "confiabilidade": 0.2004,
+                "pertence_contador": false,
+                "site": "petrobrax.com.br"
+            },
+            {
+                "confiabilidade": 0.2574,
+                "pertence_contador": false,
+                "site": "petrobras.gov.br"
+            },
+            {
+                "confiabilidade": 0.1782,
+                "pertence_contador": false,
+                "site": "petrobraspremia.com.br"
+            },
+            {
+                "confiabilidade": 0.2023,
+                "pertence_contador": false,
+                "site": "timepetrobras.com.br"
+            },
+            {
+                "confiabilidade": 0.2574,
+                "pertence_contador": false,
+                "site": "petrobras.com.br"
+            },
+            {
+                "confiabilidade": 0.1782,
+                "pertence_contador": false,
+                "site": "petrobraspodium.com.br"
+            },
+            {
+                "confiabilidade": 0.2313,
+                "pertence_contador": false,
+                "site": "epetrobras.com.br"
+            },
+            {
+                "confiabilidade": 0.2096,
+                "pertence_contador": false,
+                "site": "cn.br-petrobras.com.br"
+            }
+        ],
+        "situacao_cadastral": "ATIVA",
+        "socios": [
+            {
+                "cnpj_cpf_socio": "***017831**",
+                "cpf_representante_legal": null,
+                "data_entrada_sociedade": "2025-04-25",
+                "data_nascimento": "1974-01-24",
+                "faixa_etaria_socio": "51 A 60 ANOS",
+                "identificador_socio": "PESSOA FISICA",
+                "nome_com_cnpj_cpf": "RICARDO WAGNER DE ARAUJO | ***017831**",
+                "nome_representante_legal": null,
+                "nome_socio": "RICARDO WAGNER DE ARAUJO",
+                "pais": null,
+                "qualificacao_representante_legal": "NAO INFORMADA",
+                "qualificacao_socio": "DIRETOR",
+                "sexo": "M"
+            },
+            {
+                "cnpj_cpf_socio": "***077120**",
+                "cpf_representante_legal": null,
+                "data_entrada_sociedade": "2023-04-17",
+                "data_nascimento": "1964-04-15",
+                "faixa_etaria_socio": "61 A 70 ANOS",
+                "identificador_socio": "PESSOA FISICA",
+                "nome_com_cnpj_cpf": "CLAUDIO ROMEO SCHLOSSER | ***077120**",
+                "nome_representante_legal": null,
+                "nome_socio": "CLAUDIO ROMEO SCHLOSSER",
+                "pais": null,
+                "qualificacao_representante_legal": "NAO INFORMADA",
+                "qualificacao_socio": "DIRETOR",
+                "sexo": "M"
+            },
+            {
+                "cnpj_cpf_socio": "***487787**",
+                "cpf_representante_legal": null,
+                "data_entrada_sociedade": "2023-04-17",
+                "data_nascimento": "1960-08-31",
+                "faixa_etaria_socio": "61 A 70 ANOS",
+                "identificador_socio": "PESSOA FISICA",
+                "nome_com_cnpj_cpf": "WILLIAM FRANCA DA SILVA | ***487787**",
+                "nome_representante_legal": null,
+                "nome_socio": "WILLIAM FRANCA DA SILVA",
+                "pais": null,
+                "qualificacao_representante_legal": "NAO INFORMADA",
+                "qualificacao_socio": "DIRETOR",
+                "sexo": "M"
+            },
+            {
+                "cnpj_cpf_socio": "***612937**",
+                "cpf_representante_legal": null,
+                "data_entrada_sociedade": "2024-06-07",
+                "data_nascimento": "1957-06-30",
+                "faixa_etaria_socio": "61 A 70 ANOS",
+                "identificador_socio": "PESSOA FISICA",
+                "nome_com_cnpj_cpf": "MAGDA MARIA DE REGINA CHAMBRIARD | ***612937**",
+                "nome_representante_legal": null,
+                "nome_socio": "MAGDA MARIA DE REGINA CHAMBRIARD",
+                "pais": null,
+                "qualificacao_representante_legal": "NAO INFORMADA",
+                "qualificacao_socio": "PRESIDENTE",
+                "sexo": "F"
+            },
+            {
+                "cnpj_cpf_socio": "***650110**",
+                "cpf_representante_legal": null,
+                "data_entrada_sociedade": "2024-07-17",
+                "data_nascimento": "1972-02-11",
+                "faixa_etaria_socio": "51 A 60 ANOS",
+                "identificador_socio": "PESSOA FISICA",
+                "nome_com_cnpj_cpf": "FERNANDO SABBI MELGAREJO | ***650110**",
+                "nome_representante_legal": null,
+                "nome_socio": "FERNANDO SABBI MELGAREJO",
+                "pais": null,
+                "qualificacao_representante_legal": "NAO INFORMADA",
+                "qualificacao_socio": "DIRETOR",
+                "sexo": "M"
+            },
+            {
+                "cnpj_cpf_socio": "***701217**",
+                "cpf_representante_legal": null,
+                "data_entrada_sociedade": "2024-07-17",
+                "data_nascimento": "1957-07-19",
+                "faixa_etaria_socio": "61 A 70 ANOS",
+                "identificador_socio": "PESSOA FISICA",
+                "nome_com_cnpj_cpf": "SYLVIA MARIA COUTO DOS ANJOS | ***701217**",
+                "nome_representante_legal": null,
+                "nome_socio": "SYLVIA MARIA COUTO DOS ANJOS",
+                "pais": null,
+                "qualificacao_representante_legal": "NAO INFORMADA",
+                "qualificacao_socio": "DIRETOR",
+                "sexo": "F"
+            },
+            {
+                "cnpj_cpf_socio": "***912137**",
+                "cpf_representante_legal": null,
+                "data_entrada_sociedade": "2025-07-29",
+                "data_nascimento": "1955-05-28",
+                "faixa_etaria_socio": "71 A 80 ANOS",
+                "identificador_socio": "PESSOA FISICA",
+                "nome_com_cnpj_cpf": "ANGELICA GARCIA COBAS LAUREANO | ***912137**",
+                "nome_representante_legal": null,
+                "nome_socio": "ANGELICA GARCIA COBAS LAUREANO",
+                "pais": null,
+                "qualificacao_representante_legal": "NAO INFORMADA",
+                "qualificacao_socio": "DIRETOR",
+                "sexo": "F"
+            },
+            {
+                "cnpj_cpf_socio": "***944618**",
+                "cpf_representante_legal": null,
+                "data_entrada_sociedade": "2024-07-17",
+                "data_nascimento": "1967-07-12",
+                "faixa_etaria_socio": "51 A 60 ANOS",
+                "identificador_socio": "PESSOA FISICA",
+                "nome_com_cnpj_cpf": "RENATA FARIA RODRIGUES BARUZZI LOPES | ***944618**",
+                "nome_representante_legal": null,
+                "nome_socio": "RENATA FARIA RODRIGUES BARUZZI LOPES",
+                "pais": null,
+                "qualificacao_representante_legal": "NAO INFORMADA",
+                "qualificacao_socio": "DIRETOR",
+                "sexo": "F"
+            },
+            {
+                "cnpj_cpf_socio": "***995240**",
+                "cpf_representante_legal": null,
+                "data_entrada_sociedade": "2023-04-17",
+                "data_nascimento": "1963-09-12",
+                "faixa_etaria_socio": "61 A 70 ANOS",
+                "identificador_socio": "PESSOA FISICA",
+                "nome_com_cnpj_cpf": "CLARICE COPPETTI | ***995240**",
+                "nome_representante_legal": null,
+                "nome_socio": "CLARICE COPPETTI",
+                "pais": null,
+                "qualificacao_representante_legal": "NAO INFORMADA",
+                "qualificacao_socio": "DIRETOR",
+                "sexo": "F"
+            }
+        ],
+        "twitter": [
+            {
+                "url": "twitter.com/uwt.js"
+            },
+            {
+                "url": "twitter.com/petrobras"
+            }
+        ],
+        "uf": "RIO DE JANEIRO"
+    },
+    "datasets": [
+        "basic",
+        "complete",
+        "address",
+        "online_presence",
+        "partners"
+    ],
+    "pricing": {
+        "baseCost": 0.39,
+        "baseCostFormatted": "R$ 0.39",
+        "adjustedCost": 0.39,
+        "adjustedCostFormatted": "R$ 0.39",
+        "discount": "0.00%",
+        "tier": {
+            "min": 1,
+            "max": 1000,
+            "multiplier": 1
+        },
+        "monthlyUsage": 2,
+        "endpointKey": "companies"
+    },
+    "cost": 0.39,
+    "costFormatted": "R$ 0.39"
+}

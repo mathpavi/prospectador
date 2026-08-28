@@ -1,0 +1,29 @@
+{
+    "success": true,
+    "data": [],
+    "datasets": [
+        "basic",
+        "online_presence"
+    ],
+    "pagination": {
+        "page": 0,
+        "size": 5,
+        "total": 0
+    },
+    "pricing": {
+        "baseCost": 0,
+        "baseCostFormatted": "R$ 0.00",
+        "adjustedCost": 0,
+        "adjustedCostFormatted": "R$ 0.00",
+        "discount": "0.00%",
+        "tier": {
+            "min": 1,
+            "max": 1000,
+            "multiplier": 1
+        },
+        "monthlyUsage": 5,
+        "endpointKey": "companies"
+    },
+    "cost": 0,
+    "costFormatted": "R$ 0.00"
+}

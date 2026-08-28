@@ -1,0 +1,81 @@
+{
+  "expat_signals_tests": [
+    {
+      "id": "exp_1",
+      "name": "Silva Cleaning Service",
+      "url": "https://silvacleaningorlando.com",
+      "snippet_title": "Silva Cleaning Service - Orlando, FL",
+      "snippet_text": "Need professional cleaning? Speak to Carlos Silva or Sandra Souza. We speak Portuguese. Falo portugues.",
+      "expected_signals": ["Nome comum em PT", "Frase expat"],
+      "should_pass": true
+    },
+    {
+      "id": "exp_2",
+      "name": "Yolanda Maid Service",
+      "url": "https://yolandamaid.com",
+      "snippet_title": "Yolanda's Maid Services Atlanta",
+      "snippet_text": "Professional residential cleaning. Rating ★4.9 (126 reviews). Open 24/7.",
+      "expected_signals": [],
+      "should_pass": false
+    },
+    {
+      "id": "exp_3",
+      "name": "Brazilian Cleaning GA",
+      "url": "https://instagram.com/braziliancleaningga",
+      "snippet_title": "Brazilian Cleaning GA | Instagram",
+      "snippet_text": "Melhor equipe de faxina brasileira em Atlanta. WhatsApp +55 51 997661506.",
+      "expected_signals": ["WhatsApp brasileiro (+55)", "Frase expat"],
+      "should_pass": true
+    },
+    {
+      "id": "exp_4",
+      "name": "CCleaner Portal",
+      "url": "https://ccleaner.com.br",
+      "snippet_title": "Limpeza de Registro e Arquivos PC",
+      "snippet_text": "Baixe o CCleaner gratuitamente. Limpador de computadores nacional.",
+      "expected_signals": [],
+      "should_pass": false
+    }
+  ],
+  "opportunity_score_tests": [
+    {
+      "rating": 4.8,
+      "reviews_count": 120,
+      "has_site": false,
+      "is_amateur_site": false,
+      "expected_score": 100
+    },
+    {
+      "rating": 4.5,
+      "reviews_count": 15,
+      "has_site": true,
+      "is_amateur_site": true,
+      "expected_score": 70
+    },
+    {
+      "rating": 4.0,
+      "reviews_count": 5,
+      "has_site": true,
+      "is_amateur_site": false,
+      "expected_score": 25
+    }
+  ],
+  "kipflow_enrichment_tests": [
+    {
+      "input_domain": "petrobras.com.br",
+      "expected_cnpj": "33000167000101",
+      "expected_porte": "DEMAIS"
+    }
+  ],
+  "copywriting_prompt_tests": [
+    {
+      "company_name": "Silva Painting LLC",
+      "segment": "Reforma e Manutenção (Handyman)",
+      "region": "Orlando - Estados Unidos",
+      "rating": 4.9,
+      "reviews_count": 126,
+      "detected_issues": ["Sem site próprio"],
+      "rules": "Deve mencionar a reputação exata e citar a ausência de site próprio de forma profissional."
+    }
+  ]
+}

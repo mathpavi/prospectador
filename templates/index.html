@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Prospectador Paviani - Prospecção Inteligente</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                </svg>
+            </div>
+            <span class="logo-text" style="font-size: 0.95rem;">Super Prospectador Paviani</span>
+        </div>
+        
+        <ul class="nav-links">
+            <li>
+                <a class="nav-item active" data-tab="tab-prospector">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    Buscar Leads
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="tab-surgical">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="22" y1="12" x2="18" y2="12"></line>
+                        <line x1="6" y1="12" x2="2" y2="12"></line>
+                        <line x1="12" y1="6" x2="12" y2="2"></line>
+                        <line x1="12" y1="22" x2="12" y2="18"></line>
+                    </svg>
+                    Prospecção Cirúrgica
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="tab-international">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    Prospecção Internacional
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="tab-leads">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                        <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                        <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                    </svg>
+                    Meus Leads
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="tab-queue">
+                    <svg viewBox="0 0 24 24">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    Disparos em Lote
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="tab-followup">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Acompanhamento
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="tab-automation">
+                    <svg viewBox="0 0 24 24">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    Piloto Automático
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="tab-settings">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    Configurações
+                </a>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            Super Prospectador Paviani v1.0.0<br>Paviani Web Tech
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        
+        <!-- TAB 1: PROSPECTOR -->
+        <div id="tab-prospector" class="tab-pane active">
+            <div class="header">
+                <h1>Buscar Novas Empresas</h1>
+                <p>Configure a inteligência artificial para rastrear, analisar sites e extrair contatos qualificados.</p>
+            </div>
+            
+            <div class="dashboard-layout">
+                <!-- Search Form Card -->
+                <div class="card">
+                    <h2 class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="16"></line>
+                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                        </svg>
+                        Parâmetros da Busca
+                    </h2>
+                    
+                    <form id="search-form">
+                        <div class="form-group">
+                            <label for="segment-select">Segmento / Tipo de Indústria</label>
+                            <select id="segment-select">
+                                <option value="Metalúrgica">Metalúrgica (Geral)</option>
+                                <option value="Usinagem de Peças">Usinagem de Peças</option>
+                                <option value="Repuxo de Metais">Repuxo de Metais</option>
+                                <option value="Caldeiraria / Soldagem">Caldeiraria / Soldagem</option>
+                                <option value="Indústria de Plásticos">Indústria de Plásticos</option>
+                                <option value="Fábrica de Móveis">Fábrica de Móveis</option>
+                                <option value="Indústria Química">Indústria Química</option>
+                                <option value="Indústria Têxtil">Indústria Têxtil</option>
+                                <option value="Indústria de Alimentos">Indústria de Alimentos</option>
+                                <option value="Distribuidora / Logística">Distribuidora / Logística</option>
+                                <option value="Advogado">Advogado (Escritório)</option>
+                                <option value="Médico">Médico (Clínica / Consultório)</option>
+                                <option value="custom">Outro (Personalizar...)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="segment-custom-group" style="display: none;">
+                            <label for="segment-custom">Digite o Segmento Personalizado</label>
+                            <input type="text" id="segment-custom" placeholder="Ex: Fabricação de Engrenagens, Indústria de Tintas">
+                        </div>
+                        
+                        <input type="hidden" id="segment" name="segment" value="Metalúrgica">
+                        
+                        <div class="form-group row" style="grid-template-columns: 1fr 2fr; margin-bottom: 12px;">
+                            <div>
+                                <label for="state-select">Estado</label>
+                                <select id="state-select">
+                                    <option value="">Carregando...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="city-select">Cidade</label>
+                                <select id="city-select" disabled>
+                                    <option value="">Selecione um Estado...</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group" id="radius-group" style="display: none; margin-bottom: 20px;">
+                            <label for="radius-select">Raio de Busca (Cidades Próximas)</label>
+                            <select id="radius-select">
+                                <option value="0">Apenas a cidade selecionada</option>
+                                <option value="10">Até 10 km de distância</option>
+                                <option value="20">Até 20 km de distância</option>
+                                <option value="50">Até 50 km de distância</option>
+                            </select>
+                        </div>
+                        
+                        <input type="hidden" id="region" name="region" value="Rio Grande do Sul">
+                        <input type="hidden" id="state_uf" name="state_uf" value="">
+                        <input type="hidden" id="city_name" name="city_name" value="">
+                        <input type="hidden" id="radius_km" name="radius_km" value="0">
+                        <div class="form-group">
+                            <label for="source-mode-select">Fonte de Busca</label>
+                            <select id="source-mode-select">
+                                <option value="organic" selected>🌐 DuckDuckGo (Orgânica - Web)</option>
+                                <option value="maps_only">🗺️ Google Maps (Surgical)</option>
+                                <option value="kipflow">📋 KipFlow (Base Oficial de CNPJ)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="max_results">Qtd. de sites a analisar (máx 20 por vez)</label>
+                            <input type="number" id="max_results" name="max_results" min="1" max="20" value="5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Configuração Rápida do Prospector</label>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+                                O nome do remetente e a proposta de valor serão usados para redigir o e-mail inteligente. Altere nas Configurações se necessário.
+                            </div>
+                        </div>
+                        
+                        <button type="submit" id="start-search-btn" class="btn btn-primary btn-block">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            Rodar Agente de Prospecção
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Terminal Console -->
+                <div class="console">
+                    <div class="console-header">
+                        <span class="console-title">
+                            <span class="console-dot" id="console-status-dot"></span>
+                            Log de Execução em Tempo Real
+                        </span>
+                        <button id="clear-logs-btn" class="btn btn-secondary btn-sm" style="padding: 4px 10px;">Limpar</button>
+                    </div>
+                    <div class="console-body" id="console-logs">
+                        <div class="log-item">
+                            <span class="log-time">[Sistema]</span>
+                            <span class="log-msg">Aguardando início da prospecção... Defina os parâmetros ao lado e clique em Rodar.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TAB CIRÚRGICA: SURGICAL PROSPECTOR -->
+        <div id="tab-surgical" class="tab-pane">
+            <div class="header">
+                <h1>Prospecção Cirúrgica (Foco Crítico)</h1>
+                <p>Encontre leads sem site próprio (somente redes sociais) ou filtre sites que possuem falhas críticas graves.</p>
+            </div>
+            
+            <div class="dashboard-layout">
+                <!-- Search Form Card -->
+                <div class="card">
+                    <h2 class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="22" y1="12" x2="18" y2="12"></line>
+                            <line x1="6" y1="12" x2="2" y2="12"></line>
+                            <line x1="12" y1="6" x2="12" y2="2"></line>
+                            <line x1="12" y1="22" x2="12" y2="18"></line>
+                        </svg>
+                        Parâmetros da Busca Cirúrgica
+                    </h2>
+                    
+                    <form id="surgical-search-form">
+                        <div class="form-group">
+                            <label for="surgical-target-type">Alvo da Abordagem</label>
+                            <select id="surgical-target-type">
+                                <option value="both">Ambos (Sem Site ou Site Crítico)</option>
+                                <option value="no_site">Apenas Sem Site (Redes Sociais / Diretórios / Maps)</option>
+                                <option value="maps_only">Apenas Google Maps (Empresas Cadastradas Sem Site)</option>
+                                <option value="critical_site">Apenas Sites Críticos / Antigos</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="surgical-segment-select">Segmento / Tipo de Indústria</label>
+                            <select id="surgical-segment-select">
+                                <option value="Metalúrgica">Metalúrgica (Geral)</option>
+                                <option value="Usinagem de Peças">Usinagem de Peças</option>
+                                <option value="Repuxo de Metais">Repuxo de Metais</option>
+                                <option value="Caldeiraria / Soldagem">Caldeiraria / Soldagem</option>
+                                <option value="Indústria de Plásticos">Indústria de Plásticos</option>
+                                <option value="Fábrica de Móveis">Fábrica de Móveis</option>
+                                <option value="Indústria Química">Indústria Química</option>
+                                <option value="Indústria Têxtil">Indústria Têxtil</option>
+                                <option value="Indústria de Alimentos">Indústria de Alimentos</option>
+                                <option value="Distribuidora / Logística">Distribuidora / Logística</option>
+                                <option value="Advogado">Advogado (Escritório)</option>
+                                <option value="Médico">Médico (Clínica / Consultório)</option>
+                                <option value="custom">Outro (Personalizar...)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="surgical-segment-custom-group" style="display: none;">
+                            <label for="surgical-segment-custom">Digite o Segmento Personalizado</label>
+                            <input type="text" id="surgical-segment-custom" placeholder="Ex: Fabricação de Engrenagens">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group col-6">
+                                <label for="surgical-state-select">Estado (UF)</label>
+                                <select id="surgical-state-select">
+                                    <option value="">Brasil Inteiro</option>
+                                    <option value="AC">Acre (AC)</option>
+                                    <option value="AL">Alagoas (AL)</option>
+                                    <option value="AP">Amapá (AP)</option>
+                                    <option value="AM">Amazonas (AM)</option>
+                                    <option value="BA">Bahia (BA)</option>
+                                    <option value="CE">Ceará (CE)</option>
+                                    <option value="DF">Distrito Federal (DF)</option>
+                                    <option value="ES">Espírito Santo (ES)</option>
+                                    <option value="GO">Goiás (GO)</option>
+                                    <option value="MA">Maranhão (MA)</option>
+                                    <option value="MT">Mato Grosso (MT)</option>
+                                    <option value="MS">Mato Grosso do Sul (MS)</option>
+                                    <option value="MG">Minas Gerais (MG)</option>
+                                    <option value="PA">Pará (PA)</option>
+                                    <option value="PB">Paraíba (PB)</option>
+                                    <option value="PR">Paraná (PR)</option>
+                                    <option value="PE">Pernambuco (PE)</option>
+                                    <option value="PI">Piauí (PI)</option>
+                                    <option value="RJ">Rio de Janeiro (RJ)</option>
+                                    <option value="RN">Rio Grande do Norte (RN)</option>
+                                    <option value="RS" selected>Rio Grande do Sul (RS)</option>
+                                    <option value="RO">Rondônia (RO)</option>
+                                    <option value="RR">Roraima (RR)</option>
+                                    <option value="SC">Santa Catarina (SC)</option>
+                                    <option value="SP">São Paulo (SP)</option>
+                                    <option value="SE">Sergipe (SE)</option>
+                                    <option value="TO">Tocantins (TO)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group col-6">
+                                <label for="surgical-city-select">Cidade</label>
+                                <select id="surgical-city-select">
+                                    <option value="Estado Inteiro">Estado Inteiro</option>
+                                    <option value="Caxias do Sul" selected>Caxias do Sul</option>
+                                    <option value="Porto Alegre">Porto Alegre</option>
+                                    <option value="Bento Gonçalves">Bento Gonçalves</option>
+                                    <option value="Farroupilha">Farroupilha</option>
+                                    <option value="custom">Outra (Personalizar...)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="surgical-city-custom-group" style="display: none;">
+                            <label for="surgical-city-custom">Digite a Cidade Personalizada</label>
+                            <input type="text" id="surgical-city-custom" placeholder="Ex: Garibaldi, Canoas">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-6">
+                                <label for="surgical-radius-select">Raio de Distância</label>
+                                <select id="surgical-radius-select">
+                                    <option value="0">Apenas a Cidade</option>
+                                    <option value="15">Até 15 km ao redor</option>
+                                    <option value="30" selected>Até 30 km ao redor</option>
+                                    <option value="50">Até 50 km ao redor</option>
+                                    <option value="100">Até 100 km ao redor</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group col-6">
+                                <label for="surgical-limit">Qtd. Alvos a Salvar</label>
+                                <input type="number" id="surgical-limit" min="1" max="50" value="5">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-block" id="btn-run-surgical">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Iniciar Varredura Cirúrgica
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Terminal Console -->
+                <div class="console">
+                    <div class="console-header">
+                        <span class="console-title">
+                            <span class="console-dot" id="surgical-console-status-dot"></span>
+                            Console Cirúrgico (Tempo Real)
+                        </span>
+                    </div>
+                    <div class="console-body" id="surgical-console-logs">
+                        <div class="log-item">
+                            <span class="log-time">[Sistema]</span>
+                            <span class="log-msg">Aguardando início do escaneamento cirúrgico...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leads List section inside tab-surgical -->
+            <div class="header" style="margin-top: 2.5rem;">
+                <h2>Alvos Cirúrgicos Identificados</h2>
+                <p>Veja abaixo a lista de empresas rastreadas que se encaixam no foco cirúrgico.</p>
+            </div>
+
+            <!-- Stats Row for Surgical -->
+            <div class="stats-grid">
+                <div class="stat-card primary">
+                    <div>
+                        <div class="stat-label">Total Leads</div>
+                        <div class="stat-value" id="sstats-total">0</div>
+                    </div>
+                    <div class="stat-meta">Rastreados na busca cirúrgica</div>
+                </div>
+                <div class="stat-card warning">
+                    <div>
+                        <div class="stat-label">Pendentes</div>
+                        <div class="stat-value" id="sstats-pending">0</div>
+                    </div>
+                    <div class="stat-meta">Aguardando revisão</div>
+                </div>
+                <div class="stat-card primary" style="--primary: #818cf8;">
+                    <div>
+                        <div class="stat-label">Aprovados</div>
+                        <div class="stat-value" id="sstats-approved">0</div>
+                    </div>
+                    <div class="stat-meta">Prontos na fila de envio</div>
+                </div>
+                <div class="stat-card success">
+                    <div>
+                        <div class="stat-label">Enviados</div>
+                        <div class="stat-value" id="sstats-sent">0</div>
+                    </div>
+                    <div class="stat-meta">Abordagem realizada</div>
+                </div>
+                <div class="stat-card danger">
+                    <div>
+                        <div class="stat-label">Falhas</div>
+                        <div class="stat-value" id="sstats-failed">0</div>
+                    </div>
+                    <div class="stat-meta">Erros de envio SMTP</div>
+                </div>
+            </div>
+
+            <!-- Filters Bar for Surgical -->
+            <div class="filters-bar" style="margin-top: 1.5rem;">
+                <div class="filter-tags" id="surgical-filter-tags">
+                    <span class="filter-tag active" data-sfilter="all">Todos</span>
+                    <span class="filter-tag" data-sfilter="pending">Pendentes</span>
+                    <span class="filter-tag" data-sfilter="approved">Aprovados</span>
+                    <span class="filter-tag" data-sfilter="sent">Enviados</span>
+                    <span class="filter-tag" data-sfilter="failed">Falhas</span>
+                    <span class="filter-tag" data-sfilter="rejected">Arquivados</span>
+                </div>
+            </div>
+
+            <!-- Table of Leads -->
+            <div class="card" style="padding: 0; overflow: hidden; margin-top: 1rem;">
+                <table class="leads-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">Empresa / Website</th>
+                            <th style="width: 15%;">Segmento / Região</th>
+                            <th style="width: 15%;">Tipo de Alvo</th>
+                            <th style="width: 25%;">Problemas / Notas</th>
+                            <th style="width: 20%;">Contatos / Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="surgical-leads-tbody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                                Nenhum lead cirúrgico encontrado. Defina os parâmetros acima para iniciar.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- TAB: INTERNATIONAL PROSPECTING -->
+        <div id="tab-international" class="tab-pane">
+            <div class="header">
+                <h1>Prospecção Internacional (Expats)</h1>
+                <p>Encontre e faça contato com prestadores de serviços brasileiros no exterior.</p>
+            </div>
+
+            <!-- SEARCH CONTROLS & MONITOR -->
+            <div class="dashboard-layout" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                <!-- SEARCH PARAMETERS FORM -->
+                <div class="card" style="margin: 0;">
+                    <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                        🌐 Configuração da Busca Internacional
+                    </h3>
+                    
+                    <div class="form-group row">
+                        <div>
+                            <label for="intl_country">País de Destino</label>
+                            <select id="intl_country" style="width: 100%;">
+                                <option value="US" selected>🇺🇸 Estados Unidos</option>
+                                <option value="PT">🇵🇹 Portugal</option>
+                                <option value="GB">🇬🇧 Reino Unido</option>
+                                <option value="IE">🇮🇪 Irlanda</option>
+                                <option value="CA">🇨🇦 Canadá</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="intl_city">Cidade / Região</label>
+                            <input type="text" id="intl_city" placeholder="Ex: Boston, Orlando, London..." value="Orlando">
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <div>
+                            <label for="intl_segment">Segmento Expat</label>
+                            <select id="intl_segment" style="width: 100%;">
+                                <option value="cleaning" selected>🧹 Serviços de Limpeza (Cleaners)</option>
+                                <option value="handyman">🛠️ Reforma e Manutenção (Handyman)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="intl_limit">Limite de Resultados</label>
+                            <input type="number" id="intl_limit" min="1" max="50" value="10">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="intl_source">Motor de busca</label>
+                        <select id="intl_source" style="width: 100%;">
+                            <option value="auto" selected>Automático (gosom, Serper, DuckDuckGo)</option>
+                            <option value="gosom">gosom local</option>
+                            <option value="serper">Serper.dev</option>
+                            <option value="duckduckgo">DuckDuckGo (reserva)</option>
+                        </select>
+                    </div>
+
+                    <button type="button" id="start-intl-search-btn" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+                        🚀 Iniciar Busca Internacional
+                    </button>
+                </div>
+
+                <!-- MONITOR CONSOLE -->
+                <div class="card" style="margin: 0; display: flex; flex-direction: column;">
+                    <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                        🖥️ Console do Motor Internacional
+                    </h3>
+                    <div class="console-log" id="intl-console-logs" style="flex: 1; min-height: 160px; background: #05060b; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; line-height: 1.4; color: #a855f7;">
+                        <div style="color: var(--text-muted);">Aguardando início da busca...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATISTICS ISOLATED GRID -->
+            <div class="stats-grid" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <span class="stat-title">Total Encontrado</span>
+                    <span class="stat-value" id="intl-stat-total">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-title">Pendentes</span>
+                    <span class="stat-value" id="intl-stat-pending" style="color: var(--warning);">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-title">Aprovados</span>
+                    <span class="stat-value" id="intl-stat-approved" style="color: var(--secondary);">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-title">Falhas / Sem E-mail</span>
+                    <span class="stat-value" id="intl-stat-failed" style="color: var(--danger);">0</span>
+                </div>
+            </div>
+
+            <!-- FILTER BUTTONS -->
+            <div class="filters" style="margin-bottom: 16px; display: flex; gap: 8px;">
+                <button type="button" class="btn btn-secondary active intl-filter-btn" data-status="all">Todos</button>
+                <button type="button" class="btn btn-secondary intl-filter-btn" data-status="pending">Pendentes</button>
+                <button type="button" class="btn btn-secondary intl-filter-btn" data-status="approved">Aprovados</button>
+                <button type="button" class="btn btn-secondary intl-filter-btn" data-status="sent">Contatados</button>
+                <button type="button" class="btn btn-secondary intl-filter-btn" data-status="failed">Falhou</button>
+            </div>
+
+            <!-- TABLE OF LEADS -->
+            <div class="table-container">
+                <table class="leads-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 20%;">Empresa / Profissional</th>
+                            <th style="width: 15%;">Localização</th>
+                            <th style="width: 15%;">Contatos</th>
+                            <th style="width: 15%;">Avaliações (Google)</th>
+                            <th style="width: 15%;">Opportunity Score</th>
+                            <th style="width: 20%;">Ações Rápidas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="intl-leads-tbody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                                Nenhum lead internacional encontrado. Configure a busca acima.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 2: LEADS DASHBOARD -->
+        <div id="tab-leads" class="tab-pane">
+            <div class="header">
+                <h1>Painel de Leads Rastreados</h1>
+                <p>Gerencie as empresas encontradas, revise os problemas técnicos detectados e aprove a abordagem por e-mail.</p>
+            </div>
+            
+            <!-- Stats Row -->
+            <div class="stats-grid">
+                <div class="stat-card primary">
+                    <div>
+                        <div class="stat-label">Total Leads</div>
+                        <div class="stat-value" id="stats-total">0</div>
+                    </div>
+                    <div class="stat-meta">Leads rastreados</div>
+                </div>
+                <div class="stat-card warning">
+                    <div>
+                        <div class="stat-label">Pendentes</div>
+                        <div class="stat-value" id="stats-pending">0</div>
+                    </div>
+                    <div class="stat-meta">Aguardando revisão</div>
+                </div>
+                <div class="stat-card primary" style="--primary: #818cf8;">
+                    <div>
+                        <div class="stat-label">Aprovados</div>
+                        <div class="stat-value" id="stats-approved">0</div>
+                    </div>
+                    <div class="stat-meta">Prontos na fila de envio</div>
+                </div>
+                <div class="stat-card success">
+                    <div>
+                        <div class="stat-label">Enviados</div>
+                        <div class="stat-value" id="stats-sent">0</div>
+                    </div>
+                    <div class="stat-meta">Abordagem realizada</div>
+                </div>
+                <div class="stat-card danger">
+                    <div>
+                        <div class="stat-label">Falhas</div>
+                        <div class="stat-value" id="stats-failed">0</div>
+                    </div>
+                    <div class="stat-meta">Erros de envio SMTP</div>
+                </div>
+            </div>
+            
+            <!-- Filters Bar -->
+            <div class="filters-bar">
+                <div class="filter-tags">
+                    <span class="filter-tag active" data-filter="all">Todos</span>
+                    <span class="filter-tag" data-filter="pending">Pendentes</span>
+                    <span class="filter-tag" data-filter="approved">Aprovados</span>
+                    <span class="filter-tag" data-filter="sent">Enviados</span>
+                    <span class="filter-tag" data-filter="failed">Falhas</span>
+                    <span class="filter-tag" data-filter="rejected">Arquivados</span>
+                </div>
+                
+                <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                    Enviados hoje: <strong id="sent-today-count" style="color: var(--success);">0</strong> / <span id="daily-limit-val">20</span> (limite diário)
+                </div>
+            </div>
+            
+            <!-- Leads Card Grid -->
+            <div class="leads-grid" id="leads-container">
+                <!-- Cards inject here dynamically -->
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                    <h3>Nenhum lead encontrado</h3>
+                    <p>Use a aba "Buscar Leads" para fazer sua primeira pesquisa.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TAB 3: BATCH QUEUE -->
+        <div id="tab-queue" class="tab-pane">
+            <div class="header">
+                <h1>Fila de Disparos em Lote</h1>
+                <p>Envie e-mails automaticamente para os leads aprovados respeitando o limite diário de até 20 contatos para evitar spam.</p>
+            </div>
+            
+            <div class="dashboard-layout" style="grid-template-columns: 400px 1fr;">
+                <!-- Queue Stats & Control -->
+                <div class="card">
+                    <h2 class="card-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="2" y1="10" x2="22" y2="10"></line>
+                        </svg>
+                        Painel de Controle
+                    </h2>
+                    
+                    <div style="margin-bottom: 24px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <span style="color:var(--text-secondary);">Fila de Envio (Aprovados):</span>
+                            <strong id="queue-pending-count">0 leads</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <span style="color:var(--text-secondary);">Enviados Hoje:</span>
+                            <strong id="queue-sent-today">0 / 20</strong>
+                        </div>
+                        
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="queue-progress-bar"></div>
+                        </div>
+                        <div style="text-align: right; font-size: 0.8rem; color: var(--text-muted);" id="queue-progress-label">0% completado</div>
+                    </div>
+                    
+                    <div class="form-group" style="margin: 16px 0 12px; display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="queue-bypass-limit" style="width: auto; cursor: pointer; transform: scale(1.1);">
+                        <label for="queue-bypass-limit" style="margin-bottom: 0; cursor: pointer; text-transform: none; font-size: 0.8rem; font-weight: 500;">
+                            Ignorar limite diário e enviar tudo
+                        </label>
+                    </div>
+                    
+                    <button id="start-queue-btn" class="btn btn-success btn-block" style="margin-bottom: 12px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        Iniciar Envio do Lote
+                    </button>
+                    
+                    <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+                        💡 O sistema enviará um e-mail a cada 5 segundos para simular comportamento humano e evitar bloqueios de SMTP no servidor de hospedagem.
+                    </div>
+                </div>
+                
+                <!-- Queue Logs -->
+                <div class="console">
+                    <div class="console-header">
+                        <span class="console-title">
+                            <span class="console-dot" id="queue-status-dot"></span>
+                            Relatório de Disparos em Lote
+                        </span>
+                    </div>
+                    <div class="console-body" id="queue-logs" style="color:#10b981;">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sent History Section -->
+            <div class="card" style="margin-top: 30px;">
+                <h3 class="card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Histórico de Leads Enviados
+                </h3>
+                <div style="overflow-x: auto; margin-top: 16px;">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Empresa</th>
+                                <th>Website</th>
+                                <th>E-mail</th>
+                                <th>Enviado Em</th>
+                                <th style="text-align: right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="queue-sent-table-body">
+                            <tr>
+                                <td colspan="5" style="padding: 24px; text-align: center; color: var(--text-muted);">
+                                    Nenhum e-mail enviado ainda.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TAB 4: FOLLOW-UP (Acompanhamento) -->
+        <div id="tab-followup" class="tab-pane">
+            <div class="header">
+                <h1>Acompanhamento de Leads</h1>
+                <p>Controle há quantos dias os e-mails foram enviados e reforce o contato via WhatsApp com os leads.</p>
+            </div>
+            
+            <div class="card">
+                <h3 class="card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Lista de Acompanhamento (E-mails Enviados)
+                </h3>
+                <div style="overflow-x: auto; margin-top: 16px;">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Empresa</th>
+                                <th>E-mail</th>
+                                <th>Dias Decorridos</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="followup-table-body">
+                            <tr>
+                                <td colspan="5" style="padding: 24px; text-align: center; color: var(--text-muted);">
+                                    Nenhum lead com e-mail enviado para acompanhamento.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TAB 5: SETTINGS -->
+        <div id="tab-settings" class="tab-pane">
+            <div class="header">
+                <h1>Configurações do Sistema</h1>
+                <p>Ajuste as chaves de API, credenciais SMTP e dados do remetente para a escrita dos e-mails personalizados.</p>
+            </div>
+            
+            <div class="card" style="max-width: 900px; margin: 0 auto;">
+                <form id="settings-form">
+                    
+                    <!-- Section A: Gemini API -->
+                    <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 10px;">
+                        🔑 Inteligência Artificial (Google Gemini)
+                    </h3>
+                    <div class="form-group">
+                        <label for="gemini_api_key">Chave de API do Gemini (AI Studio)</label>
+                        <input type="password" id="gemini_api_key" name="gemini_api_key" placeholder="Insira sua API Key (começa com AIza...)">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            Você pode obter sua chave de API gratuitamente no <a href="https://aistudio.google.com/" target="_blank" style="color:var(--secondary);">Google AI Studio</a>. Caso fique em branco, o sistema usará um e-mail padrão.
+                        </div>
+                    </div>
+                    
+                    <!-- Section A2: KipFlow API -->
+                    <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 30px;">
+                        📋 Conexão KipFlow (Base Oficial B2B)
+                    </h3>
+                    <div class="form-group">
+                        <label for="kipflow_api_key">Chave de API do KipFlow</label>
+                        <input type="password" id="kipflow_api_key" name="kipflow_api_key" placeholder="Insira sua KipFlow API Key">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            Usada para enriquecimento de leads com dados da Receita Federal (CNPJ, Quadro de Sócios, Faturamento) e buscas avançadas de empresas.
+                        </div>
+                    </div>
+                    
+                    <!-- Section A3: Serper API -->
+                    <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 30px;">
+                        🔍 Google Search & Maps (Serper.dev API)
+                    </h3>
+                    <div class="form-group">
+                        <label for="serper_api_key">Chave de API do Serper.dev</label>
+                        <input type="password" id="serper_api_key" name="serper_api_key" placeholder="Insira sua Serper.dev API Key">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            Usada para buscar empresas locais estrangeiras diretamente no Google Maps sem bloqueios ou limites de taxa. Obtenha 2.500 buscas gratuitas se cadastrando no <a href="https://serper.dev/" target="_blank" style="color:var(--secondary);">Serper.dev</a>. Se estiver vazia, o sistema usará o DuckDuckGo.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gosom_api_url">URL do gosom local</label>
+                        <input type="url" id="gosom_api_url" name="gosom_api_url" placeholder="http://localhost:8080">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            Motor self-hosted preferencial para Google Maps. Deixe vazio para usar Serper/DuckDuckGo.
+                        </div>
+                    </div>
+                    
+                    <!-- Section B: Sender Config -->
+                    <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 30px;">
+                        👤 Perfil do Remetente (Suas Informações)
+                    </h3>
+                    <div class="form-group row">
+                        <div>
+                            <label for="sender_name">Seu Nome / Empresa</label>
+                            <input type="text" id="sender_name" name="sender_name" value="Matheus Paviani">
+                        </div>
+                        <div>
+                            <label for="sender_whatsapp">Seu WhatsApp de Contato</label>
+                            <input type="text" id="sender_whatsapp" name="sender_whatsapp" value="(51) 99766-1506">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="sender_pitch">Descrição Breve do Seu Serviço (Pitch Comercial)</label>
+                        <textarea id="sender_pitch" name="sender_pitch" rows="3">Criação e modernização de sites institucionais modernos, rápidos, responsivos (adaptados para celulares) e otimizados para atrair clientes do segmento industrial.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="email_rules">Regras de Copywriting para a IA gerar o e-mail</label>
+                        <textarea id="email_rules" name="email_rules" rows="4"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="mockup_base_url">URL Base dos Modelos de Amostra (Mockups)</label>
+                        <input type="text" id="mockup_base_url" name="mockup_base_url" placeholder="Ex: https://meusite.com/clientes/">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            Link base para o qual o sistema gerará o link da amostra do cliente (ex: url-base/slug-da-empresa).
+                        </div>
+                    </div>
+                    
+                    <!-- Section C: SMTP Server -->
+                    <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 30px;">
+                        📧 Servidor SMTP (Envio de E-mails)
+                    </h3>
+                    <div class="form-group row">
+                        <div>
+                            <label for="smtp_host">Servidor SMTP Host</label>
+                            <input type="text" id="smtp_host" name="smtp_host" value="smtp.hostinger.com" placeholder="Ex: smtp.hostinger.com ou smtp.gmail.com">
+                        </div>
+                        <div>
+                            <label for="smtp_port">Porta SMTP</label>
+                            <input type="text" id="smtp_port" name="smtp_port" value="465" placeholder="Ex: 465 ou 587">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div>
+                            <label for="smtp_security">Segurança da Conexão</label>
+                            <select id="smtp_security" name="smtp_security">
+                                <option value="SSL">SSL / TLS (geralmente porta 465)</option>
+                                <option value="STARTTLS">STARTTLS (geralmente porta 587)</option>
+                                <option value="None">Sem Criptografia (porta 25)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="daily_email_limit">Limite Diário de Disparos</label>
+                            <input type="number" id="daily_email_limit" name="daily_email_limit" value="20" min="1" max="100">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div>
+                            <label for="smtp_user">E-mail de Login SMTP</label>
+                            <input type="email" id="smtp_user" name="smtp_user" placeholder="seu-email@dominio.com">
+                        </div>
+                        <div>
+                            <label for="smtp_password">Senha do E-mail / Senha de App</label>
+                            <input type="password" id="smtp_password" name="smtp_password" placeholder="Sua senha de e-mail ou app password">
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding: 20px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px;">
+                        <h4 style="font-family: var(--font-heading); color: #cbd5e1; margin-bottom: 12px; font-size: 0.95rem;">🧪 Teste Rápido de SMTP</h4>
+                        <div class="form-group" style="margin-bottom: 12px;">
+                            <label for="smtp_test_recipient" style="font-size: 0.8rem;">E-mail do Destinatário para o Teste</label>
+                            <input type="email" id="smtp_test_recipient" placeholder="Ex: seu-email-pessoal@gmail.com">
+                        </div>
+                        <button type="button" id="test-smtp-btn" class="btn btn-secondary btn-block">
+                            Enviar E-mail de Teste
+                        </button>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button type="submit" class="btn btn-primary btn-block">
+                            💾 Salvar Todas as Configurações
+                        </button>
+                    </div>
+                    
+                </form>
+            </div>
+        </div>
+        
+        <!-- TAB 6: AUTOMATION & IMPORT -->
+        <div id="tab-automation" class="tab-pane">
+            <div class="header">
+                <h1>Piloto Automático & Importação</h1>
+                <p>Automatize buscas e disparos de e-mails em segundo plano seguindo regras de horário comercial, ou importe listas externas.</p>
+            </div>
+            
+            <!-- OVERALL STATUS BANNER -->
+            <div id="autopilot-overall-status-card" style="background: rgba(30, 41, 59, 0.4); border: 1px solid var(--border-color); padding: 16px 20px; border-radius: 8px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div id="autopilot-status-dot" class="status-dot-inactive" style="width: 12px; height: 12px; border-radius: 50%; transition: background-color 0.3s ease;"></div>
+                    <div>
+                        <span style="font-size: 0.75rem; color: var(--text-muted); display: block; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Status do Piloto Automático</span>
+                        <strong id="autopilot-status-title" style="font-size: 1.1rem; color: var(--text-primary);">Desativado</strong>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" id="start-autopilot-master-btn" class="btn btn-success" style="background-color: var(--success); color: white; border: none; font-weight: 600; padding: 10px 20px; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; border-radius: 6px;">
+                        ▶️ Iniciar Piloto Automático
+                    </button>
+                    <button type="button" id="stop-autopilot-master-btn" class="btn btn-danger" style="background-color: #ef4444; color: white; border: none; font-weight: 600; padding: 10px 20px; font-size: 0.9rem; cursor: pointer; display: none; align-items: center; gap: 6px; border-radius: 6px;">
+                        ⏹️ Parar Piloto Automático
+                    </button>
+                </div>
+            </div>
+            
+            <div class="row" style="display: flex; gap: 24px; flex-wrap: wrap;">
+                
+                <!-- COLUMN 1: CONFIGS -->
+                <div style="flex: 1; min-width: 450px; display: flex; flex-direction: column; gap: 24px;">
+                    
+                    <!-- CARD: AUTOPILOT SETTINGS -->
+                    <div class="card" style="margin: 0;">
+                        <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                            ⚡ Configuração do Piloto Automático
+                        </h3>
+                        
+                        <form id="autopilot-settings-form">
+                            <!-- Toggle Sender -->
+                            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div>
+                                    <label style="margin: 0; font-weight: 600;">Disparador Automático de E-mails</label>
+                                    <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Envia e-mails agendados da fila em segundo plano.</span>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="autopilot_sender_enabled">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            
+                            <!-- Toggle Search -->
+                            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 12px;">
+                                <div>
+                                    <label style="margin: 0; font-weight: 600;">Busca Automática (Scraper nas Horas Vagas)</label>
+                                    <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Busca novos leads automaticamente no Google Maps.</span>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="autopilot_search_enabled">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            
+                            <!-- Toggle Auto Approve -->
+                            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 12px;">
+                                <div>
+                                    <label style="margin: 0; font-weight: 600;">Auto-Aprovação de Leads Qualificados</label>
+                                    <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Leads com e-mail válido vão direto para a fila de envio.</span>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="autopilot_auto_approve">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            
+                            <h4 style="margin: 20px 0 10px; color: #cbd5e1; font-size: 0.95rem;">🕒 Horários & Regras de Intervalo</h4>
+                            
+                            <div class="form-group row">
+                                <div>
+                                    <label for="autopilot_sender_interval_min">Intervalo de Envios (Minutos)</label>
+                                    <input type="number" id="autopilot_sender_interval_min" min="5" value="20">
+                                </div>
+                                <div>
+                                    <label for="autopilot_search_interval_hours">Frequência de Buscas (Horas)</label>
+                                    <input type="number" id="autopilot_search_interval_hours" min="1" value="12">
+                                </div>
+                            </div>
+                            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 12px; margin-top: 15px;">
+                                <div>
+                                    <strong style="font-size: 0.85rem; color: #cbd5e1; display: block;">Restringir a Horário Comercial</strong>
+                                    <span style="font-size: 0.75rem; color: var(--text-muted);">Se desligado, os disparos ocorrerão 24 horas por dia.</span>
+                                </div>
+                                <label class="switch">
+                                    <input type="checkbox" id="autopilot_sender_hours_enabled">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="form-group row" id="autopilot-hours-inputs-row">
+                                <div>
+                                    <label for="autopilot_sender_start_hour">Hora de Início (Envios)</label>
+                                    <select id="autopilot_sender_start_hour">
+                                        <option value="6">06:00 AM</option>
+                                        <option value="7">07:00 AM</option>
+                                        <option value="8" selected>08:00 AM</option>
+                                        <option value="9">09:00 AM</option>
+                                        <option value="10">10:00 AM</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="autopilot_sender_end_hour">Hora de Término (Envios)</label>
+                                    <select id="autopilot_sender_end_hour">
+                                        <option value="17">17:00 PM</option>
+                                        <option value="18" selected>18:00 PM</option>
+                                        <option value="19">19:00 PM</option>
+                                        <option value="20">20:00 PM</option>
+                                        <option value="21">21:00 PM</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label style="display: block; margin-bottom: 8px;">Dias Permitidos para Envios</label>
+                                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                    <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" class="autopilot-day" value="1" checked> Seg
+                                    </label>
+                                    <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" class="autopilot-day" value="2" checked> Ter
+                                    </label>
+                                    <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" class="autopilot-day" value="3" checked> Qua
+                                    </label>
+                                    <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" class="autopilot-day" value="4" checked> Qui
+                                    </label>
+                                    <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" class="autopilot-day" value="5" checked> Sex
+                                    </label>
+                                    <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" class="autopilot-day" value="6"> Sáb
+                                    </label>
+                                    <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" class="autopilot-day" value="7"> Dom
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <h4 style="margin: 20px 0 10px; color: #cbd5e1; font-size: 0.95rem;">🎯 Alvos de Busca do Autopilot</h4>
+                            
+                            <!-- Visual Builder Form -->
+                            <div class="visual-target-builder" style="background: rgba(30,41,59,0.3); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                    <div>
+                                        <label style="font-size: 0.75rem; margin-bottom: 4px; display: block; color: var(--text-secondary);">Segmento</label>
+                                        <input type="text" id="target_segment" placeholder="Ex: Advogado" style="padding: 6px 10px; font-size: 0.8rem; width: 100%; box-sizing: border-box;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.75rem; margin-bottom: 4px; display: block; color: var(--text-secondary);">Região (Cidade - UF)</label>
+                                        <input type="text" id="target_region" placeholder="Ex: Porto Alegre - RS" style="padding: 6px 10px; font-size: 0.8rem; width: 100%; box-sizing: border-box;">
+                                    </div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; gap: 10px; align-items: flex-end;">
+                                    <div>
+                                        <label style="font-size: 0.75rem; margin-bottom: 4px; display: block; color: var(--text-secondary);">Tipo de Busca</label>
+                                        <select id="target_type" style="padding: 6px; font-size: 0.85rem; width: 100%;">
+                                            <option value="maps_only">Google Maps (Cirúrgica)</option>
+                                            <option value="organic">Orgânica (Sites)</option>
+                                            <option value="kipflow">KipFlow (Base CNPJ)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.75rem; margin-bottom: 4px; display: block; color: var(--text-secondary);">Leads</label>
+                                        <input type="number" id="target_limit" value="10" min="1" max="100" style="padding: 6px; font-size: 0.8rem; width: 100%; box-sizing: border-box;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.75rem; margin-bottom: 4px; display: block; color: var(--text-secondary);">Raio (km)</label>
+                                        <input type="number" id="target_radius" value="0" min="0" max="100" style="padding: 6px; font-size: 0.8rem; width: 100%; box-sizing: border-box;">
+                                    </div>
+                                    <div>
+                                        <button type="button" id="add-target-btn" class="btn btn-secondary" style="padding: 7px 12px; font-size: 0.8rem; border: none; background-color: var(--secondary); color: var(--text-primary); cursor: pointer; font-weight: 600;">
+                                            ➕ Add
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Visual Targets Container -->
+                            <label style="display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-secondary);">Fila de Rotação de Buscas:</label>
+                            <div id="autopilot-targets-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; margin-bottom: 16px; padding: 8px; border: 1px dashed var(--border-color); border-radius: 6px; background: rgba(15,23,42,0.2);">
+                                <div id="no-targets-msg" style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 12px;">
+                                    Nenhum alvo de busca cadastrado. Adicione um alvo acima.
+                                </div>
+                            </div>
+                            
+                            <!-- Hidden JSON storage to keep API compatibility -->
+                            <input type="hidden" id="autopilot_search_targets_area" value="[]">
+                            
+                            <button type="button" id="save-autopilot-btn" class="btn btn-primary btn-block" style="margin-top: 16px;">
+                                💾 Salvar Configurações do Autopilot
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- COLUMN 2: IMPORTER -->
+                <div style="flex: 1.2; min-width: 450px; display: flex; flex-direction: column; gap: 24px;">
+                    
+                    <!-- CARD: IMPORT LIST -->
+                    <div class="card" style="margin: 0;">
+                        <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                            📥 Importar e Verificar Leads
+                        </h3>
+                        
+                        <div class="form-group">
+                            <label for="import-textarea">Cole a lista de Leads (um site ou nome de empresa por linha)</label>
+                            <textarea id="import-textarea" rows="6" placeholder="Exemplo:&#10;https://metalurgicapaviani.com.br&#10;Clínica Estética Porto Alegre&#10;http://example.com" style="font-family: monospace; font-size: 0.9rem;"></textarea>
+                        </div>
+                        
+                        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                            <label style="display: inline-flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer; margin: 0;">
+                                <input type="checkbox" id="import_auto_approve" checked> Auto-aprovar leads importados qualificados (e-mail válido)
+                            </label>
+                        </div>
+                        
+                        <button type="button" id="start-import-btn" class="btn btn-primary">
+                            🚀 Processar e Importar Lista
+                        </button>
+                        
+                        <!-- PROGRESS SECTION -->
+                        <div id="importer-progress-container" style="display: none; margin-top: 20px; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                <span id="importer-status-text" style="font-weight: 600;">Importando...</span>
+                                <span id="importer-percent" style="color: var(--secondary); font-weight: 600;">0%</span>
+                            </div>
+                            <div class="progress-bar" style="background: rgba(255,255,255,0.05); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 12px;">
+                                <div class="progress-fill" id="importer-progress-fill" style="width: 0%; height: 100%; background: var(--secondary); transition: width 0.3s ease;"></div>
+                            </div>
+                            
+                            <div class="console-log" id="importer-logs" style="margin-top: 12px; height: 150px; background: #05060b; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; line-height: 1.4; color: #a3e635;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- CARD: MONITOR -->
+                    <div class="card" style="margin: 0;">
+                        <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+                            📊 Console de Atividade do Autopilot
+                        </h3>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                            <div>
+                                <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Status do Disparador:</span>
+                                <span id="autopilot-sender-status-badge" class="badge">Calculando...</span>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Status da Busca:</span>
+                                <span id="autopilot-search-status-badge" class="badge">Calculando...</span>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Próximo Envio:</span>
+                                <span id="autopilot-next-send-time" style="font-weight: 600; color: #f1f5f9;">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="console-log" id="autopilot-logs" style="height: 180px; background: #05060b; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; line-height: 1.4; color: #38bdf8;"></div>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 12px;">
+                            <button type="button" id="force-search-btn" class="btn btn-secondary btn-sm" style="flex: 1; padding: 8px; font-size: 0.8rem; background-color: var(--secondary); color: var(--text-primary); border: none; font-weight: 600; cursor: pointer; border-radius: 6px;">
+                                🔍 Forçar Busca Agora
+                            </button>
+                            <button type="button" id="force-send-btn" class="btn btn-secondary btn-sm" style="flex: 1; padding: 8px; font-size: 0.8rem; background-color: var(--secondary); color: var(--text-primary); border: none; font-weight: 600; cursor: pointer; border-radius: 6px;">
+                                📧 Forçar Disparo Agora
+                            </button>
+                        </div>
+                        
+                        <!-- Autopilot History Section -->
+                        <h4 style="margin: 20px 0 8px; color: #cbd5e1; font-size: 0.9rem; border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                            📋 Resumo das Últimas Ações (Histórico)
+                        </h4>
+                        <div id="autopilot-history-container" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 10px;">
+                                Nenhuma atividade registrada no histórico ainda.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT LEAD & EMAIL DRAFT -->
+    <div class="modal" id="edit-lead-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-company-title">Editar Detalhes do Lead</h3>
+                <button class="close-btn" id="close-modal-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-lead-form">
+                    <input type="hidden" id="edit-lead-id">
+                    
+                    <div class="form-group row">
+                        <div>
+                            <label for="edit-company-name">Nome da Empresa</label>
+                            <input type="text" id="edit-company-name">
+                        </div>
+                        <div>
+                            <label for="edit-website">Website</label>
+                            <input type="text" id="edit-website">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group row">
+                        <div>
+                            <label for="edit-email">E-mail de Contato</label>
+                            <input type="email" id="edit-email">
+                        </div>
+                        <div>
+                            <label for="edit-whatsapp">WhatsApp (somente números)</label>
+                            <input type="text" id="edit-whatsapp" placeholder="Ex: 51997661506">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-phone">Telefone Fixo / Geral</label>
+                        <input type="text" id="edit-phone">
+                    </div>
+                    
+                    <h4 style="margin: 24px 0 12px; font-family: var(--font-heading); color: #cbd5e1; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+                        ✉️ E-mail Personalizado
+                    </h4>
+                    
+                    <div class="form-group">
+                        <label for="edit-subject">Assunto do E-mail</label>
+                        <input type="text" id="edit-subject" style="font-weight: 500;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-body">Corpo do E-mail</label>
+                        <textarea id="edit-body" rows="12" style="font-family: monospace; font-size: 0.9rem; line-height: 1.5;"></textarea>
+                    </div>
+                    
+                    <h4 style="margin: 24px 0 12px; font-family: var(--font-heading); color: #cbd5e1; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+                        💬 Mensagem de WhatsApp (Abordagem Rápida)
+                    </h4>
+                    
+                    <div class="form-group">
+                        <label for="edit-whatsapp-draft">Mensagem WhatsApp</label>
+                        <textarea id="edit-whatsapp-draft" rows="4" style="font-family: monospace; font-size: 0.9rem; line-height: 1.4;"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-edit-btn">Cancelar</button>
+                <button class="btn btn-primary" id="save-lead-btn">Salvar Alterações</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

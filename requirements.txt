@@ -1,0 +1,11 @@
+Flask==2.3.3
+requests==2.31.0
+beautifulsoup4==4.12.2
+duckduckgo-search
+google-generativeai
+python-dotenv
+curl-cffi==0.15.0
+dnspython
+playwright
+Pillow
+gunicorn==21.2.0

@@ -1,0 +1,11 @@
+venv/
+.git/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+*.db
+search_debug.jsonl
+autopilot_history.jsonl
+tests/
