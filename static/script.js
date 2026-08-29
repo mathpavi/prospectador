@@ -24,6 +24,31 @@ function getFormattedWhatsappDraft(lead) {
     return draft;
 }
 
+// Helper to format date and time in Portuguese
+function formatDateTime(dateStr) {
+    if (!dateStr) return 'Não informado';
+    try {
+        const parts = dateStr.split(' ');
+        if (parts.length === 2) {
+            const [year, month, day] = parts[0].split('-');
+            const [hour, minute] = parts[1].split(':');
+            return `${day}/${month}/${year} às ${hour}:${minute}`;
+        }
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            const hour = String(d.getHours()).padStart(2, '0');
+            const minute = String(d.getMinutes()).padStart(2, '0');
+            return `${day}/${month}/${year} às ${hour}:${minute}`;
+        }
+        return dateStr;
+    } catch(e) {
+        return dateStr;
+    }
+}
+
 // DOM Elements
 const navItems = document.querySelectorAll('.nav-item');
 const tabPanes = document.querySelectorAll('.tab-pane');
@@ -682,6 +707,9 @@ function renderLeadCards(prospects) {
                             <line x1="10" y1="14" x2="21" y2="3"></line>
                         </svg>
                     </a>
+                    <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">
+                        📅 Captado em: <strong>${formatDateTime(lead.created_at)}</strong>
+                    </div>
                 </div>
                 ${statusBadge}
             </div>
@@ -1219,7 +1247,10 @@ async function loadFollowupList() {
             }
             
             tr.innerHTML = `
-                <td style="padding: 16px 12px; font-weight: 600; vertical-align: middle;">${lead.company_name}</td>
+                <td style="padding: 16px 12px; font-weight: 600; vertical-align: middle;">
+                    <div>${lead.company_name}</div>
+                    <div style="font-size:0.72rem; color:var(--text-muted); font-weight:400; margin-top:2px;">📅 Captado em: <strong>${formatDateTime(lead.created_at)}</strong></div>
+                </td>
                 <td style="padding: 16px 12px; color:var(--text-secondary); vertical-align: middle;">${lead.contact_email || '<span style="color:var(--text-muted)">Sem e-mail</span>'}</td>
                 <td style="padding: 16px 12px; color:var(--text-secondary); vertical-align: middle;">${daysElapsedText}</td>
                 <td style="padding: 16px 12px; vertical-align: middle;">${statusBadge}</td>
@@ -1588,6 +1619,7 @@ function renderSurgicalTable(leads) {
             <td>
                 <div style="font-weight: 600; color: var(--text-primary);">${lead.company_name}${pilotBadge}</div>
                 <div style="margin-top: 4px;">${websiteLink}</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">📅 Captado em: <strong>${formatDateTime(lead.created_at)}</strong></div>
             </td>
             <td>
                 <div>${lead.segment}</div>
@@ -2320,7 +2352,7 @@ function renderInternationalLeads() {
                 </td>
                 <td style="padding: 12px 8px;">
                     <div style="font-size:0.8rem; color:#e2e8f0;">📍 ${lead.region}</div>
-                    <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Origem: Busca Internacional</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">📅 Captado: <strong>${formatDateTime(lead.created_at)}</strong></div>
                 </td>
                 <td style="padding: 12px 8px; font-size:0.8rem; line-height:1.4;">
                     <div>📧 ${email}</div>
