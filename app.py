@@ -872,6 +872,27 @@ def api_modify_prospect(prospect_id):
         database.update_prospect(prospect_id, data)
         return jsonify({"message": "Prospect atualizado com sucesso!"})
 
+# Approve All Pending Leads with Email
+@app.route('/api/prospects/approve-all', methods=['POST'])
+def api_approve_all_pending():
+    try:
+        conn = database.get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE prospects 
+            SET status = 'approved', updated_at = datetime('now')
+            WHERE status = 'pending' 
+              AND contact_email IS NOT NULL 
+              AND contact_email != ''
+              AND is_international = 0
+        """)
+        count = cursor.rowcount
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": f"{count} leads com e-mail foram aprovados para a fila de envio!", "approved_count": count})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Erro ao aprovar leads: {str(e)}"}), 500
+
 # Enrich Single Prospect with KipFlow
 @app.route('/api/prospects/<int:prospect_id>/enrich', methods=['POST'])
 def api_enrich_prospect(prospect_id):

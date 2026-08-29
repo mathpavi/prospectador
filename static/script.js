@@ -748,6 +748,43 @@ function renderLeadCards(prospects) {
 }
 
 // Action Functions
+async function approveAllPendingLeads() {
+    if (!confirm('Deseja aprovar todos os leads pendentes que possuem e-mail válido para a fila de envio?')) {
+        return;
+    }
+    
+    const btn = document.getElementById('approve-all-pending-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Aprovando leads...';
+    }
+    
+    try {
+        const response = await fetch('/api/prospects/approve-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            if (typeof loadQueueStatus === 'function') loadQueueStatus();
+            if (typeof loadLeads === 'function') loadLeads();
+            if (typeof loadSurgicalLeads === 'function') loadSurgicalLeads();
+        } else {
+            showToast(data.message || 'Erro ao aprovar leads.', 'error');
+        }
+    } catch (e) {
+        showToast('Erro de rede ao aprovar leads.', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '⚡ Aprovar Todos os Pendentes com E-mail';
+        }
+    }
+}
+window.approveAllPendingLeads = approveAllPendingLeads;
+
 async function approveLead(id) {
     await updateLeadStatus(id, 'approved');
 }
