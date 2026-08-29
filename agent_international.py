@@ -160,6 +160,7 @@ def query_gemini_international_copy(prospect, country_name):
     sender_name = database.get_setting('sender_name', 'Matheus Paviani')
     sender_whatsapp = database.get_setting('sender_whatsapp', '(51) 99766-1506')
     sender_pitch = database.get_setting('sender_pitch', 'Criação e modernização de sites de alta conversão')
+    sender_portfolio = database.get_setting('sender_portfolio', 'https://paviani.net/portfolio/')
     
     rating_val = prospect.get('rating', 0.0)
     reviews_val = prospect.get('reviews_count', 0)
@@ -185,7 +186,8 @@ Poderíamos marcar uma conversa de 10 minutos para eu te apresentar esse estudo?
 
 Um abraço,
 {sender_name}
-WhatsApp: {sender_whatsapp}"""
+WhatsApp: {sender_whatsapp}
+Portfólio: {sender_portfolio}"""
 
     whatsapp_body = f"Olá, tudo bem? Vi seu trabalho de {prospect['segment']} em {prospect['region']}!{reputation_text_wa} Sou o {sender_name}. Trabalho profissionalizando sites de prestadores brasileiros aí em {country_name} para ajudá-los a captar clientes nativos (como americanos/locais) e cobrar preços de 2 a 3 vezes mais altos. Montei uma ideia rápida de site moderno para vocês, gostaria de dar uma olhada?"
 
@@ -211,6 +213,7 @@ WhatsApp: {sender_whatsapp}"""
         Dados do Remetente (Você):
         - Nome: {sender_name}
         - WhatsApp: {sender_whatsapp}
+        - Portfólio: {sender_portfolio}
         - Pitch do serviço: {sender_pitch}
         
         Instruções de Copywriting e Ângulo de Vendas (Dor Expat):
@@ -220,6 +223,7 @@ WhatsApp: {sender_whatsapp}"""
         4. No assunto do e-mail: Faça uma abordagem curta e intrigante em português (ex: "Sobre o seu serviço de {prospect['segment']} em {prospect['region']}").
         5. O tom deve ser de brasileiro para brasileiro no exterior: amigável, acolhedor, de apoio e sem parecer corporativo formal.
         6. Ofereça apresentar um "estudo visual rápido" ou "uma demonstração de site de alto padrão" desenhada especificamente para eles, sem compromisso, em uma ligação de 10 minutos.
+        7. No final do e-mail, inclua a assinatura com Nome, WhatsApp e link do Portfólio ({sender_portfolio}).
         
         Retorne a resposta EXATAMENTE no formato JSON estruturado a seguir (não insira marcações adicionais markdown como ```json):
         {{

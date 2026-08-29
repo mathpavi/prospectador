@@ -1418,16 +1418,12 @@ def generate_prospect_email(prospect):
     sender_name = database.get_setting('sender_name', 'Matheus Paviani')
     sender_whatsapp = database.get_setting('sender_whatsapp', '(51) 99766-1506')
     sender_pitch = database.get_setting('sender_pitch', 'Criação e modernização de sites...')
+    sender_portfolio = database.get_setting('sender_portfolio', 'https://paviani.net/portfolio/')
     email_rules = database.get_setting('email_rules', '')
-    
-    # Generate mockup URL
-    mockup_base = database.get_setting('mockup_base_url', 'https://heliocarrecheneto1763367206076_1711244.meusitehostgator.com.br/clientes/')
-    company_slug = generate_slug(prospect['company_name'])
-    mockup_link = f"{mockup_base.rstrip('/')}/{company_slug}"
     
     # If no API key configured, use standard fallback template
     if not api_key:
-        return generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sender_pitch)
+        return generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sender_pitch, sender_portfolio)
 
     # Load screenshot if exists
     screenshot_file = prospect.get('screenshot', '')
@@ -1466,6 +1462,7 @@ def generate_prospect_email(prospect):
             Dados do remetente (você):
             - Nome: {sender_name}
             - WhatsApp: {sender_whatsapp}
+            - Portfólio: {sender_portfolio}
             - Serviço oferecido: {sender_pitch}
             
             Regras cruciais para escrever o e-mail (siga exatamente este estilo amigável e pessoal):
@@ -1477,7 +1474,7 @@ def generate_prospect_email(prospect):
                "Por isso, desenvolvi um estudo visual mostrando como a empresa poderia se apresentar hoje: site moderno, responsivo e com destaque para seus serviços de {prospect['segment']}. Fiz esse material especificamente para vocês."
             6. Chamada para Ação Simples e Apresentação (Quarto Parágrafo): Use exatamente a seguinte ideia e frase:
                "Se vocês tiverem 10 minutos, posso apresentar essa ideia sem compromisso."
-            7. Assinatura simples no final com Nome e WhatsApp.
+            7. Assinatura simples no final com Nome, WhatsApp e link do Portfólio ({sender_portfolio}).
             8. Regras adicionais informadas pelo usuário: {email_rules}
             
             Regras para a mensagem curta de WhatsApp:
@@ -1501,6 +1498,7 @@ def generate_prospect_email(prospect):
             Dados do remetente (você):
             - Nome: {sender_name}
             - WhatsApp: {sender_whatsapp}
+            - Portfólio: {sender_portfolio}
             - Serviço oferecido: {sender_pitch}
             
             Regras cruciais para escrever o e-mail (siga exatamente este estilo amigável e pessoal):
@@ -1512,7 +1510,7 @@ def generate_prospect_email(prospect):
                "Por isso, desenvolvi um estudo visual mostrando como a empresa poderia se apresentar hoje: site moderno, responsivo e com destaque para seus serviços de {prospect['segment']}. Fiz esse material especificamente para vocês."
             6. Chamada para Ação Simples e Apresentação (Quarto Parágrafo): Use exatamente a seguinte ideia e frase:
                "Se vocês tiverem 10 minutos, posso apresentar essa ideia sem compromisso."
-            7. Assinatura simples no final com Nome e WhatsApp.
+            7. Assinatura simples no final com Nome, WhatsApp e link do Portfólio ({sender_portfolio}).
             8. Regras adicionais informadas pelo usuário: {email_rules}
             
             Regras para a mensagem curta de WhatsApp:
@@ -1537,9 +1535,9 @@ def generate_prospect_email(prospect):
         
     except Exception as e:
         add_log(f"Erro ao gerar e-mail com a API do Gemini: {e}. Usando template padrão.")
-        return generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sender_pitch)
+        return generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sender_pitch, sender_portfolio)
 
-def generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sender_pitch):
+def generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sender_pitch, sender_portfolio='https://paviani.net/portfolio/'):
     if prospect.get('surgical_type') == 'no_site':
         subjects = [
             f"Uma sugestão para a {prospect['company_name']}",
@@ -1561,7 +1559,8 @@ Se vocês tiverem 10 minutos, posso apresentar essa ideia sem compromisso.
 
 --
 {sender_name}
-WhatsApp: {sender_whatsapp}"""
+WhatsApp: {sender_whatsapp}
+Portfólio: {sender_portfolio}"""
         return subject, body, whatsapp_draft
 
     subjects = [
@@ -1607,7 +1606,8 @@ Se vocês tiverem 10 minutos, posso apresentar essa ideia sem compromisso.
 
 --
 {sender_name}
-WhatsApp: {sender_whatsapp}"""
+WhatsApp: {sender_whatsapp}
+Portfólio: {sender_portfolio}"""
 
     return subject, body, whatsapp_draft
 

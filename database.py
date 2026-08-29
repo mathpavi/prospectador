@@ -116,12 +116,13 @@ def init_db():
         'autopilot_auto_approve': '0',
         'autopilot_last_email_sent_at': '',
         'autopilot_last_search_run_at': '',
-        'mockup_base_url': 'https://heliocarrecheneto1763367206076_1711244.meusitehostgator.com.br/clientes/'
+        'sender_portfolio': 'https://paviani.net/portfolio/'
     }
     
     for key, val in default_settings.items():
         cursor.execute('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', (key, val))
         
+    cursor.execute("DELETE FROM settings WHERE key = 'mockup_base_url'")
     conn.commit()
     conn.close()
 
