@@ -1043,16 +1043,47 @@
                                 </label>
                             </div>
                             
+                            <!-- PRESETS DE VELOCIDADE -->
+                            <div style="background: rgba(56,189,248,0.05); border: 1px solid rgba(56,189,248,0.2); border-radius: 8px; padding: 14px; margin-top: 16px;">
+                                <label style="margin: 0 0 8px; font-weight: 600; color: #38bdf8; display: block;">⚡ Perfis Rápidos de Rendimento:</label>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="applyAutopilotPreset('turbo')" style="background: rgba(239,68,68,0.15); border: 1px solid #ef4444; color: #f87171; font-weight: 600;">
+                                        🔥 Modo Turbo (150-200 leads/dia)
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="applyAutopilotPreset('accelerated')" style="background: rgba(234,179,8,0.15); border: 1px solid #eab308; color: #facc15; font-weight: 600;">
+                                        ⚡ Acelerado (80-120 leads/dia)
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="applyAutopilotPreset('moderate')" style="background: rgba(16,185,129,0.15); border: 1px solid #10b981; color: #34d399; font-weight: 600;">
+                                        🛡️ Moderado (30-50 leads/dia)
+                                    </button>
+                                </div>
+                            </div>
+                            
                             <h4 style="margin: 20px 0 10px; color: #cbd5e1; font-size: 0.95rem;">🕒 Horários & Regras de Intervalo</h4>
                             
                             <div class="form-group row">
                                 <div>
                                     <label for="autopilot_sender_interval_min">Intervalo de Envios (Minutos)</label>
-                                    <input type="number" id="autopilot_sender_interval_min" min="5" value="20">
+                                    <input type="number" id="autopilot_sender_interval_min" min="1" value="3">
+                                    <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">Ex: 3 min = 20 e-mails/hora (~200/dia).</span>
                                 </div>
                                 <div>
                                     <label for="autopilot_search_interval_hours">Frequência de Buscas (Horas)</label>
-                                    <input type="number" id="autopilot_search_interval_hours" min="1" value="12">
+                                    <input type="number" id="autopilot_search_interval_hours" min="1" value="2">
+                                    <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">Intervalo entre cada busca de novos leads.</span>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group row">
+                                <div>
+                                    <label for="autopilot_search_batch_size">Leads por Ciclo de Busca</label>
+                                    <input type="number" id="autopilot_search_batch_size" min="5" max="100" value="30">
+                                    <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">Volume de leads captados por alvo a cada ciclo.</span>
+                                </div>
+                                <div>
+                                    <label for="daily_email_limit_ap">Limite Diário de Disparos</label>
+                                    <input type="number" id="daily_email_limit_ap" min="10" max="1000" value="150">
+                                    <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">Máximo de e-mails enviados por dia.</span>
                                 </div>
                             </div>
                             <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 12px; margin-top: 15px;">

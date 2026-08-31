@@ -681,7 +681,7 @@ def search_companies(segment, region, max_results=10, location_query=None):
     websites = []
     seen_domains = set()
     
-    target_candidates_count = max(30, min(100, max_results * 3))
+    target_candidates_count = max(50, min(200, max_results * 4))
     
     is_industrial = is_industrial_segment(segment)
     

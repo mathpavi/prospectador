@@ -1758,8 +1758,14 @@ async function loadAutomationSettings() {
             }
         }
         
-        document.getElementById('autopilot_sender_interval_min').value = settings.autopilot_sender_interval_min || '20';
-        document.getElementById('autopilot_search_interval_hours').value = settings.autopilot_search_interval_hours || '12';
+        document.getElementById('autopilot_sender_interval_min').value = settings.autopilot_sender_interval_min || '3';
+        document.getElementById('autopilot_search_interval_hours').value = settings.autopilot_search_interval_hours || '2';
+        if (document.getElementById('autopilot_search_batch_size')) {
+            document.getElementById('autopilot_search_batch_size').value = settings.autopilot_search_batch_size || '30';
+        }
+        if (document.getElementById('daily_email_limit_ap')) {
+            document.getElementById('daily_email_limit_ap').value = settings.daily_email_limit || '150';
+        }
         
         document.getElementById('autopilot_sender_start_hour').value = settings.autopilot_sender_start_hour || '8';
         document.getElementById('autopilot_sender_end_hour').value = settings.autopilot_sender_end_hour || '18';
@@ -1777,7 +1783,7 @@ async function loadAutomationSettings() {
             if (autopilotTargets.length === 0) {
                 // Default target if empty
                 autopilotTargets = [
-                    { segment: "Advogado", region: "Porto Alegre - RS", type: "maps_only", limit: 10, radius_km: 0 }
+                    { segment: "Advogado", region: "Porto Alegre - RS", type: "maps_only", limit: 30, radius_km: 0 }
                 ];
             }
             renderAutopilotTargets();
@@ -1789,6 +1795,31 @@ async function loadAutomationSettings() {
         showToast('Erro ao carregar configurações do Autopilot.', 'error');
     }
 }
+
+function applyAutopilotPreset(mode) {
+    if (mode === 'turbo') {
+        document.getElementById('autopilot_sender_interval_min').value = '3';
+        document.getElementById('autopilot_search_interval_hours').value = '2';
+        if (document.getElementById('autopilot_search_batch_size')) document.getElementById('autopilot_search_batch_size').value = '35';
+        if (document.getElementById('daily_email_limit_ap')) document.getElementById('daily_email_limit_ap').value = '200';
+        document.getElementById('autopilot_auto_approve').checked = true;
+        showToast('🔥 Perfil Turbo aplicado! (Envios a cada 3 min, 35 leads/alvo, limite 200/dia). Clique em Salvar para ativar.', 'info');
+    } else if (mode === 'accelerated') {
+        document.getElementById('autopilot_sender_interval_min').value = '5';
+        document.getElementById('autopilot_search_interval_hours').value = '3';
+        if (document.getElementById('autopilot_search_batch_size')) document.getElementById('autopilot_search_batch_size').value = '25';
+        if (document.getElementById('daily_email_limit_ap')) document.getElementById('daily_email_limit_ap').value = '100';
+        document.getElementById('autopilot_auto_approve').checked = true;
+        showToast('⚡ Perfil Acelerado aplicado! (Envios a cada 5 min, 25 leads/alvo, limite 100/dia). Clique em Salvar para ativar.', 'info');
+    } else if (mode === 'moderate') {
+        document.getElementById('autopilot_sender_interval_min').value = '10';
+        document.getElementById('autopilot_search_interval_hours').value = '6';
+        if (document.getElementById('autopilot_search_batch_size')) document.getElementById('autopilot_search_batch_size').value = '15';
+        if (document.getElementById('daily_email_limit_ap')) document.getElementById('daily_email_limit_ap').value = '40';
+        showToast('🛡️ Perfil Moderado aplicado! (Envios a cada 10 min, 15 leads/alvo, limite 40/dia). Clique em Salvar para ativar.', 'info');
+    }
+}
+window.applyAutopilotPreset = applyAutopilotPreset;
 
 function renderAutopilotTargets() {
     const container = document.getElementById('autopilot-targets-container');
@@ -1821,7 +1852,7 @@ function renderAutopilotTargets() {
             <div>
                 <strong style="color: var(--secondary);">${target.segment}</strong> em <em>${target.region}${radiusLabel}</em>
                 <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
-                    Busca: ${typeLabel} | Limite: ${target.limit} leads
+                    Busca: ${typeLabel} | Limite: ${target.limit || 30} leads
                 </div>
             </div>
             <button type="button" class="btn btn-danger btn-sm" style="padding: 4px 8px; font-size: 0.7rem; background: #ef4444; border: none; border-radius: 4px; color: white; cursor: pointer;" onclick="removeAutopilotTarget(${index})">
@@ -1845,7 +1876,7 @@ if (addTargetBtn) {
         const segment = document.getElementById('target_segment').value.trim();
         const region = document.getElementById('target_region').value.trim();
         const type = document.getElementById('target_type').value;
-        const limit = parseInt(document.getElementById('target_limit').value) || 10;
+        const limit = parseInt(document.getElementById('target_limit').value) || 30;
         const radius = parseInt(document.getElementById('target_radius').value) || 0;
         
         if (!segment || !region) {
@@ -1866,7 +1897,7 @@ if (addTargetBtn) {
         // Clear inputs
         document.getElementById('target_segment').value = '';
         document.getElementById('target_region').value = '';
-        document.getElementById('target_limit').value = '10';
+        document.getElementById('target_limit').value = '30';
         document.getElementById('target_radius').value = '0';
     });
 }
@@ -1879,6 +1910,8 @@ document.getElementById('save-autopilot-btn').addEventListener('click', async ()
     
     const intervalMin = document.getElementById('autopilot_sender_interval_min').value;
     const intervalHours = document.getElementById('autopilot_search_interval_hours').value;
+    const searchBatchSize = document.getElementById('autopilot_search_batch_size') ? document.getElementById('autopilot_search_batch_size').value : '30';
+    const dailyLimit = document.getElementById('daily_email_limit_ap') ? document.getElementById('daily_email_limit_ap').value : '150';
     
     const startHour = document.getElementById('autopilot_sender_start_hour').value;
     const endHour = document.getElementById('autopilot_sender_end_hour').value;
@@ -1897,6 +1930,8 @@ document.getElementById('save-autopilot-btn').addEventListener('click', async ()
         autopilot_sender_hours_enabled: enabledHours,
         autopilot_sender_interval_min: intervalMin,
         autopilot_search_interval_hours: intervalHours,
+        autopilot_search_batch_size: searchBatchSize,
+        daily_email_limit: dailyLimit,
         autopilot_sender_start_hour: startHour,
         autopilot_sender_end_hour: endHour,
         autopilot_sender_days: selectedDays.join(','),

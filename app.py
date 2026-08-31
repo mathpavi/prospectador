@@ -431,8 +431,14 @@ def autopilot_run_next_search(force=False):
     radius_km = int(target.get('radius_km', 0))
     search_type = target.get('type', 'organic')
     
+    try:
+        batch_size = int(database.get_setting('autopilot_search_batch_size', '30'))
+    except:
+        batch_size = 30
+    search_limit = int(target.get('limit', batch_size)) if target.get('limit') else batch_size
+    
     autopilot_status["search_status"] = "searching"
-    autopilot_log(f"Iniciando busca automática do Autopilot: Segmento='{segment}', Região='{region}' (Tipo: {search_type})...")
+    autopilot_log(f"Iniciando busca automática do Autopilot: Segmento='{segment}', Região='{region}' (Alvo: {search_limit} leads, Tipo: {search_type})...")
     
     try:
         now_str = database.get_now_str()
@@ -446,14 +452,14 @@ def autopilot_run_next_search(force=False):
             state_uf = parts[1].split('(')[0].strip()
             
         if search_type == 'maps_only' or target.get('is_surgical', False):
-            agent.run_surgical_job(segment, region, max_results=10, state_uf=state_uf, city_name=city_name, radius_km=radius_km, surgical_type='both', is_autopilot=1)
+            agent.run_surgical_job(segment, region, max_results=search_limit, state_uf=state_uf, city_name=city_name, radius_km=radius_km, surgical_type='both', is_autopilot=1)
         elif search_type == 'kipflow':
-            agent.run_prospecting_job(segment, region, max_results=10, state_uf=state_uf, city_name=city_name, radius_km=radius_km, is_autopilot=1, source_mode="kipflow")
+            agent.run_prospecting_job(segment, region, max_results=search_limit, state_uf=state_uf, city_name=city_name, radius_km=radius_km, is_autopilot=1, source_mode="kipflow")
         else:
-            agent.run_prospecting_job(segment, region, max_results=10, state_uf=state_uf, city_name=city_name, radius_km=radius_km, is_autopilot=1, source_mode="organic")
+            agent.run_prospecting_job(segment, region, max_results=search_limit, state_uf=state_uf, city_name=city_name, radius_km=radius_km, is_autopilot=1, source_mode="organic")
             
         autopilot_log(f"✅ Busca automática do Autopilot concluída com sucesso!")
-        log_autopilot_activity("Busca Automática", f"Busca concluída para '{segment}' em '{region}' (Fonte: {search_type})", "success")
+        log_autopilot_activity("Busca Automática", f"Busca concluída para '{segment}' em '{region}' (Qtd: {search_limit}, Fonte: {search_type})", "success")
     except Exception as e:
         autopilot_log(f"❌ Erro na busca automática: {e}")
         log_autopilot_activity("Busca Automática", f"Falha na busca para '{segment}' em '{region}': {str(e)}", "error")
@@ -472,7 +478,7 @@ def background_autopilot_scheduler():
         except Exception as e:
             pass
             
-        time.sleep(30)
+        time.sleep(10)
 
 # Settings Autopilot Save
 @app.route('/api/autopilot/settings', methods=['POST'])
@@ -489,6 +495,8 @@ def api_autopilot_settings():
         'autopilot_search_enabled',
         'autopilot_search_targets',
         'autopilot_search_interval_hours',
+        'autopilot_search_batch_size',
+        'daily_email_limit',
         'autopilot_auto_approve'
     ]
     for field in fields:
