@@ -77,6 +77,40 @@ IGNORED_DOMAINS = [
     'getninjas.com.br', 'habitissimo.com.br', 'starofservice.com.br', 'cronoshare.com.br'
 ]
 
+def search_serper(query, max_results=20):
+    """
+    Executes a high-precision Google search using the Serper API with Brazilian localization.
+    """
+    api_key = database.get_setting('serper_api_key', '')
+    if not api_key:
+        return []
+        
+    try:
+        headers = {
+            'X-API-KEY': api_key.strip(),
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            'q': query,
+            'gl': 'br',
+            'hl': 'pt-br',
+            'num': min(max_results, 40)
+        }
+        r = requests.post('https://google.serper.dev/search', headers=headers, json=payload, timeout=12)
+        if r.status_code == 200:
+            data = r.json()
+            results = []
+            for item in data.get('organic', []):
+                results.append({
+                    'title': item.get('title', ''),
+                    'href': item.get('link', ''),
+                    'body': item.get('snippet', '')
+                })
+            return results
+    except Exception as e:
+        logger.warning(f"Serper API search failed for '{query}': {e}")
+    return []
+
 def ddg_text_search(query, max_results=20):
     """
     Runs DuckDuckGo text search with fallback to HTML backend if API is rate-limited.
@@ -103,13 +137,30 @@ def ddg_text_search(query, max_results=20):
         
     return []
 
+def search_web_candidates(query, max_results=20):
+    """
+    Unified candidate discovery search engine.
+    Uses Google (Serper API) as primary for high-precision local business discovery,
+    and falls back to DuckDuckGo only if Serper key is not configured.
+    """
+    api_key = database.get_setting('serper_api_key', '')
+    if api_key:
+        serper_results = search_serper(query, max_results=max_results)
+        if serper_results:
+            return serper_results
+        return []
+        
+    # Fallback to DuckDuckGo only if no Serper key is configured
+    return ddg_text_search(query, max_results=max_results)
+
 # Keywords in domain names to block immediately
 FORBIDDEN_DOMAIN_KEYWORDS = [
     # Portals, directories, and corporate listings
     'cnpj', 'transparencia', 'econodata', 'casadosdados', 'apontador', 'telelistas', 'guiamais', 
     'solutudo', 'cadastro', 'lista', 'guiacomercial', 'encontra', 'leads', 'speedio', 
     'situacao-cadastral', 'diretorio', 'catalogo', 'catalog', 'biz', 'queme', 'infocnpj',
-    'infoisinfo', 'moovit', 'guias', 'listas',
+    'infoisinfo', 'moovit', 'guias', 'listas', 'abertaagora', 'mapalocal', 'cylex', 'polomap', 
+    'agendzap', 'infobel', 'guiafix', 'panonalata',
     
     # News, blogs, and media
     'noticia', 'jornal', 'revista', 'blog', 'portal', 'forum', 'wikipedia', 'news', 'press', 
@@ -342,6 +393,16 @@ def is_valid_company_website(url):
         
     domain_lower = domain.lower()
     
+    # Block foreign country domains for Brazilian searches
+    foreign_cctlds = [
+        '.es', '.de', '.au', '.to', '.zm', '.ca', '.ru', '.cn', '.fr', '.it', '.uk', '.in', 
+        '.ar', '.mx', '.co', '.cl', '.pe', '.uy', '.us', '.nl', '.pl', '.se', '.no', '.ch', 
+        '.cz', '.be', '.at', '.dk', '.fi', '.nz', '.za', '.jp', '.kr', '.tw', '.hk', '.sg', 
+        '.my', '.th', '.vn', '.id', '.ph', '.tr', '.gr', '.ro', '.hu', '.ie', '.pt', '.place', '.dev'
+    ]
+    if any(domain_lower.endswith(ext) for ext in foreign_cctlds):
+        return False
+        
     # Block government, educational and generic non-profit domains
     if any(domain_lower.endswith(ext) for ext in ['.gov.br', '.edu.br', '.org.br', '.gov', '.edu', '.org']):
         return False
@@ -750,7 +811,8 @@ def search_companies(segment, region, max_results=10, location_query=None):
     loc = loc.replace(' - ', ' ').replace(' -', ' ').replace('- ', ' ')
     if '(+' in loc:
         loc = re.sub(r'\(\+\d+km\)', '', loc)
-    loc = loc.strip()
+    # Strip any quotation marks to avoid nested/corrupted quotes
+    loc = loc.replace('"', '').replace("'", '').strip()
     
     websites = []
     seen_domains = set()
@@ -800,15 +862,17 @@ def search_companies(segment, region, max_results=10, location_query=None):
         queries.append(f'site:com.br "{segment}" {loc}')
         queries.append(f'site:com.br "{segment}" em {loc}')
     
-    add_log(f'Executando busca no DuckDuckGo com {len(queries)} variações de consulta...')
+    has_serper = bool(database.get_setting('serper_api_key', ''))
+    engine_name = "Google (Serper API)" if has_serper else "DuckDuckGo"
+    add_log(f'Executando busca no {engine_name} com {len(queries)} variações de consulta...')
     
     for idx, q in enumerate(queries):
         if len(websites) >= target_candidates_count:
             break
             
-        add_log(f'Executando consulta DuckDuckGo {idx+1}/{len(queries)}: {q}...')
+        add_log(f'Executando consulta {idx+1}/{len(queries)}: {q}...')
         try:
-            results = ddg_text_search(q, max_results=40)
+            results = search_web_candidates(q, max_results=40)
             for r in results:
                     url = r.get('href', '')
                     if not url:
@@ -2036,10 +2100,13 @@ def search_social_profiles(segment, region, max_results=10, maps_only=False):
     loc = region.replace(' - ', ' ').replace(' -', ' ').replace('- ', ' ')
     if '(+' in loc:
         loc = re.sub(r'\(\+\d+km\)', '', loc)
-    loc = loc.strip()
+    loc = loc.replace('"', '').replace("'", '').strip()
     
     results = []
     seen_urls = set()
+    
+    has_serper = bool(database.get_setting('serper_api_key', ''))
+    engine_name = "Google (Serper API)" if has_serper else "DuckDuckGo"
     
     if maps_only:
         queries = [
@@ -2077,11 +2144,11 @@ def search_social_profiles(segment, region, max_results=10, maps_only=False):
             break
             
         if idx > 0:
-            time.sleep(1.5)
+            time.sleep(1.0)
             
-        add_log(f"Buscando no DuckDuckGo: {q}")
+        add_log(f"Buscando no {engine_name}: {q}")
         try:
-            ddg_list = ddg_text_search(q, max_results=20)
+            ddg_list = search_web_candidates(q, max_results=20)
             if not ddg_list:
                 zero_results_count += 1
                 
