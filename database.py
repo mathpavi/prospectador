@@ -1,7 +1,23 @@
 import sqlite3
 import os
 import json
-from datetime import datetime
+import zoneinfo
+from datetime import datetime, timezone, timedelta
+
+try:
+    SAO_PAULO_TZ = zoneinfo.ZoneInfo("America/Sao_Paulo")
+except Exception:
+    SAO_PAULO_TZ = timezone(timedelta(hours=-3))
+
+def get_now():
+    return datetime.now(SAO_PAULO_TZ)
+
+def get_now_str():
+    return get_now().strftime('%Y-%m-%d %H:%M:%S')
+
+def get_today_start_str():
+    return get_now().strftime('%Y-%m-%d 00:00:00')
+
 DATA_DIR = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 os.makedirs(DATA_DIR, exist_ok=True)
 DB_PATH = os.environ.get('DB_PATH', os.path.join(DATA_DIR, 'prospector.db'))
@@ -123,6 +139,19 @@ def init_db():
         cursor.execute('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', (key, val))
         
     cursor.execute("DELETE FROM settings WHERE key = 'mockup_base_url'")
+    
+    # Auto-cleanup any known junk domains/portals that might have been saved in the past
+    junk_patterns = [
+        '%cnn.com%', '%cnnbrasil.com%', '%decolar.com%', '%despegar.com%', '%buscape.com%', 
+        '%trivago.com%', '%biteable.com%', '%msn.com%', '%msnow.com%', '%booking.com%', 
+        '%tripadvisor.com%', '%airbnb.com%', '%mercadolivre.com%', '%magazineluiza.com%', 
+        '%reclameaqui.com%', '%wikipedia.org%', '%youtube.com%', '%facebook.com/sharer%', 
+        '%instagram.com/p/%', '%canva.com%', '%adobe.com%', '%kayak.com%', '%expedia.com%',
+        '%skyscanner.com%', '%123milhas.com%', '%maxmilhas.com%', '%hotmart.com%', '%kiwify.com%'
+    ]
+    for pattern in junk_patterns:
+        cursor.execute("DELETE FROM prospects WHERE website LIKE ? OR company_name LIKE ?", (pattern, pattern.replace('%', '')))
+        
     conn.commit()
     conn.close()
 
@@ -277,7 +306,7 @@ def add_prospect(prospect_dict):
         conn.close()
         return existing['id']
         
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    now = get_now_str()
     
     status = prospect_dict.get('status', 'pending')
     email = prospect_dict.get('contact_email', '')
@@ -394,7 +423,7 @@ def update_prospect(prospect_id, update_dict):
     if 'detected_issues' in update_dict:
         update_dict['detected_issues'] = json.dumps(update_dict['detected_issues'])
         
-    update_dict['updated_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    update_dict['updated_at'] = get_now_str()
     
     set_clause = ', '.join([f"{k} = ?" for k in update_dict.keys()])
     values = list(update_dict.values())
@@ -414,7 +443,7 @@ def delete_prospect(prospect_id):
 def get_sent_count_today():
     conn = get_db_connection()
     cursor = conn.cursor()
-    today_start = datetime.now().strftime('%Y-%m-%d 00:00:00')
+    today_start = get_today_start_str()
     cursor.execute('SELECT COUNT(id) as count FROM prospects WHERE status = "sent" AND sent_at >= ?', (today_start,))
     row = cursor.fetchone()
     conn.close()

@@ -18,16 +18,62 @@ import database
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# List of domains to ignore (directories, social media, portals)
+# List of domains to ignore (directories, social media, portals, news, global tech, travel aggregators)
 IGNORED_DOMAINS = [
+    # Social & Media Networks
     'facebook.com', 'instagram.com', 'linkedin.com', 'youtube.com', 'twitter.com', 'x.com',
+    'pinterest.com', 'tiktok.com', 'reddit.com', 'quora.com', 'medium.com', 'tumblr.com', 
+    'discord.com', 'telegram.org', 'whatsapp.com', 'threads.net',
+    
+    # Portals, Directories & Company Lookups
     'apontador.com.br', 'telelistas.net', 'guiamais.com.br', 'solutudo.com.br', 'econodata.com.br',
     'casadosdados.com.br', 'cnpj.info', 'empresascnpj.com', 'transparencia.cc', 'jusbrasil.com.br',
-    'reclameaqui.com.br', 'mercadolivre.com.br', 'olx.com.br', 'wikipedia.org', 'google.com',
-    'maps.google.com', 'guiadefatos.com.br', 'cnpj.biz', 'infocnpj.com.br', 'consultacnpj.com',
-    'habito.com.br', 'empresasdobrasil.com', 'empresas.rio', 'portaldaempresa.com',
-    'pinterest.com', 'tiktok.com', 'glassdoor.com', 'glassdoor.com.br',
-    'lojaskd.com.br', 'sebrae.com.br', 'sebraers.com.br', 'senai.br', 'sesi.org.br',
+    'guiadefatos.com.br', 'cnpj.biz', 'infocnpj.com.br', 'consultacnpj.com', 'habito.com.br', 
+    'empresasdobrasil.com', 'empresas.rio', 'portaldaempresa.com', 'situacaocadastral.info',
+    'speedio.com.br', 'receitaws.com.br', 'cnpjaqui.com.br', 'empresasaqui.com',
+    
+    # News & Media Giants
+    'cnn.com', 'cnnbrasil.com.br', 'msn.com', 'msnow.com', 'globo.com', 'g1.globo.com', 
+    'uol.com.br', 'terra.com.br', 'r7.com', 'estadao.com.br', 'folha.uol.com.br', 'folha.com',
+    'bbc.com', 'reuters.com', 'bloomberg.com', 'forbes.com', 'foxnews.com', 'nytimes.com', 
+    'washingtonpost.com', 'theguardian.com', 'dailymail.co.uk', 'techcrunch.com', 'theverge.com', 
+    'infomoney.com.br', 'exame.com', 'valor.globo.com', 'gazetadopovo.com.br', 'jovempan.com.br', 
+    'metropoles.com', 'poder360.com.br', 'cartacapital.com.br', 'veja.abril.com.br', 'istoedinheiro.com.br',
+    'abril.com.br', 'canaltech.com.br', 'tecmundo.com.br', 'olhardigital.com.br',
+    
+    # Travel, Flight & Hotel Aggregators
+    'decolar.com', 'despegar.com', 'trivago.com', 'trivago.com.br', 'booking.com', 'airbnb.com', 
+    'airbnb.com.br', 'tripadvisor.com', 'tripadvisor.com.br', 'kayak.com', 'kayak.com.br', 
+    'expedia.com', 'expedia.com.br', 'hoteis.com', 'hotels.com', 'skyscanner.com', 'skyscanner.com.br', 
+    '123milhas.com', 'maxmilhas.com.br', 'voegol.com.br', 'latamairlines.com', 'voeazul.com.br', 
+    'cvc.com.br', 'agoda.com', 'hostelworld.com', 'viator.com', 'getyourguide.com', 'decolar.com.br',
+    
+    # Price Comparators, E-commerce & Marketplaces
+    'buscape.com.br', 'zoom.com.br', 'bondfaro.com.br', 'mercadolivre.com.br', 'mercadolibre.com', 
+    'amazon.com', 'amazon.com.br', 'ebay.com', 'shopee.com.br', 'shopee.com', 'aliexpress.com', 
+    'magazineluiza.com.br', 'americanas.com.br', 'submarino.com.br', 'casasbahia.com.br', 
+    'pontofrio.com.br', 'extra.com.br', 'carrefour.com.br', 'kabum.com.br', 'shein.com', 
+    'temu.com', 'walmart.com', 'target.com', 'bestbuy.com', 'costco.com', 'homedepot.com', 
+    'lowes.com', 'ikea.com', 'leroymerlin.com.br', 'elo7.com.br', 'enjoei.com.br',
+    
+    # Global Generic SaaS, Video/Design & Cloud Giants
+    'biteable.com', 'canva.com', 'adobe.com', 'renderforest.com', 'invideo.io', 'animoto.com', 
+    'powtoon.com', 'loom.com', 'vimeo.com', 'wistia.com', 'figma.com', 'notion.so', 'miro.com', 
+    'trello.com', 'monday.com', 'asana.com', 'clickup.com', 'hubspot.com', 'salesforce.com', 
+    'zendesk.com', 'intercom.com', 'mailchimp.com', 'rdstation.com', 'hotmart.com', 'kiwify.com.br', 
+    'eduzz.com', 'shopify.com', 'nuvemshop.com.br', 'wix.com', 'squarespace.com', 'godaddy.com', 
+    'hostgator.com.br', 'hostinger.com', 'locaweb.com.br', 'cloudflare.com', 'microsoft.com', 
+    'google.com', 'apple.com', 'netflix.com', 'spotify.com', 'github.com', 'gitlab.com',
+    'stackoverflow.com', 'wikipedia.org', 'wikimedia.org',
+    
+    # Job, Review & Classified Portals
+    'reclameaqui.com.br', 'trustpilot.com', 'yelp.com', 'bbb.org', 'glassdoor.com', 'glassdoor.com.br', 
+    'indeed.com', 'indeed.com.br', 'catho.com.br', 'vagas.com.br', 'infojobs.com.br', 'gupy.io', 
+    'solides.com.br', 'olx.com.br', 'craigslist.org', 'quintoandar.com.br', 'zapimoveis.com.br', 
+    'vivareal.com.br', 'imovelweb.com.br', 'webmotors.com.br', 'icarros.com.br',
+    
+    # Education & Institutional
+    'sebrae.com.br', 'sebraers.com.br', 'senai.br', 'sesi.org.br', 'fiesp.com.br', 'senac.br',
     'getninjas.com.br', 'habitissimo.com.br', 'starofservice.com.br', 'cronoshare.com.br'
 ]
 
@@ -69,10 +115,17 @@ FORBIDDEN_DOMAIN_KEYWORDS = [
     'noticia', 'jornal', 'revista', 'blog', 'portal', 'forum', 'wikipedia', 'news', 'press', 
     'imprensa', 'media', 'g1', 'r7', 'globo', 'uol', 'terra', 'estadao', 'folha', 'infomoney', 
     'exame', 'valor', 'canaltech', 'tecmundo', 'olhardigital', 'radio', 'tv', 'broadcasting',
-    'difusora', 'fm', 'webradio',
+    'difusora', 'fm', 'webradio', 'msn', 'msnow', 'cnn', 'bbc', 'reuters', 'bloomberg',
     
-    # Aggregators and comparators
+    # Aggregators, comparators, travel & tickets
     'compare', 'comparador', 'cotacao', 'seguro', 'simulador', 'preco', 'tarifas', 'banco', 'tabela',
+    'decolar', 'despegar', 'trivago', 'booking', 'tripadvisor', 'airbnb', 'kayak', 'expedia', 
+    'passagem', 'passagens', 'hospedagem', 'hotel', 'hoteis', 'voo', 'voos', 'milhas', 'turismo', 
+    'viagem', 'viagens', 'buscape', 'zoom', 'bondfaro', 'cupom', 'desconto',
+    
+    # SaaS, video tools, templates
+    'biteable', 'canva', 'renderforest', 'invideo', 'animoto', 'powtoon', 'loom', 'figma',
+    'software', 'download', 'template', 'templates', 'appstore', 'googleplay',
     
     # Government, education, associations, federations
     'sebrae', 'senai', 'sesi', 'fiesp', 'fiergs', 'firjan', 'iel', 'cni', 'fecomercio', 
@@ -81,7 +134,7 @@ FORBIDDEN_DOMAIN_KEYWORDS = [
     # E-commerce, marketplaces, and online shops
     'shopping', 'marketplace', 'loja', 'store', 'shop', 'mercado-livre', 'mercadolivre', 
     'shopee', 'magazinevoce', 'magazineluiza', 'americanas', 'submarino', 'amazon', 
-    'leroymerlin', 'elo7', 'aliexpress', 'shein', 'kabum',
+    'leroymerlin', 'elo7', 'aliexpress', 'shein', 'kabum', 'temu',
     
     # Job search portals
     'catho', 'vagas', 'emprego', 'infojobs', 'indeed', 'gupy', 'solides', 'glassdoor'

@@ -213,7 +213,7 @@ autopilot_status = {
 }
 
 def autopilot_log(msg):
-    log_line = f"[{time.strftime('%H:%M:%S')}] {msg}"
+    log_line = f"[{database.get_now().strftime('%H:%M:%S')}] {msg}"
     autopilot_status["logs"].append(log_line)
     if len(autopilot_status["logs"]) > 50:
         autopilot_status["logs"].pop(0)
@@ -231,7 +231,7 @@ def check_commercial_hours():
         end_hour = 18
         allowed_days = [1, 2, 3, 4, 5]
         
-    now = datetime.now()
+    now = database.get_now()
     current_day = now.weekday() + 1
     current_hour = now.hour
     
@@ -249,7 +249,7 @@ def check_sending_interval():
         return True, ""
         
     try:
-        last_sent = datetime.strptime(last_sent_str, '%Y-%m-%d %H:%M:%S')
+        last_sent = datetime.strptime(last_sent_str, '%Y-%m-%d %H:%M:%S').replace(tzinfo=database.SAO_PAULO_TZ)
     except Exception:
         return True, ""
         
@@ -258,7 +258,7 @@ def check_sending_interval():
     except Exception:
         interval_min = 20
         
-    elapsed = (datetime.now() - last_sent).total_seconds() / 60.0
+    elapsed = (database.get_now() - last_sent).total_seconds() / 60.0
     if elapsed < interval_min:
         return False, f"Intervalo não atingido ({elapsed:.1f} min decorridos)"
         
@@ -266,7 +266,7 @@ def check_sending_interval():
 
 def log_autopilot_activity(activity_type, detail, status="success"):
     entry = {
-        "timestamp": datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+        "timestamp": database.get_now().strftime('%d/%m/%Y %H:%M:%S'),
         "type": activity_type,
         "detail": detail,
         "status": status
@@ -332,14 +332,14 @@ def autopilot_send_next_email(force=False):
     
     try:
         mailer.send_prospect_email(target_lead['id'], bypass_limit=False)
-        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        now_str = database.get_now_str()
         database.save_settings({'autopilot_last_email_sent_at': now_str})
         autopilot_log(f"✅ E-mail enviado com sucesso para {target_lead['company_name']}!")
         
         log_autopilot_activity("Disparo de E-mail", f"E-mail enviado para {target_lead['company_name']} ({target_lead['contact_email']})", "success")
         
         log_entry = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": database.get_now().isoformat(),
             "type": "autopilot_sent",
             "prospect_id": target_lead['id'],
             "company_name": target_lead['company_name'],
@@ -356,12 +356,12 @@ def autopilot_send_next_email(force=False):
         # Apply sending cooldown backoff only for network/SMTP/mailer limits, not for validation errors
         is_validation_error = "não possui e-mail" in error_msg or "vazio" in error_msg
         if not is_validation_error:
-            now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            now_str = database.get_now_str()
             database.save_settings({'autopilot_last_email_sent_at': now_str})
             autopilot_log("⚠️ Falha de rede/SMTP detected. Aguardando intervalo de recuo (backoff) antes do próximo disparo.")
             
         log_entry = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": database.get_now().isoformat(),
             "type": "autopilot_sent",
             "prospect_id": target_lead['id'],
             "company_name": target_lead['company_name'],
@@ -378,7 +378,7 @@ def check_search_interval():
         return True, ""
         
     try:
-        last_search = datetime.strptime(last_search_str, '%Y-%m-%d %H:%M:%S')
+        last_search = datetime.strptime(last_search_str, '%Y-%m-%d %H:%M:%S').replace(tzinfo=database.SAO_PAULO_TZ)
     except Exception:
         return True, ""
         
@@ -387,7 +387,7 @@ def check_search_interval():
     except Exception:
         interval_hours = 12
         
-    elapsed = (datetime.now() - last_search).total_seconds() / 3600.0
+    elapsed = (database.get_now() - last_search).total_seconds() / 3600.0
     if elapsed < interval_hours:
         return False, f"Intervalo de buscas não atingido ({elapsed:.1f} horas)"
         
@@ -435,7 +435,7 @@ def autopilot_run_next_search(force=False):
     autopilot_log(f"Iniciando busca automática do Autopilot: Segmento='{segment}', Região='{region}' (Tipo: {search_type})...")
     
     try:
-        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        now_str = database.get_now_str()
         database.save_settings({'autopilot_last_search_run_at': now_str})
         
         state_uf = None
@@ -517,10 +517,10 @@ def api_autopilot_status():
                 next_send_time = "No próximo horário comercial"
             elif last_sent_str:
                 try:
-                    last_sent = datetime.strptime(last_sent_str, '%Y-%m-%d %H:%M:%S')
+                    last_sent = datetime.strptime(last_sent_str, '%Y-%m-%d %H:%M:%S').replace(tzinfo=database.SAO_PAULO_TZ)
                     interval_min = int(database.get_setting('autopilot_sender_interval_min', '20'))
                     next_send = last_sent + timedelta(minutes=interval_min)
-                    if next_send < datetime.now():
+                    if next_send < database.get_now():
                         next_send_time = "Imediato (Aguardando tick do agendador)"
                     else:
                         next_send_time = next_send.strftime('%d/%m/%Y %H:%M:%S')

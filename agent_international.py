@@ -11,13 +11,14 @@ from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
 import google.generativeai as genai
 import database
+from agent import IGNORED_DOMAINS, FORBIDDEN_DOMAIN_KEYWORDS, extract_base_domain
 
 GOSOM_TERMINAL_STATUSES = {"ok", "failed"}
 
 # Log handler
 logs = []
 def add_log(msg):
-    timestamp = datetime.now().strftime('%H:%M:%S')
+    timestamp = database.get_now().strftime('%H:%M:%S')
     log_line = f"[{timestamp}] {msg}"
     print(log_line)
     logs.append(log_line)
@@ -306,28 +307,50 @@ def is_valid_international_candidate(url, title, snippet):
     title_lower = title.lower()
     snippet_lower = snippet.lower()
     
-    # 1. Strictly exclude Brazilian domains
-    parsed = urllib.parse.urlparse(url_lower)
-    domain = parsed.netloc
+    # 1. Domain extraction & checks
+    try:
+        parsed = urllib.parse.urlparse(url_lower)
+        domain = parsed.netloc.lower()
+        if domain.startswith('www.'):
+            domain = domain[4:]
+    except Exception:
+        domain = url_lower
+        
+    if not domain:
+        return False
+        
+    # 2. Strictly exclude Brazilian domains (.br)
     if domain.endswith('.br') or '.com.br' in domain:
         return False
         
-    # 2. Exclude software, apps, tech and download keywords
+    # 3. Block known global ignored domains (CNN, Decolar, Trivago, Biteable, MSN, Booking, etc.)
+    for d in IGNORED_DOMAINS:
+        if domain == d or domain.endswith('.' + d):
+            return False
+            
+    # 4. Block forbidden domain keywords
+    for kw in FORBIDDEN_DOMAIN_KEYWORDS:
+        if kw in domain:
+            return False
+            
+    # 5. Exclude software, apps, tech and download keywords
     tech_keywords = [
         'ccleaner', 'piriform', 'download', 'app store', 'google play', 'apk',
         'software', 'pc cleaner', 'registry cleaner', 'mac cleaner', 'cleaner for android',
         'windows cleaner', 'cookie cleaner', 'cache cleaner', 'disk cleaner', 'cleaner pro',
-        'cleaner app', 'cleaner online', 'cleaner for chrome', 'extension', 'github', 'npm'
+        'cleaner app', 'cleaner online', 'cleaner for chrome', 'extension', 'github', 'npm',
+        'video editor', 'video maker', 'animation maker', 'slideshow', 'online tool', 'saas'
     ]
     if any(kw in url_lower or kw in title_lower or kw in snippet_lower for kw in tech_keywords):
         return False
         
-    # 3. Exclude directories unless they are specific profile pages
-    directory_keywords = [
-        'wikipedia.org', 'yelp.com/search', 'tripadvisor.com', 'glassdoor.com',
-        'indeed.com', 'linkedin.com/jobs', 'yellowpages.com/search'
+    # 6. Exclude news, media, portals, flight/hotel aggregators from title and snippet
+    noise_title_keywords = [
+        'notícia', 'noticia', 'news', 'jornal', 'portal', 'cnn', 'msn', 'globo',
+        'trivago', 'decolar', 'booking', 'tripadvisor', 'passagens', 'passagem aérea',
+        'voos baratos', 'comparar preços', 'melhores preços', 'wikipedia', 'reclame aqui'
     ]
-    if any(dk in url_lower for dk in directory_keywords):
+    if any(kw in title_lower or kw in snippet_lower for kw in noise_title_keywords):
         return False
         
     return True
