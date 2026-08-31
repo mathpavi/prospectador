@@ -444,12 +444,7 @@ def autopilot_run_next_search(force=False):
         now_str = database.get_now_str()
         database.save_settings({'autopilot_last_search_run_at': now_str})
         
-        state_uf = None
-        city_name = None
-        if ' - ' in region:
-            parts = region.split(' - ')
-            city_name = parts[0].strip()
-            state_uf = parts[1].split('(')[0].strip()
+        state_uf, city_name = agent.parse_autopilot_region(region)
             
         if search_type == 'maps_only' or target.get('is_surgical', False):
             agent.run_surgical_job(segment, region, max_results=search_limit, state_uf=state_uf, city_name=city_name, radius_km=radius_km, surgical_type='both', is_autopilot=1)

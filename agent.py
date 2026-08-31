@@ -1745,6 +1745,34 @@ def get_state_full_name(state_uf):
     names = STATE_NAMES.get(state_uf, [])
     return names[0] if names else state_uf
 
+def parse_autopilot_region(region_str):
+    if not region_str:
+        return None, None
+        
+    reg_clean = region_str.strip()
+    
+    # Check if format is "Cidade - UF"
+    if ' - ' in reg_clean:
+        parts = reg_clean.split(' - ')
+        city = parts[0].strip()
+        uf_part = parts[1].split('(')[0].strip().upper()
+        if city.lower() in ["estado inteiro", "todo o estado", "todos", ""]:
+            return uf_part, None
+        return uf_part, city
+        
+    # Check if UF directly (e.g. "RS", "SP", "SC", "PR", "RJ", "MG")
+    reg_upper = reg_clean.split('(')[0].strip().upper()
+    if reg_upper in STATE_NAMES:
+        return reg_upper, None
+        
+    # Check if full state name (e.g. "Rio Grande do Sul", "São Paulo", "Santa Catarina")
+    for uf, names in STATE_NAMES.items():
+        for n in names:
+            if n.lower() == reg_clean.lower() or n.lower() in reg_clean.lower():
+                return uf, None
+                
+    return None, reg_clean
+
 def run_prospecting_job(segment, region, max_results, state_uf=None, city_name=None, radius_km=0, is_autopilot=0, source_mode="organic"):
     # Resolve geographic location queries
     location_query = region
