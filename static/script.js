@@ -1821,6 +1821,17 @@ function applyAutopilotPreset(mode) {
 }
 window.applyAutopilotPreset = applyAutopilotPreset;
 
+function quickFillSegment(val, targetId) {
+    const el = document.getElementById(targetId);
+    if (el) {
+        el.value = val;
+        el.dispatchEvent(new Event('input'));
+        el.dispatchEvent(new Event('change'));
+        showToast(`Segmento selecionado: ${val}!`);
+    }
+}
+window.quickFillSegment = quickFillSegment;
+
 function renderAutopilotTargets() {
     const container = document.getElementById('autopilot-targets-container');
     if (!container) return;

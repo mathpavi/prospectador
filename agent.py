@@ -620,25 +620,99 @@ SEGMENT_VARIATIONS = {
         'solda', 'corte a laser', 'tornearia', 'estamparia de metais', 
         'galvanização', 'pintura eletrostática', 'ferramentaria', 
         'corte plasma', 'jateamento de metais', 'dobra de tubos', 
-        'trefilação', 'forjaria', 'calandragem', 'oxicorte',
         'esquadrias de alumínio', 'esquadrias de ferro', 'grades e portões',
-        'estruturas de aço', 'dobragem de chapas', 'corte de chapas',
-        'soldagem mig', 'soldagem tig', 'acabamento de metais',
-        'metalização', 'tratamento de superfícies metálicas'
+        'estruturas de aço', 'dobragem de chapas', 'soldagem industrial'
+    ],
+    'serralheria': [
+        'serralheria', 'serralheiro', 'portões automáticos', 'grades de ferro',
+        'estruturas metálicas', 'esquadrias de ferro', 'coberturas metálicas',
+        'corrimão de inox', 'guarda corpo de ferro', 'fechamento de galpão'
+    ],
+    'marmoraria': [
+        'marmoraria', 'mármores e granitos', 'bancadas de granito', 'bancadas de quartzo',
+        'porcelanato esculpido', 'pedras decorativas', 'cubas esculpidas', 'soleiras de mármore',
+        'pias de granito', 'revestimentos em pedra', 'marmoraria fina'
+    ],
+    'esquadrias': [
+        'esquadrias de alumínio', 'esquadrias de pvc', 'vidraçaria', 'portas de alumínio',
+        'janelas de alumínio', 'pele de vidro', 'envidraçamento de sacadas', 'fachadas glazing',
+        'portas automáticas', 'persianas integradas'
+    ],
+    'vidraçaria': [
+        'vidraçaria', 'box de vidro', 'espelhos bisotados', 'guarda corpo de vidro',
+        'cobertura de vidro', 'fechamento de varanda', 'portas de vidro temperado',
+        'divisórias de vidro', 'vidros laminados'
+    ],
+    'marcenaria': [
+        'marcenaria', 'móveis planejados', 'móveis sob medida', 'marcenaria de alto padrão',
+        'armários embutidos', 'cozinhas planejadas', 'closet sob medida', 'móveis corporativos',
+        'painéis ripados', 'móveis de madeira maciça'
+    ],
+    'energia solar': [
+        'energia solar', 'energia solar fotovoltaica', 'instalação de placas solares',
+        'painéis solares', 'usina solar', 'geração distribuída', 'projetos fotovoltaicos',
+        'economia de energia solar', 'sistema solar residencial e comercial'
+    ],
+    'climatização': [
+        'ar condicionado', 'climatização', 'instalação de ar condicionado', 'pmoc',
+        'manutenção de ar condicionado', 'climatização industrial', 'refrigeração comercial',
+        'sistemas vrf', 'dutos de ar'
+    ],
+    'odontologia': [
+        'clínica odontológica', 'dentista', 'implantes dentários', 'harmonização orofacial',
+        'ortodontia invisível', 'lentes de contato dental', 'clareamento dental', 'prótese dentária',
+        'odontologia estética'
+    ],
+    'clínica': [
+        'clínica médica', 'clínica de estética', 'cirurgia plástica', 'dermatologia',
+        'oftalmologia', 'ortopedia', 'clínica integrada', 'medicina diagnóstica',
+        'fisioterapia e pilates', 'psicologia e psiquiatria'
+    ],
+    'transportadora': [
+        'transportadora', 'transporte de cargas', 'logística e armazenagem', 'frete fracionado',
+        'transporte dedicado', 'transporte rodoviário', 'distribuição logística', 'frete pesado',
+        'transporte de mudanças e içamentos'
+    ],
+    'segurança eletrônica': [
+        'segurança eletrônica', 'câmeras cftv', 'portaria remota', 'alarmes monitorados',
+        'controle de acesso', 'cerca elétrica', 'monitoramento 24 horas', 'interfonia predial',
+        'automação predial'
+    ],
+    'automação industrial': [
+        'automação industrial', 'painéis elétricos', 'montagem de painéis', 'instalações elétricas industriais',
+        'programação clp', 'manutenção eletromecânica', 'acionamentos elétricos', 'subestações de energia'
+    ],
+    'construtora': [
+        'construtora', 'engenharia civil', 'empreiteira', 'reformas comerciais',
+        'construção residencial', 'obras e reformas', 'gerenciamento de obras',
+        'reforço estrutural', 'impermeabilização'
+    ],
+    'locação de equipamentos': [
+        'locação de caçambas', 'locação de andaimes', 'locação de betoneiras',
+        'locação de plataformas elevatórias', 'aluguel de geradores', 'locação de máquinas pesadas',
+        'aluguel de compressores', 'locação de ferramentas'
+    ],
+    'contabilidade': [
+        'escritório de contabilidade', 'contabilidade consultiva', 'bpo financeiro',
+        'planejamento tributário', 'abertura de empresas', 'assessoria contábil',
+        'auditoria fiscal', 'departamento pessoal'
     ],
     'advogado': [
-        'advogado', 'advogados', 'escritório de advocacia', 'advocacia', 
+        'advogado', 'advogados', 'escritório de advocacia', 'advocacia empresarial', 
         'assessoria jurídica', 'advogado civil', 'advogado trabalhista', 
-        'advogado tributarista', 'defesa jurídica'
+        'advogado tributarista', 'direito previdenciário', 'direito imobiliário'
     ],
-    'lavagem': [
-        'lavagem', 'lava car', 'lava rápido', 'estética automotiva', 
-        'lavagem ecológica', 'higienização automotiva', 'polimento automotivo', 
-        'lava jato'
+    'estética automotiva': [
+        'estética automotiva', 'funilaria e pintura', 'martelinho de ouro', 'polimento técnico',
+        'vitrificação de pintura', 'lavagem detalhada', 'blindagem automotiva', 'higienização interna'
     ],
-    'manicure': [
-        'manicure', 'pedicure', 'unhas em gel', 'alongamento de unhas', 
-        'salão de beleza', 'studio de unhas', 'esmalteria'
+    'desentupidora': [
+        'desentupidora', 'dedetizadora', 'controle de pragas', 'hidrojateamento',
+        'limpeza de fossa', 'desentupimento 24h', 'sanitização de ambientes'
+    ],
+    'embalagens': [
+        'fábrica de embalagens', 'caixas de papelão', 'embalagens personalizadas',
+        'plásticos e filmes', 'fitas adesivas personalizadas', 'sacolas personalizadas'
     ]
 }
 

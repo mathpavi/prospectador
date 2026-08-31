@@ -127,27 +127,44 @@
                     
                     <form id="search-form">
                         <div class="form-group">
-                            <label for="segment-select">Segmento / Tipo de Indústria</label>
+                            <label for="segment-select">Segmento / Nicho de Atuação</label>
                             <select id="segment-select">
-                                <option value="Metalúrgica">Metalúrgica (Geral)</option>
-                                <option value="Usinagem de Peças">Usinagem de Peças</option>
-                                <option value="Repuxo de Metais">Repuxo de Metais</option>
-                                <option value="Caldeiraria / Soldagem">Caldeiraria / Soldagem</option>
-                                <option value="Indústria de Plásticos">Indústria de Plásticos</option>
-                                <option value="Fábrica de Móveis">Fábrica de Móveis</option>
-                                <option value="Indústria Química">Indústria Química</option>
-                                <option value="Indústria Têxtil">Indústria Têxtil</option>
-                                <option value="Indústria de Alimentos">Indústria de Alimentos</option>
-                                <option value="Distribuidora / Logística">Distribuidora / Logística</option>
-                                <option value="Advogado">Advogado (Escritório)</option>
-                                <option value="Médico">Médico (Clínica / Consultório)</option>
-                                <option value="custom">Outro (Personalizar...)</option>
+                                <optgroup label="🏛️ Construção, Acabamentos & Casa">
+                                    <option value="Marmoraria">Marmoraria / Mármores e Granitos</option>
+                                    <option value="Serralheria">Serralheria / Portões e Grades</option>
+                                    <option value="Esquadrias de Alumínio">Esquadrias de Alumínio / PVC</option>
+                                    <option value="Vidraçaria">Vidraçaria / Box e Vidros</option>
+                                    <option value="Móveis Planejados">Móveis Planejados / Marcenaria</option>
+                                    <option value="Construtora">Construtora / Engenharia / Reformas</option>
+                                    <option value="Energia Solar">Energia Solar Fotovoltaica</option>
+                                </optgroup>
+                                <optgroup label="⚙️ Indústria & Manutenção Técnica">
+                                    <option value="Metalúrgica" selected>Metalúrgica (Geral)</option>
+                                    <option value="Usinagem de Peças">Usinagem de Peças / CNC</option>
+                                    <option value="Caldeiraria / Soldagem">Caldeiraria / Soldagem</option>
+                                    <option value="Automação Industrial">Automação Industrial / Painéis</option>
+                                    <option value="Climatização e Ar Condicionado">Climatização / Ar Condicionado (PMOC)</option>
+                                    <option value="Indústria de Plásticos">Indústria de Plásticos</option>
+                                    <option value="Fábrica de Embalagens">Fábrica de Embalagens</option>
+                                    <option value="Locação de Equipamentos">Locação de Máquinas e Equipamentos</option>
+                                </optgroup>
+                                <optgroup label="💼 Serviços B2B, Saúde & Jurídico">
+                                    <option value="Clínica Odontológica">Clínica Odontológica / Implantes</option>
+                                    <option value="Clínica de Estética">Clínica Médica / Estética</option>
+                                    <option value="Transportadora">Transportadora / Logística</option>
+                                    <option value="Segurança Eletrônica">Segurança Eletrônica / CFTV</option>
+                                    <option value="Escritório de Contabilidade">Escritório de Contabilidade / BPO</option>
+                                    <option value="Advogado">Advogado / Escritório Jurídico</option>
+                                    <option value="Estética Automotiva">Estética Automotiva / Funilaria</option>
+                                    <option value="Desentupidora">Desentupidora / Dedetizadora</option>
+                                </optgroup>
+                                <option value="custom">Outro (Digitar Segmento Personalizado...)</option>
                             </select>
                         </div>
                         
                         <div class="form-group" id="segment-custom-group" style="display: none;">
                             <label for="segment-custom">Digite o Segmento Personalizado</label>
-                            <input type="text" id="segment-custom" placeholder="Ex: Fabricação de Engrenagens, Indústria de Tintas">
+                            <input type="text" id="segment-custom" placeholder="Ex: Fabricação de Engrenagens, Usinagem Pesada">
                         </div>
                         
                         <input type="hidden" id="segment" name="segment" value="Metalúrgica">
@@ -264,27 +281,44 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="surgical-segment-select">Segmento / Tipo de Indústria</label>
+                            <label for="surgical-segment-select">Segmento / Nicho de Atuação</label>
                             <select id="surgical-segment-select">
-                                <option value="Metalúrgica">Metalúrgica (Geral)</option>
-                                <option value="Usinagem de Peças">Usinagem de Peças</option>
-                                <option value="Repuxo de Metais">Repuxo de Metais</option>
-                                <option value="Caldeiraria / Soldagem">Caldeiraria / Soldagem</option>
-                                <option value="Indústria de Plásticos">Indústria de Plásticos</option>
-                                <option value="Fábrica de Móveis">Fábrica de Móveis</option>
-                                <option value="Indústria Química">Indústria Química</option>
-                                <option value="Indústria Têxtil">Indústria Têxtil</option>
-                                <option value="Indústria de Alimentos">Indústria de Alimentos</option>
-                                <option value="Distribuidora / Logística">Distribuidora / Logística</option>
-                                <option value="Advogado">Advogado (Escritório)</option>
-                                <option value="Médico">Médico (Clínica / Consultório)</option>
-                                <option value="custom">Outro (Personalizar...)</option>
+                                <optgroup label="🏛️ Construção, Acabamentos & Casa">
+                                    <option value="Marmoraria">Marmoraria / Mármores e Granitos</option>
+                                    <option value="Serralheria">Serralheria / Portões e Grades</option>
+                                    <option value="Esquadrias de Alumínio">Esquadrias de Alumínio / PVC</option>
+                                    <option value="Vidraçaria">Vidraçaria / Box e Vidros</option>
+                                    <option value="Móveis Planejados">Móveis Planejados / Marcenaria</option>
+                                    <option value="Construtora">Construtora / Engenharia / Reformas</option>
+                                    <option value="Energia Solar">Energia Solar Fotovoltaica</option>
+                                </optgroup>
+                                <optgroup label="⚙️ Indústria & Manutenção Técnica">
+                                    <option value="Metalúrgica" selected>Metalúrgica (Geral)</option>
+                                    <option value="Usinagem de Peças">Usinagem de Peças / CNC</option>
+                                    <option value="Caldeiraria / Soldagem">Caldeiraria / Soldagem</option>
+                                    <option value="Automação Industrial">Automação Industrial / Painéis</option>
+                                    <option value="Climatização e Ar Condicionado">Climatização / Ar Condicionado (PMOC)</option>
+                                    <option value="Indústria de Plásticos">Indústria de Plásticos</option>
+                                    <option value="Fábrica de Embalagens">Fábrica de Embalagens</option>
+                                    <option value="Locação de Equipamentos">Locação de Máquinas e Equipamentos</option>
+                                </optgroup>
+                                <optgroup label="💼 Serviços B2B, Saúde & Jurídico">
+                                    <option value="Clínica Odontológica">Clínica Odontológica / Implantes</option>
+                                    <option value="Clínica de Estética">Clínica Médica / Estética</option>
+                                    <option value="Transportadora">Transportadora / Logística</option>
+                                    <option value="Segurança Eletrônica">Segurança Eletrônica / CFTV</option>
+                                    <option value="Escritório de Contabilidade">Escritório de Contabilidade / BPO</option>
+                                    <option value="Advogado">Advogado / Escritório Jurídico</option>
+                                    <option value="Estética Automotiva">Estética Automotiva / Funilaria</option>
+                                    <option value="Desentupidora">Desentupidora / Dedetizadora</option>
+                                </optgroup>
+                                <option value="custom">Outro (Digitar Segmento Personalizado...)</option>
                             </select>
                         </div>
                         
                         <div class="form-group" id="surgical-segment-custom-group" style="display: none;">
                             <label for="surgical-segment-custom">Digite o Segmento Personalizado</label>
-                            <input type="text" id="surgical-segment-custom" placeholder="Ex: Fabricação de Engrenagens">
+                            <input type="text" id="surgical-segment-custom" placeholder="Ex: Fabricação de Engrenagens, Usinagem Pesada">
                         </div>
                         
                         <div class="form-row">
@@ -1154,11 +1188,32 @@
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                                     <div>
                                         <label style="font-size: 0.75rem; margin-bottom: 4px; display: block; color: var(--text-secondary);">Segmento</label>
-                                        <input type="text" id="target_segment" placeholder="Ex: Advogado" style="padding: 6px 10px; font-size: 0.8rem; width: 100%; box-sizing: border-box;">
+                                        <input type="text" id="target_segment" placeholder="Ex: Marmoraria, Serralheria, Energia Solar" style="padding: 6px 10px; font-size: 0.8rem; width: 100%; box-sizing: border-box;">
                                     </div>
                                     <div>
                                         <label style="font-size: 0.75rem; margin-bottom: 4px; display: block; color: var(--text-secondary);">Região (Cidade - UF)</label>
                                         <input type="text" id="target_region" placeholder="Ex: Porto Alegre - RS" style="padding: 6px 10px; font-size: 0.8rem; width: 100%; box-sizing: border-box;">
+                                    </div>
+                                </div>
+                                
+                                <div style="margin-bottom: 10px;">
+                                    <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 4px;">💡 Sugestões rápidas de nichos de alto valor (clique para preencher):</span>
+                                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                                        <span class="badge-chip" onclick="quickFillSegment('Marmoraria', 'target_segment')">🏛️ Marmoraria</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Serralheria', 'target_segment')">⚙️ Serralheria</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Esquadrias de Alumínio', 'target_segment')">🪟 Esquadrias</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Vidraçaria', 'target_segment')">🔲 Vidraçaria</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Móveis Planejados', 'target_segment')">🪵 Móveis Planejados</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Energia Solar', 'target_segment')">☀️ Energia Solar</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Clínica Odontológica', 'target_segment')">🦷 Odontologia</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Clínica de Estética', 'target_segment')">✨ Clínicas/Estética</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Transportadora', 'target_segment')">🚛 Transportadora</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Segurança Eletrônica', 'target_segment')">📹 Seg. Eletrônica</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Automação Industrial', 'target_segment')">⚡ Automação</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Construtora', 'target_segment')">🏗️ Construtora</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Climatização e Ar Condicionado', 'target_segment')">❄️ Climatização</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Escritório de Contabilidade', 'target_segment')">📊 Contabilidade</span>
+                                        <span class="badge-chip" onclick="quickFillSegment('Locação de Equipamentos', 'target_segment')">🚜 Locação Máquinas</span>
                                     </div>
                                 </div>
                                 <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr auto; gap: 10px; align-items: flex-end;">
