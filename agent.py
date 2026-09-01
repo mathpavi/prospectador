@@ -64,7 +64,8 @@ IGNORED_DOMAINS = [
     'eduzz.com', 'shopify.com', 'nuvemshop.com.br', 'wix.com', 'squarespace.com', 'godaddy.com', 
     'hostgator.com.br', 'hostinger.com', 'locaweb.com.br', 'cloudflare.com', 'microsoft.com', 
     'google.com', 'apple.com', 'netflix.com', 'spotify.com', 'github.com', 'gitlab.com',
-    'stackoverflow.com', 'wikipedia.org', 'wikimedia.org',
+    'stackoverflow.com', 'stackexchange.com', 'wikipedia.org', 'wikimedia.org', 'androidmetro.com',
+    'gadgetroyale.com', 'smallusefultips.com', 'itigic.com', 'policybazaar.com', 'ohub.com.br',
     
     # Job, Review & Classified Portals
     'reclameaqui.com.br', 'trustpilot.com', 'yelp.com', 'bbb.org', 'glassdoor.com', 'glassdoor.com.br', 
@@ -827,7 +828,7 @@ def is_industrial_segment(segment):
     if any(indicator in segment_lower for indicator in industrial_indicators):
         return True
         
-    return True
+    return False
 
 def search_companies(segment, region, max_results=10, location_query=None):
     loc = location_query if location_query else region
