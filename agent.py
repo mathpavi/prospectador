@@ -1737,7 +1737,7 @@ def generate_prospect_email(prospect):
         if prospect.get('surgical_type') == 'no_site':
             prompt = f"""
             Você é um copywriter de vendas experiente e trabalha prospectando clientes de desenvolvimento de sites para {sender_name}.
-            Sua tarefa é redigir um e-mail de vendas amigável, direto, informal e altamente personalizado para a empresa "{prospect['company_name']}", além de uma mensagem curta para WhatsApp.
+            Sua tarefa é redigir um e-mail de vendas amigável, direto, altamente visual e focado em negócios para a empresa "{prospect['company_name']}", além de uma mensagem curta para WhatsApp.
             
             Dados da empresa:
             - Nome: {prospect['company_name']}
@@ -1753,34 +1753,38 @@ def generate_prospect_email(prospect):
             - Portfólio: {sender_portfolio}
             - Serviço oferecido: {sender_pitch}
             
-            Regras cruciais para escrever o e-mail (siga exatamente este estilo amigável e pessoal):
-            1. Assunto: Escolha uma variação curta (ex: "Ideia para a {prospect['company_name']}", "Sobre a {prospect['company_name']}", "Uma observação sobre a {prospect['company_name']}").
+            Regras cruciais para escrever o e-mail (siga exatamente este estilo amigável, visual e de negócios):
+            1. Assunto: Escolha uma variação curta e natural (ex: "Uma ideia para a {prospect['company_name']}", "Sobre o posicionamento da {prospect['company_name']}", "Uma sugestão para a {prospect['company_name']}").
             2. Saudação: Comece com "Olá, tudo bem?" ou "Olá [Nome do contato], tudo bem?".
-            3. Elogio Sincero Baseado em Fatos (Primeiro Parágrafo): Apresente-se ("Meu nome é {sender_name}"). Diga que chegou até a empresa pelo Google/Redes Sociais e te chamou atenção algum ponto positivo deles (ex: avaliações excelentes na internet, tradição em {prospect['segment']}, o portfólio bacana exposto ou a qualidade do trabalho). Elogie isso como um diferencial forte da empresa deles.
-            4. A Oportunidade Visual (Segundo Parágrafo): Diga: "Foi por isso que reparei numa oportunidade: no perfil de vocês, notei que não possuem um site institucional com domínio próprio da empresa. Depender apenas de redes sociais esconde a autoridade que a {prospect['company_name']} tem."
+            3. Elogio Sincero Baseado em Fatos (Primeiro Parágrafo): Apresente-se ("Meu nome é {sender_name}"). Diga que chegou até a empresa pelas buscas e te chamou atenção a qualidade e a seriedade do trabalho de vocês em {prospect['segment']}. Elogie isso como um diferencial forte da empresa deles.
+            4. Diagnóstico Visual e Comercial em Linguagem Clara (Segundo Parágrafo):
+               Explique com clareza para pessoas comuns os benefícios fundamentais que um bom site traz e que fazem falta no momento:
+               - Ter botões de chamada de ação (CTA) e botão direto de WhatsApp sempre visíveis no celular para facilitar pedidos de orçamento em 1 toque.
+               - Apresentação organizada e clara dos serviços/produtos de {prospect['segment']} para transmitir autoridade imediata.
+               - Depender apenas de redes sociais esconde o tamanho real da empresa, pois muitos clientes industriais e tomadores de decisão pesquisam no Google antes de fechar negócio.
             5. Pitch Comercial e Estudo Visual (Terceiro Parágrafo): NÃO envie nenhum link pronto para a pessoa olhar. Use exatamente a seguinte ideia e frase:
-               "Por isso, desenvolvi um estudo visual mostrando como a empresa poderia se apresentar hoje: site moderno, responsivo e com destaque para seus serviços de {prospect['segment']}. Fiz esse material especificamente para vocês."
+               "Por isso, desenvolvi um estudo visual mostrando como a {prospect['company_name']} poderia se apresentar hoje na internet: um site moderno, ultrarrápido no celular, com navegação intuitiva e botões estratégicos de contato para gerar mais orçamentos. Fiz esse material especificamente para vocês."
             6. Chamada para Ação Simples e Apresentação (Quarto Parágrafo): Use exatamente a seguinte ideia e frase:
                "Se vocês tiverem 10 minutos, posso apresentar essa ideia sem compromisso."
             7. Assinatura simples no final com Nome, WhatsApp e link do Portfólio ({sender_portfolio}).
             8. Regras adicionais informadas pelo usuário: {email_rules}
             
             Regras para a mensagem curta de WhatsApp:
-            - Apresente-se e seja amigável. Diga que notou que não possuem site próprio e que preparou uma proposta visual de como ficaria a presença digital de forma profissional. Pergunte se pode apresentar em 5 minutos, sem enviar links.
+            - Apresente-se e seja amigável. Diga que notou que não possuem site próprio e que preparou uma proposta visual com foco em carregamento rápido no celular e geração de orçamentos. Pergunte se pode apresentar em 5 minutos, sem enviar links.
             
             Retorne estritamente um objeto JSON com três propriedades: "subject" (o assunto do e-mail), "body" (o texto do e-mail) e "whatsapp" (o texto da mensagem curta para WhatsApp). Não adicione nenhuma formatação markdown fora do JSON (como ```json ou ```). Retorne APENAS o JSON puro.
             """
         else:
             prompt = f"""
             Você é um copywriter de vendas experiente e trabalha prospectando clientes de desenvolvimento de sites para {sender_name}.
-            Sua tarefa é redigir um e-mail de vendas amigável, direto, informal e altamente personalizado para a empresa "{prospect['company_name']}", além de uma mensagem curta para WhatsApp.
+            Sua tarefa é redigir um e-mail de vendas amigável, direto, altamente visual e focado em negócios para a empresa "{prospect['company_name']}", além de uma mensagem curta para WhatsApp.
             
             Dados da empresa:
             - Nome: {prospect['company_name']}
             - Website: {prospect['website']}
             - Segmento/Indústria: {prospect['segment']}
             - Região: {prospect['region']}
-            - Falhas técnicas encontradas no site: {issues_list}
+            - Falhas técnicas e de conversão encontradas: {issues_list}
             - Notas de análise: {prospect['notes']}
             
             Dados do remetente (você):
@@ -1789,20 +1793,25 @@ def generate_prospect_email(prospect):
             - Portfólio: {sender_portfolio}
             - Serviço oferecido: {sender_pitch}
             
-            Regras cruciais para escrever o e-mail (siga exatamente este estilo amigável e pessoal):
+            Regras cruciais para escrever o e-mail (siga exatamente este estilo amigável, visual e de negócios):
             1. Assunto: Escolha uma variação curta (ex: "Uma ideia para o site da {prospect['company_name']}", "Sobre o site da {prospect['company_name']}", "Enquanto analisava o site da {prospect['company_name']}, surgiu uma ideia").
             2. Saudação: Comece com "Olá, tudo bem?" ou "Olá [Nome do contato], tudo bem?".
-            3. Elogio Sincero Baseado em Fatos (Primeiro Parágrafo): Apresente-se ("Meu nome é {sender_name}"). Diga que chegou até eles pelo Google e te chamou atenção algum ponto positivo (ex: a excelente avaliação no Google Maps com 5.0 estrelas, o portfólio robusto ou a credibilidade dos serviços). Elogie isso como sinal de uma empresa séria e de qualidade.
-            4. A Oportunidade Visual (Segundo Parágrafo): Diga: "Ao abrir o site atual, percebi uma oportunidade: a página está com alguns pontos que acabam atrapalhando a primeira impressão [liste as falhas do site traduzidas para termos simples de negócios de forma gentil, ex: fotos que não abrem bem no celular, layout antigo, aviso de não seguro na barra de endereços], o que faz o site passar menos credibilidade do que a {prospect['company_name']} merece."
-            5. Pitch Comercial e Estudo Visual (Terceiro Parágrafo): NÃO envie nenhum link pronto (como mockups ou links de comparação) para a pessoa olhar. Use exatamente a seguinte ideia e frase:
-               "Por isso, desenvolvi um estudo visual mostrando como a empresa poderia se apresentar hoje: site moderno, responsivo e com destaque para seus serviços de {prospect['segment']}. Fiz esse material especificamente para vocês."
+            3. Elogio Sincero Baseado em Fatos (Primeiro Parágrafo): Apresente-se ("Meu nome é {sender_name}"). Diga que chegou até eles pelo Google e te chamou atenção a credibilidade, tradição ou qualidade do trabalho em {prospect['segment']}. Elogie isso como um diferencial forte da empresa.
+            4. Diagnóstico Visual, Usabilidade e Conversão em Linguagem Clara (Segundo Parágrafo):
+               Em vez de apenas usar jargões técnicos frios, explique de forma simples e visual o impacto prático no dia a dia do cliente:
+               - **Chamadas de Ação (CTAs) e Contato Rápido:** A importância de botões de WhatsApp flutuantes e botões de orçamento visíveis em 1 toque na tela do celular.
+               - **Informações Fáceis e Diretas:** Apresentação clara dos serviços de {prospect['segment']} para que o visitante encontre exatamente o que precisa em poucos segundos sem se perder.
+               - **Velocidade de Carregamento e Navegação Ágil:** Uma estrutura leve que carrega rápido no smartphone de quem pesquisa pelo 4G/5G.
+               - **Autoridade e Apelo Visual:** Citar com tato pontos que merecem modernização (ex: {issues_list}, copyright desatualizado, falta de certificado de segurança ou layout antigo) que fazem a empresa parecer menor ou menos atualizada do que realmente é.
+            5. Pitch Comercial e Estudo Visual (Terceiro Parágrafo): NÃO envie nenhum link pronto para a pessoa olhar. Use exatamente a seguinte ideia e frase:
+               "Por isso, desenvolvi um estudo visual mostrando como a {prospect['company_name']} poderia se apresentar hoje: um site moderno, ultrarrápido, com navegação intuitiva no celular e chamadas estratégicas para transformar visitantes em orçamentos. Fiz esse material especificamente para vocês."
             6. Chamada para Ação Simples e Apresentação (Quarto Parágrafo): Use exatamente a seguinte ideia e frase:
                "Se vocês tiverem 10 minutos, posso apresentar essa ideia sem compromisso."
             7. Assinatura simples no final com Nome, WhatsApp e link do Portfólio ({sender_portfolio}).
             8. Regras adicionais informadas pelo usuário: {email_rules}
             
             Regras para a mensagem curta de WhatsApp:
-            - Apresente-se e seja amigável. Diga que analisou o site deles, notou alguns pontos de melhoria no celular/layout e que preparou uma proposta visual com um design mais moderno. Pergunte se pode apresentar em 5 minutos, sem enviar links.
+            - Apresente-se e seja amigável. Diga que analisou o site deles, notou boas oportunidades para agilizar o contato no celular e que preparou uma proposta visual com um design mais moderno e conversivo. Pergunte se pode apresentar em 5 minutos, sem enviar links.
             
             Retorne estritamente um objeto JSON com três propriedades: "subject" (o assunto do e-mail), "body" (o texto do e-mail) e "whatsapp" (o texto da mensagem curta para WhatsApp). Não adicione nenhuma formatação markdown fora do JSON (como ```json ou ```). Retorne APENAS o JSON puro.
             """
@@ -1830,18 +1839,18 @@ def generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sen
         subjects = [
             f"Uma sugestão para a {prospect['company_name']}",
             f"Ideia de site para a {prospect['company_name']}",
-            f"Sobre a presença da {prospect['company_name']}"
+            f"Sobre a presença digital da {prospect['company_name']}"
         ]
         subject = random.choice(subjects)
-        whatsapp_draft = f"Olá, tudo bem? Meu nome é {sender_name}. Gostei muito do perfil de vocês nas buscas, mas reparei numa oportunidade: vocês ainda não têm um site próprio. Elaborei uma proposta visual rápida de como ficaria a presença digital de vocês no celular. Se tiver 5 minutos, posso te apresentar?"
+        whatsapp_draft = f"Olá, tudo bem? Meu nome é {sender_name}. Gostei muito do trabalho de vocês, mas reparei numa oportunidade: vocês ainda não têm um site próprio. Elaborei uma proposta visual rápida mostrando como ficaria um site moderno e focado em WhatsApp/orçamentos no celular. Se tiver 5 minutos, posso te apresentar?"
         
         body = f"""Olá, tudo bem?
 
-Meu nome é {sender_name}. Cheguei até a {prospect['company_name']} e gostei muito de ver a qualidade dos serviços de {prospect['segment']} de vocês — é um diferencial muito forte.
+Meu nome é {sender_name}. Cheguei até a {prospect['company_name']} pelas buscas e me chamou a atenção a qualidade e a seriedade do trabalho de vocês em {prospect['segment']} — é um diferencial muito forte.
 
-Foi por isso que reparei numa oportunidade: no perfil atual, vocês não possuem um site institucional com domínio próprio. Depender de redes sociais acaba limitando a credibilidade com clientes industriais e grandes parceiros que pesquisam vocês na internet.
+Ao analisar a presença digital de vocês, notei uma grande oportunidade: no momento, vocês não possuem um site institucional próprio. Hoje, clientes e parceiros buscam informações rápidas no Google, e ter um site com navegação ágil, informações claras sobre os serviços e botão direto de WhatsApp em um toque faz toda a diferença para transmitir autoridade e fechar novos negócios.
 
-Por isso, desenvolvi um estudo visual mostrando como a empresa poderia se apresentar hoje: site moderno, responsivo e com destaque para seus serviços de {prospect['segment']}. Fiz esse material especificamente para vocês.
+Por isso, desenvolvi um estudo visual mostrando como a {prospect['company_name']} poderia se apresentar hoje na internet: um site moderno, ultrarrápido no celular, com navegação intuitiva e botões estratégicos de contato para gerar mais orçamentos. Fiz esse material especificamente para vocês.
 
 Se vocês tiverem 10 minutos, posso apresentar essa ideia sem compromisso.
 
@@ -1858,37 +1867,42 @@ Portfólio: {sender_portfolio}"""
     ]
     subject = random.choice(subjects)
     
-    # Layman translations of flaws
+    # Layman and visual translations of flaws
     issues_text_parts = []
+    
     for issue in prospect.get('detected_issues', []):
-        if 'Wix' in issue:
-            issues_text_parts.append("um erro na formatação por ser feito em uma plataforma que deixa a página pesada (Wix)")
-        elif 'Responsivo' in issue:
-            issues_text_parts.append("imagens e formatação que não abrem bem pelo celular")
+        if 'WhatsApp' in issue:
+            issues_text_parts.append("a ausência de um botão de WhatsApp flutuante para o cliente chamar em 1 clique pelo celular")
+        elif 'Telefone' in issue:
+            issues_text_parts.append("telefones que não permitem discagem rápida com um toque no smartphone")
+        elif 'Responsivo' in issue or 'Mobile' in issue:
+            issues_text_parts.append("uma navegação que fica desajustada na tela do celular")
         elif 'Copyright' in issue:
             match = re.search(r'\d{4}', issue)
             yr = match.group() if match else "anos atrás"
-            issues_text_parts.append(f"um design desatualizado com o copyright parado em {yr}")
-        elif 'Subdomínio' in issue:
-            issues_text_parts.append("o uso de um endereço provisório gratuito em vez de um domínio próprio")
+            issues_text_parts.append(f"um design com aparência desatualizada (com o copyright parado em {yr})")
         elif 'Inseguro' in issue:
-            issues_text_parts.append("um aviso de 'Não Seguro' na barra do navegador")
-            
+            issues_text_parts.append("a falta do selo de segurança HTTPS, que gera aviso de site não seguro no navegador")
+        elif 'Lentidão' in issue or 'Wix' in issue:
+            issues_text_parts.append("um tempo de carregamento que pode ser muito mais rápido e leve")
+        elif 'SEO' in issue or 'H1' in issue:
+            issues_text_parts.append("a falta de estrutura clara para o Google encontrar facilmente os serviços de vocês")
+
     if issues_text_parts:
         flaws_desc = " e ".join(issues_text_parts[:2])
-        opportunity_desc = f"a página está com alguns pontos que atrapalham a primeira impressão ({flaws_desc}), o que faz o site passar menos credibilidade do que vocês merecem"
+        opportunity_desc = f"a página tem alguns pontos que atrapalham a experiência de quem visita ({flaws_desc}), o que acaba fazendo o site converter menos orçamentos do que a {prospect['company_name']} merece"
     else:
-        opportunity_desc = "o site tem um visual mais tradicional, que poderia ser modernizado para acompanhar os padrões atuais e destacar a qualidade dos seus serviços"
+        opportunity_desc = f"a estrutura atual pode ser otimizada com chamadas de ação mais claras, carregamento mais rápido no celular e destaque visual para os principais diferenciais de {prospect['segment']}"
         
-    whatsapp_draft = f"Olá, tudo bem? Meu nome é {sender_name}. Dei uma olhada no site da {prospect['company_name']} e vi que ele tem um bom posicionamento, mas reparei numa oportunidade de melhoria. Montei uma proposta visual com um design bem mais moderno e adaptado para celulares. Posso te apresentar rápido sem compromisso?"
+    whatsapp_draft = f"Olá, tudo bem? Meu nome é {sender_name}. Dei uma olhada no site da {prospect['company_name']} e vi que ele tem um bom posicionamento, mas reparei em oportunidades visuais para agilizar o contato no celular e gerar mais orçamentos. Montei uma proposta visual moderna. Posso te apresentar rápido sem compromisso?"
     
     body = f"""Olá, tudo bem?
 
 Meu nome é {sender_name}. Cheguei até a {prospect['company_name']} pelo Google e me chamou a atenção a qualidade e a seriedade do trabalho de vocês em {prospect['segment']} — é um diferencial muito forte.
 
-Ao abrir o site, percebi uma oportunidade: {opportunity_desc}.
+Ao analisar o site atual, percebi uma oportunidade prática: {opportunity_desc}. Elementos simples como facilidade de navegação, velocidade de carregamento no smartphone e botões de contato direto fazem toda a diferença para que visitantes se transformem em clientes.
 
-Por isso, desenvolvi um estudo visual mostrando como a empresa poderia se apresentar hoje: site moderno, responsivo e com destaque para seus serviços de {prospect['segment']}. Fiz esse material especificamente para vocês.
+Por isso, desenvolvi um estudo visual mostrando como a {prospect['company_name']} poderia se apresentar hoje: um site moderno, ultrarrápido, com navegação intuitiva no celular e chamadas estratégicas para transformar visitantes em orçamentos. Fiz esse material especificamente para vocês.
 
 Se vocês tiverem 10 minutos, posso apresentar essa ideia sem compromisso.
 
