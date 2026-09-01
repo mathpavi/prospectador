@@ -2356,30 +2356,33 @@ def run_surgical_job(segment, region, max_results, state_uf=None, city_name=None
                 else:
                     if is_valid_company_website(p_web):
                         add_log(f"Analisando site do Google Maps de '{p_name}': {p_web}...")
-                        audit_res = analyze_website(p_web, segment=segment, location=db_region)
-                        if audit_res.get('status') == 'success':
-                            audit_emails = audit_res.get('contact_emails', [])
-                            email_contact = audit_emails[0] if audit_emails else ""
-                            phone_contact = clean_p_phone or (audit_res.get('contact_phones', [''])[0])
-                            
-                            p_data = {
-                                'company_name': p_name,
-                                'website': p_web,
-                                'segment': segment,
-                                'region': db_region,
-                                'status': 'approved' if (is_autopilot and database.get_setting('autopilot_auto_approve', '0') == '1' and email_contact) else 'pending',
-                                'detected_issues': audit_res.get('detected_issues', []),
-                                'contact_email': email_contact,
-                                'contact_whatsapp': phone_contact,
-                                'contact_phone': phone_contact,
-                                'notes': f"Empresa mapeada no Google Maps. {audit_res.get('notes', '')}",
-                                'screenshot': audit_res.get('screenshot', ''),
-                                'tech_stack': audit_res.get('tech_stack', ''),
-                                'is_autopilot': is_autopilot
-                            }
-                            database.insert_prospect(p_data)
-                            new_prospects_count += 1
-                            add_log(f"Lead Maps com site salvo: '{p_name}' | Site: {p_web} | Email: {email_contact}")
+                        try:
+                            audit_res = analyze_website(p_web, segment=segment, region=db_region)
+                            if audit_res.get('status') == 'success':
+                                audit_emails = audit_res.get('contact_emails', [])
+                                email_contact = audit_emails[0] if audit_emails else ""
+                                phone_contact = clean_p_phone or (audit_res.get('contact_phones', [''])[0])
+                                
+                                p_data = {
+                                    'company_name': p_name,
+                                    'website': p_web,
+                                    'segment': segment,
+                                    'region': db_region,
+                                    'status': 'approved' if (is_autopilot and database.get_setting('autopilot_auto_approve', '0') == '1' and email_contact) else 'pending',
+                                    'detected_issues': audit_res.get('detected_issues', []),
+                                    'contact_email': email_contact,
+                                    'contact_whatsapp': phone_contact,
+                                    'contact_phone': phone_contact,
+                                    'notes': f"Empresa mapeada no Google Maps. {audit_res.get('notes', '')}",
+                                    'screenshot': audit_res.get('screenshot', ''),
+                                    'tech_stack': audit_res.get('tech_stack', ''),
+                                    'is_autopilot': is_autopilot
+                                }
+                                database.insert_prospect(p_data)
+                                new_prospects_count += 1
+                                add_log(f"Lead Maps com site salvo: '{p_name}' | Site: {p_web} | Email: {email_contact}")
+                        except Exception as err:
+                            add_log(f"Aviso: Falha na análise do site de '{p_name}': {err}")
 
         if is_maps_only:
             add_log("Buscando empresas sem site próprio EXCLUSIVAMENTE no Google Maps...")
