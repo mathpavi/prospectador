@@ -685,6 +685,22 @@
                 </div>
             </div>
             
+            <!-- Quick Search & Page Size Filter -->
+            <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 260px; position: relative;">
+                    <input type="text" id="lead-search-input" placeholder="🔍 Filtrar leads por nome da empresa, site, e-mail..." style="width: 100%; padding: 10px 14px; background: rgba(15,23,42,0.6); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem;">
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">
+                    <span>Itens por página:</span>
+                    <select id="leads-per-page-select" class="form-control" style="padding: 7px 12px; font-size: 0.85rem; background: rgba(15,23,42,0.8); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                        <option value="12">12 leads</option>
+                        <option value="24" selected>24 leads</option>
+                        <option value="48">48 leads</option>
+                        <option value="96">96 leads</option>
+                    </select>
+                </div>
+            </div>
+            
             <!-- Leads Card Grid -->
             <div class="leads-grid" id="leads-container">
                 <!-- Cards inject here dynamically -->
@@ -695,6 +711,16 @@
                     </svg>
                     <h3>Nenhum lead encontrado</h3>
                     <p>Use a aba "Buscar Leads" para fazer sua primeira pesquisa.</p>
+                </div>
+            </div>
+
+            <!-- Leads Pagination Controls -->
+            <div class="pagination-bar" id="leads-pagination-bar" style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center; background: rgba(15,23,42,0.6); padding: 12px 18px; border-radius: 10px; border: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;">
+                <div style="font-size: 0.85rem; color: var(--text-secondary);" id="pagination-info">
+                    Exibindo <strong>0</strong> leads
+                </div>
+                <div id="pagination-buttons" style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
+                    <!-- Dynamic pagination buttons -->
                 </div>
             </div>
         </div>

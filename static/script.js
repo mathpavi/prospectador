@@ -568,16 +568,39 @@ async function checkActiveSearch() {
 checkActiveSearch();
 
 // ==========================================
-// 3. LEADS (DASHBOARD) TAB
+// 3. LEADS (DASHBOARD) TAB & PAGINATION
 // ==========================================
 const filterTags = document.querySelectorAll('.filter-tag');
 const leadsContainer = document.getElementById('leads-container');
+const leadSearchInput = document.getElementById('lead-search-input');
+const leadsPerPageSelect = document.getElementById('leads-per-page-select');
+
+let currentLeadPage = 1;
+let leadsPerPage = 24;
+let leadSearchFilterText = '';
+
+if (leadSearchInput) {
+    leadSearchInput.addEventListener('input', (e) => {
+        leadSearchFilterText = e.target.value.trim();
+        currentLeadPage = 1;
+        renderLeadsWithPagination();
+    });
+}
+
+if (leadsPerPageSelect) {
+    leadsPerPageSelect.addEventListener('change', (e) => {
+        leadsPerPage = parseInt(e.target.value) || 24;
+        currentLeadPage = 1;
+        renderLeadsWithPagination();
+    });
+}
 
 filterTags.forEach(tag => {
     tag.addEventListener('click', () => {
         filterTags.forEach(t => t.classList.remove('active'));
         tag.classList.add('active');
         currentFilter = tag.getAttribute('data-filter');
+        currentLeadPage = 1;
         loadLeads();
     });
 });
@@ -607,10 +630,99 @@ async function loadLeads() {
         const queueSentToday = document.getElementById('queue-sent-today');
         if (queueSentToday) queueSentToday.textContent = `${data.stats.sent_today} / ${data.stats.daily_limit}`;
         
-        renderLeadCards(allProspects);
+        renderLeadsWithPagination();
     } catch (error) {
         showToast('Erro ao carregar leads.', 'error');
     }
+}
+
+function setLeadPage(page) {
+    currentLeadPage = page;
+    renderLeadsWithPagination();
+    const anchor = document.getElementById('leads-container');
+    if (anchor) {
+        anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function renderLeadsWithPagination() {
+    let filtered = allProspects || [];
+    if (leadSearchFilterText) {
+        const q = leadSearchFilterText.toLowerCase();
+        filtered = filtered.filter(l => 
+            (l.company_name && l.company_name.toLowerCase().includes(q)) ||
+            (l.website && l.website.toLowerCase().includes(q)) ||
+            (l.contact_email && l.contact_email.toLowerCase().includes(q)) ||
+            (l.contact_phone && l.contact_phone.includes(q)) ||
+            (l.contact_whatsapp && l.contact_whatsapp.includes(q)) ||
+            (l.notes && l.notes.toLowerCase().includes(q)) ||
+            (l.cnpj && l.cnpj.includes(q))
+        );
+    }
+    
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / leadsPerPage) || 1;
+    
+    if (currentLeadPage > totalPages) currentLeadPage = totalPages;
+    if (currentLeadPage < 1) currentLeadPage = 1;
+    
+    const startIndex = (currentLeadPage - 1) * leadsPerPage;
+    const endIndex = Math.min(startIndex + leadsPerPage, totalItems);
+    const pageItems = filtered.slice(startIndex, endIndex);
+    
+    renderLeadCards(pageItems);
+    renderPaginationControls(totalItems, totalPages, startIndex, endIndex);
+}
+
+function renderPaginationControls(totalItems, totalPages, startIndex, endIndex) {
+    const bar = document.getElementById('leads-pagination-bar');
+    const info = document.getElementById('pagination-info');
+    const buttonsContainer = document.getElementById('pagination-buttons');
+    if (!bar || !info || !buttonsContainer) return;
+    
+    if (totalItems === 0) {
+        bar.style.display = 'none';
+        return;
+    }
+    bar.style.display = 'flex';
+    
+    info.innerHTML = `Exibindo <strong>${totalItems > 0 ? startIndex + 1 : 0} - ${endIndex}</strong> de <strong>${totalItems}</strong> leads (Página ${currentLeadPage} de ${totalPages})`;
+    
+    let html = '';
+    
+    // First & Prev buttons
+    const prevDisabled = currentLeadPage === 1 ? 'disabled style="opacity:0.35;cursor:not-allowed;"' : '';
+    html += `<button type="button" class="btn btn-secondary btn-sm" onclick="setLeadPage(1)" ${prevDisabled} title="Primeira Página">«</button>`;
+    html += `<button type="button" class="btn btn-secondary btn-sm" onclick="setLeadPage(${currentLeadPage - 1})" ${prevDisabled} title="Página Anterior">‹</button>`;
+    
+    // Page Numbers (sliding window around current page)
+    let startPage = Math.max(1, currentLeadPage - 2);
+    let endPage = Math.min(totalPages, currentLeadPage + 2);
+    
+    if (startPage > 1) {
+        html += `<button type="button" class="btn btn-secondary btn-sm" onclick="setLeadPage(1)">1</button>`;
+        if (startPage > 2) html += `<span style="color:var(--text-muted);padding:0 4px;">...</span>`;
+    }
+    
+    for (let p = startPage; p <= endPage; p++) {
+        if (p === currentLeadPage) {
+            html += `<button type="button" class="btn btn-primary btn-sm" style="font-weight:bold;background:var(--primary);min-width:32px;">${p}</button>`;
+        } else {
+            html += `<button type="button" class="btn btn-secondary btn-sm" style="min-width:32px;" onclick="setLeadPage(${p})">${p}</button>`;
+        }
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<span style="color:var(--text-muted);padding:0 4px;">...</span>`;
+        html += `<button type="button" class="btn btn-secondary btn-sm" onclick="setLeadPage(${totalPages})">${totalPages}</button>`;
+    }
+    
+    // Next & Last buttons
+    const nextDisabled = currentLeadPage === totalPages ? 'disabled style="opacity:0.35;cursor:not-allowed;"' : '';
+    html += `<button type="button" class="btn btn-secondary btn-sm" onclick="setLeadPage(${currentLeadPage + 1})" ${nextDisabled} title="Próxima Página">›</button>`;
+    html += `<button type="button" class="btn btn-secondary btn-sm" onclick="setLeadPage(${totalPages})" ${nextDisabled} title="Última Página">»</button>`;
+    
+    buttonsContainer.innerHTML = html;
 }
 
 function renderLeadCards(prospects) {
