@@ -296,14 +296,42 @@ def extract_base_domain(url):
     except:
         return ''
 
+STATE_DDD_MAP = {
+    'RS': '51', 'SC': '48', 'PR': '41', 'SP': '11', 'RJ': '21',
+    'MG': '31', 'ES': '27', 'BA': '71', 'PE': '81', 'CE': '85',
+    'DF': '61', 'GO': '62', 'MT': '65', 'MS': '67', 'AL': '82',
+    'AM': '92', 'AP': '96', 'MA': '98', 'PA': '91', 'PB': '83',
+    'PI': '86', 'RN': '84', 'RO': '69', 'RR': '95', 'SE': '79', 'TO': '63'
+}
+
+def format_domain_brand(domain):
+    base = domain.split('.')[0].lower()
+    if base.startswith('www'):
+        base = base[3:]
+        
+    prefixes = ['grupo', 'metalurgica', 'serralheria', 'usinagem', 'distribuidora', 'industria', 'clinica', 'esquadrias', 'vidracaria', 'marcenaria', 'telealarme', 'alarme', 'seguranca', 'auto', 'solley', 'gecar', 'donato']
+    suffixes = ['metalurgica', 'usinagem', 'serralheria', 'brasil', 'rs', 'poa', 'ltda', 'me', 'cia', 'tech', 'seguranca', 'alarmes']
+    
+    for p in prefixes:
+        if base.startswith(p) and len(base) > len(p) + 2:
+            rest = base[len(p):]
+            for art in ['de', 'da', 'do', 'dos', 'das']:
+                if rest.startswith(art) and len(rest) > len(art) + 2:
+                    return f"{p.capitalize()} {art.capitalize()} {rest[len(art):].capitalize()}"
+            return f"{p.capitalize()} {rest.capitalize()}"
+            
+    for s in suffixes:
+        if base.endswith(s) and len(base) > len(s) + 2:
+            start = base[:-len(s)]
+            return f"{start.capitalize()} {s.capitalize()}"
+            
+    return base.capitalize()
+
 def clean_company_name(title, domain):
     # Try to extract a clean company name from the page title
     if not title:
-        # Fallback to domain name without extension
-        parts = domain.split('.')
-        return parts[0].capitalize()
+        return format_domain_brand(domain)
     
-    # Get domain base name (e.g. "solleymetalurgica" from "solleymetalurgica.com.br")
     domain_base = domain.split('.')[0].lower()
     if domain_base.startswith('www'):
         domain_base = domain_base[3:]
@@ -321,7 +349,7 @@ def clean_company_name(title, domain):
             cleaned_parts.append(part)
             
     if not cleaned_parts:
-        return domain.split('.')[0].capitalize()
+        return format_domain_brand(domain)
         
     # Choose the part that matches the domain base best
     if len(cleaned_parts) == 1:
@@ -333,8 +361,9 @@ def clean_company_name(title, domain):
         for part in cleaned_parts:
             part_lower = part.lower()
             
-            # De-prioritize common page/action words
-            is_page_word = any(w in part_lower for w in ['home', 'início', 'inicio', 'principal', 'inicial', 'contato', 'sobre', 'quem somos', 'serviços', 'servicos', 'index', 'nossos serviços', 'nossos servicos'])
+            # De-prioritize common page/action words or phone numbers
+            is_page_word = any(w in part_lower for w in ['home', 'início', 'inicio', 'principal', 'inicial', 'contato', 'sobre', 'quem somos', 'serviços', 'servicos', 'index', 'nossos serviços', 'nossos servicos', 'ligue', 'orçamento', 'orcamento'])
+            has_phone_number = bool(re.search(r'\b\d{4}[-.\s]?\d{4}\b', part))
             
             overlap_score = 0
             clean_part_letters = re.sub(r'[^a-z0-9]', '', part_lower)
@@ -342,7 +371,7 @@ def clean_company_name(title, domain):
             # If domain base is a substring of clean part, or vice-versa
             if clean_part_letters and domain_base:
                 if domain_base in clean_part_letters or clean_part_letters in domain_base:
-                    overlap_score += 15
+                    overlap_score += 25
                     
             # Count common letters
             intersection_len = len(set(clean_part_letters) & set(domain_base))
@@ -350,6 +379,8 @@ def clean_company_name(title, domain):
             
             if is_page_word:
                 overlap_score -= 20
+            if has_phone_number:
+                overlap_score -= 30
                 
             if overlap_score > best_score:
                 best_score = overlap_score
@@ -367,10 +398,16 @@ def clean_company_name(title, domain):
     name = re.sub(r'(?i)^de\s+', '', name).strip()
     name = re.sub(r'(?i)^em\s+', '', name).strip()
     
-    # If the resulting name is too short or generic, fallback to domain base
-    if len(name) < 3 or name.lower() in ['home', 'inicio', 'principal', 'inicial', 'advogado', 'metalurgica', 'industria', 'site']:
-        parts = domain.split('.')
-        name = parts[0].capitalize()
+    # Generic phrase detection
+    generic_words = [
+        'alarme monitorado', 'rastreamento veicular', 'portaria remota', 'segurança eletrônica',
+        'seguranca eletronica', 'metalúrgica', 'metalurgica', 'usinagem', 'serralheria',
+        'vidraçaria', 'vidracaria', 'marcenaria', 'energia solar', 'climatização', 'climatizacao',
+        'home', 'início', 'inicio', 'principal', 'site oficial', 'serviços', 'servicos', 'advogado',
+        'consultoria', 'empresa', 'indústria', 'industria', 'site'
+    ]
+    if len(name) < 3 or name.lower() in generic_words or re.search(r'\b\d{4}[-.\s]?\d{4}\b', name):
+        name = format_domain_brand(domain)
         
     return name
 
@@ -1234,12 +1271,12 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
     }
     
     issues = []
-    contact_email = None
-    contact_whatsapp = None
-    contact_phone = None
+    opportunities = []
+    tech_detected = []
+    
     domain = extract_base_domain(url)
     
-    # 1. Check if subdomain
+    # 1. Check Subdomain
     domain_parts = domain.split('.')
     is_subdomain = False
     if domain.endswith('.br'):
@@ -1251,42 +1288,55 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
             
     if is_subdomain:
         issues.append('Subdomínio')
+        opportunities.append("O site roda em um subdomínio, o que reduz a autoridade da marca.")
         
-    # 2. Check if HTTPS
-    if url.startswith('http://'):
-        issues.append('Inseguro (HTTP)')
-        
-    # Fetch content
+    # Fetch content with timeout
     html_content = ""
     final_url = url
     load_time = 0.0
     try:
-        response = requests.get(url, headers=headers, timeout=6, allow_redirects=True)
+        t0 = datetime.now()
+        response = requests.get(url, headers=headers, timeout=8, allow_redirects=True)
+        load_time = (datetime.now() - t0).total_seconds()
+        
         if response.status_code != 200:
             add_log(f"Ignorando {url} pois retornou HTTP status {response.status_code}")
             return None
             
-        load_time = response.elapsed.total_seconds()
+        final_url = response.url
         response.encoding = response.apparent_encoding or 'utf-8'
         html_content = response.text
-        final_url = response.url
         
-        # Re-check domain validity after redirects (e.g. redirects to Facebook, directories, or blog)
+        # Re-check domain validity after redirects
         if not is_valid_company_website(final_url):
             add_log(f"Ignorando {url} pois redirecionou para um domínio/URL inválido: {final_url}")
             return None
-            
-        if final_url.startswith('http://') and 'Inseguro (HTTP)' not in issues:
-            issues.append('Inseguro (HTTP)')
     except Exception as e:
         add_log(f'Não foi possível acessar {url} (Site offline ou erro de conexao): {e}')
         return None
 
+    # 2. Precise HTTPS & Security Check (Zero False Positives)
+    is_https = final_url.startswith('https://')
+    if not is_https:
+        issues.append('Inseguro (HTTP)')
+        opportunities.append("O site não possui certificado HTTPS configurado, exibindo aviso de 'Não seguro' na barra do navegador.")
+        
     soup = BeautifulSoup(html_content, 'html.parser')
     page_text = soup.get_text()
     
+    # Check Mixed Content on HTTPS pages
+    if is_https:
+        insecure_res = []
+        for tag, attr in [('img', 'src'), ('script', 'src'), ('link', 'href'), ('iframe', 'src')]:
+            for el in soup.find_all(tag, **{attr: True}):
+                src = el[attr]
+                if src.startswith('http://') and not any(src.startswith(p) for p in ['http://localhost', 'http://schemas.', 'http://www.w3.org']):
+                    insecure_res.append(src)
+        if len(insecure_res) >= 2:
+            issues.append('Conteúdo Misto Inseguro')
+            opportunities.append(f"O site possui {len(insecure_res)} recursos carregados via HTTP simples dentro de página HTTPS (Mixed Content).")
+
     title = soup.title.string.strip() if soup.title and soup.title.string else ""
-    # Filter out 404, error, and forbidden pages
     title_lower = title.lower()
     error_titles = [
         "404", "not found", "não encontrado", "nao encontrado", "erro", "error", 
@@ -1297,149 +1347,198 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
         add_log(f"Ignorando {url} pois o título indica página de erro ou indisponível: '{title}'")
         return None
         
-    # Filter out huge corporations
     if is_huge_corporation(domain, page_text, title):
         add_log(f"Ignorando {url} pois parece ser uma grande corporação/empresa de grande porte.")
         return None
         
-    # Filter out news, directory and informative portals
     if is_invalid_industry_site(url, title, page_text):
         add_log(f"Ignorando {url} pois parece ser um portal, blog ou diretório.")
         return None
         
-    # Check if the website actually relates to the segment to avoid capturing completely unrelated industries
+    # Check segment match
     segment_lower = segment.lower()
     segment_keywords = [w.strip() for w in re.split(r'[\s/]+', segment_lower) if len(w.strip()) > 3 and w.strip() not in ['de', 'para', 'com', 'sem', 'sob', 'geral']]
-    
     page_text_lower = page_text.lower()
     
     synonyms = {
         'móveis': ['moveis', 'mobiliário', 'mobiliario', 'móvel', 'movel', 'marcenaria', 'estofados', 'sofa', 'sofá', 'cozinhas', 'dormitórios', 'closets', 'wood', 'madeira', 'esquadrias'],
         'metalúrgica': ['metalurgica', 'metalurgia', 'ferro', 'aço', 'aco', 'usinagem', 'repuxo', 'estampagem', 'solda', 'caldeiraria', 'metal', 'metais', 'indústria metalúrgica', 'esquadrias', 'portões', 'estruturas metálicas'],
         'usinagem': ['torno', 'fresa', 'cnc', 'metalurgica', 'peças', 'pecas', 'usinagem'],
-        'estofados': ['estofaria', 'sofá', 'sofa', 'poltrona', 'cadeiras', 'tapeçaria', 'tapecaria', 'colchão', 'colchao']
+        'estofados': ['estofaria', 'sofá', 'sofa', 'poltrona', 'cadeiras', 'tapeçaria', 'tapecaria', 'colchão', 'colchao'],
+        'segurança': ['alarme', 'cameras', 'cftv', 'portaria', 'rastreamento', 'monitoramento', 'vigilancia', 'controle de acesso']
     }
-    
     extended_keywords = list(segment_keywords)
     for kw in segment_keywords:
         if kw in synonyms:
             extended_keywords.extend(synonyms[kw])
     extended_keywords.append(segment_lower)
     
-    has_segment_match = False
-    for kw in extended_keywords:
-        if kw in page_text_lower or kw in title_lower:
-            has_segment_match = True
-            break
-            
+    has_segment_match = any(kw in page_text_lower or kw in title_lower for kw in extended_keywords)
     if not has_segment_match and segment_keywords:
         add_log(f"Ignorando {url} pois o conteúdo não parece relacionado ao segmento '{segment}'.")
         return None
-    
-    # Clean company name
+        
+    # 3. Clean Company Name
     company_name = clean_company_name(title, domain)
-    
-    # Check if this matches a pattern of rejected/archived leads to filter out unwanted sites
     if is_rejected_pattern(company_name, domain):
         add_log(f"Ignorando {url} ({company_name}) pois corresponde a um padrão de lead arquivado/rejeitado.")
         return None
+
+    # 4. Tech Stack & Platform Detection (Wappalyzer-grade)
+    scripts_src = " ".join([s.get('src', '') for s in soup.find_all('script', src=True)])
+    links_href = " ".join([l.get('href', '') for l in soup.find_all('link', href=True)])
+    full_html_lower = html_content.lower()
     
-    # 3. Detect Wix
-    is_wix = False
-    if 'wixsite' in final_url or 'wix.com' in html_content or '_wix' in html_content:
-        is_wix = True
-    else:
-        meta_gen = soup.find('meta', attrs={'name': 'generator'})
-        if meta_gen and 'wix' in meta_gen.get('content', '').lower():
-            is_wix = True
-            
-    if is_wix:
-        issues.append('Feito no Wix')
+    # CMS / Builders
+    if 'wp-content' in full_html_lower or 'wp-includes' in full_html_lower:
+        tech_detected.append('WordPress')
+        if 'elementor' in full_html_lower:
+            tech_detected.append('Elementor')
+        if 'woocommerce' in full_html_lower:
+            tech_detected.append('WooCommerce')
+    elif 'wix.com' in full_html_lower or '_wix' in full_html_lower:
+        tech_detected.append('Wix')
+        issues.append('Plataforma Wix')
+        opportunities.append("Site hospedado na plataforma Wix (comum lentidão de carregamento e limitações de personalização e SEO).")
+    elif 'shopify' in full_html_lower:
+        tech_detected.append('Shopify')
+    elif 'vtex' in full_html_lower:
+        tech_detected.append('VTEX')
+    elif 'tray.com.br' in full_html_lower or 'cdn.tray' in full_html_lower:
+        tech_detected.append('Tray E-commerce')
+    elif 'nuvemshop' in full_html_lower:
+        tech_detected.append('Nuvemshop')
+    elif 'webflow' in full_html_lower:
+        tech_detected.append('Webflow')
         
-    is_wp = False
-    if 'wp-content' in html_content or 'wp-includes' in html_content:
-        is_wp = True
+    # Frameworks & Modern Stacks
+    if 'react' in scripts_src.lower() or '__next' in full_html_lower:
+        tech_detected.append('React / Next.js')
+    if 'vue' in scripts_src.lower() or '__nuxt' in full_html_lower:
+        tech_detected.append('Vue / Nuxt')
+    if 'bootstrap' in full_html_lower or 'bootstrap' in links_href:
+        tech_detected.append('Bootstrap')
+    if 'tailwind' in full_html_lower:
+        tech_detected.append('Tailwind CSS')
+    if 'rdstation' in scripts_src.lower() or 'd335luupugsy2' in scripts_src:
+        tech_detected.append('RD Station')
+    if 'fontawesome' in links_href or 'fontawesome' in scripts_src:
+        tech_detected.append('FontAwesome')
         
-    # 5. Check Responsiveness
+    # Legacy Libraries Detection
+    if 'jquery-ui' in scripts_src.lower():
+        jqui_ver = re.search(r'jquery-ui[/-](\d+\.\d+\.\d+)', scripts_src, re.IGNORECASE)
+        if jqui_ver:
+            ver = jqui_ver.group(1)
+            tech_detected.append(f'jQuery UI {ver}')
+            if ver.startswith(('1.8', '1.9', '1.10', '1.11')):
+                issues.append('Biblioteca Legada (jQuery UI Antigo)')
+                opportunities.append(f"Utiliza versão legada do jQuery UI ({ver}), lançada há anos e sem suporte a padrões modernos.")
+        else:
+            tech_detected.append('jQuery UI')
+
+    # 5. Conversion & Lead Generation (Crucial for selling websites!)
+    has_whatsapp_btn = False
+    for a in soup.find_all('a', href=True):
+        href = a['href'].lower()
+        if 'wa.me' in href or 'api.whatsapp.com' in href or 'whatsapp' in href:
+            has_whatsapp_btn = True
+            break
+    if not has_whatsapp_btn:
+        issues.append('Sem Botão WhatsApp')
+        opportunities.append("Não possui botão flutuante direto de atendimento via WhatsApp, perdendo potenciais contatos imediatos de clientes.")
+        
+    # Check Phone click-to-call
+    has_tel_link = any(a['href'].startswith('tel:') for a in soup.find_all('a', href=True))
+    phones_found = re.findall(r'(?:\(?\d{2}\)?\s*)?\b(?:9\d{4}|\d{4})[-\s.]?\d{4}\b', page_text)
+    if phones_found and not has_tel_link:
+        issues.append('Telefones Não Clicáveis')
+        opportunities.append("Os telefones no site são textos comuns sem link 'tel:', dificultando que usuários de celular liguem com 1 toque.")
+
+    # 6. Mobile & Viewport
     viewport = soup.find('meta', attrs={'name': 'viewport'})
     if not viewport or 'width=device-width' not in viewport.get('content', '').lower():
-        issues.append('Não Responsivo (Sem tag Viewport)')
+        issues.append('Não Responsivo (Mobile)')
+        opportunities.append("O site não possui a tag meta viewport configurada. Ele não se ajusta automaticamente a telas de smartphones.")
+
+    # 7. SEO & Social Previews (WhatsApp Link Sharing)
+    og_img = soup.find('meta', attrs={'property': 'og:image'}) or soup.find('meta', attrs={'name': 'og:image'})
+    if not og_img or not og_img.get('content', '').strip():
+        issues.append('Sem Prévia no WhatsApp (OG Image)')
+        opportunities.append("Falta a imagem de prévia (Open Graph). Ao compartilhar o link no WhatsApp, a mensagem fica sem foto ou banner da empresa.")
         
-    # 6. Check Outdated Copyright
-    current_year = datetime.now().year
-    copyright_years = re.findall(r'(?:©|Copyright|Copiright)\s*(?:20\d{2})', page_text, re.IGNORECASE)
-    
-    outdated_year = None
-    for cy in copyright_years:
-        year_match = re.search(r'20\d{2}', cy)
-        if year_match:
-            year = int(year_match.group())
-            if year < current_year - 2:
-                outdated_year = year
-                break
-                
-    if outdated_year:
-        issues.append(f'Copyright desatualizado ({outdated_year})')
-        
-    # 7. Check page load time
-    if load_time > 2.5:
-        issues.append(f'Site Lento ({load_time:.1f}s)')
-        
-    # 8. Check SEO Description
     meta_desc = soup.find('meta', attrs={'name': 'description'})
-    if not meta_desc or not meta_desc.get('content', '').strip():
+    desc_content = meta_desc.get('content', '').strip() if meta_desc else ''
+    if not desc_content:
         issues.append('Sem Descrição SEO')
-        
-    # 9. Check H1 Heading
+        opportunities.append("Não possui Meta Description configurada, prejudicando o resumo e taxa de cliques nos resultados de busca do Google.")
+    elif len(desc_content) < 50:
+        issues.append('Descrição SEO Curta')
+        opportunities.append(f"A Meta Description é muito curta ({len(desc_content)} caracteres) e deixa de destacar os diferenciais nos resultados de busca.")
+
     if not soup.find('h1'):
         issues.append('Sem Título H1')
-        
-    # 10. Check Open Graph Image (WhatsApp Sharing preview)
-    og_img = soup.find('meta', attrs={'property': 'og:image'})
-    if not og_img or not og_img.get('content', '').strip():
-        issues.append('Sem Prévia no WhatsApp')
-        
-    # 11. Check Favicon
-    favicon = soup.find('link', rel=lambda x: x and 'icon' in x.lower())
+        opportunities.append("Falta a tag de cabeçalho principal <h1>, o que dificulta que os mecanismos de busca compreendam os serviços da página.")
+
+    has_schema = bool(soup.find('script', attrs={'type': 'application/ld+json'}))
+    if not has_schema:
+        issues.append('Sem Schema.org (Dados Estruturados)')
+        opportunities.append("Não possui marcação de dados estruturados (Schema.org / LocalBusiness), perdendo rich snippets no Google.")
+
+    favicon = soup.find('link', rel=lambda x: x and ('icon' in x.lower() or 'shortcut' in x.lower()))
     if not favicon:
-        issues.append('Sem Favicon (Ícone)')
-    elif favicon and ('wix' in favicon.get('href', '').lower() or 'wordpress' in favicon.get('href', '').lower() or 'wp-content' in favicon.get('href', '').lower()):
-        issues.append('Favicon Genérico')
-        
-    # 12. Check Obsolete Frames
-    if soup.find('frame') or soup.find('frameset'):
-        issues.append('Uso de Frames (Obsoleto)')
-        
-    # 13. Check Placeholder text
-    if 'lorem ipsum' in page_text.lower() or 'inserir texto' in page_text.lower():
-        issues.append('Texto Provisório')
-        
-    # 14. Check Insecure Form Actions
-    insecure_form = False
-    for f in soup.find_all('form', action=True):
-        if f['action'].startswith('http://'):
-            insecure_form = True
-            break
-    if insecure_form:
-        issues.append('Formulário Inseguro')
-        
-    # Search for contact info on homepage
-    emails = find_emails_in_text(html_content)
-    whatsapp_links = find_whatsapp_links(html_content, soup)
-    phones = find_phones_in_text(page_text)
+        issues.append('Sem Favicon')
+        opportunities.append("Não possui ícone personalizado para a aba do navegador (Favicon), reduzindo o profissionalismo visual.")
+
+    # 8. Freshness & Maintenance
+    current_year = datetime.now().year
+    copyright_matches = re.findall(r'(?:©|Copyright|Copiright|Todos os direitos reservados)\s*(?:.*?)(\b20\d{2}\b)', page_text, re.IGNORECASE)
+    outdated_year = None
+    for y_str in copyright_matches:
+        try:
+            y_int = int(y_str)
+            if y_int < current_year - 2 and y_int > 2000:
+                outdated_year = y_int
+                break
+        except:
+            pass
+    if outdated_year:
+        issues.append(f'Copyright Desatualizado ({outdated_year})')
+        opportunities.append(f"O copyright no rodapé marca o ano de {outdated_year}, passando impressão de site abandonado ou desatualizado.")
+
+    if load_time > 2.8:
+        issues.append(f'Carregamento Lento ({load_time:.1f}s)')
+        opportunities.append(f"O tempo de resposta inicial do servidor foi de {load_time:.1f}s, acima da recomendação do Google Core Web Vitals (< 1.5s).")
+
+    # 9. Contact Info Extraction
+    emails = list(set(re.findall(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', html_content)))
+    emails = [e for e in emails if not any(x in e.lower() for x in ['example.com', 'dominio.com', 'seusite.com', 'wixpress', 'sentry.io', 'bootstrap', 'npm'])]
+    contact_email = emails[0] if emails else ""
     
-    if emails:
-        contact_email = emails[0]
-    if whatsapp_links:
-        contact_whatsapp = whatsapp_links[0]
-    if phones:
-        contact_phone = phones[0]
-        
+    contact_phone = ""
+    if phones_found:
+        ph = phones_found[0].strip()
+        digits = re.sub(r'\D', '', ph)
+        if len(digits) == 8:
+            def_ddd = STATE_DDD_MAP.get(state_uf, '51') if state_uf else '51'
+            contact_phone = f"({def_ddd}) {digits[:4]}-{digits[4:]}"
+        elif len(digits) == 9:
+            def_ddd = STATE_DDD_MAP.get(state_uf, '51') if state_uf else '51'
+            contact_phone = f"({def_ddd}) {digits[:5]}-{digits[5:]}"
+        elif len(digits) in [10, 11]:
+            ddd = digits[:2]
+            num = digits[2:]
+            contact_phone = f"({ddd}) {num[:-4]}-{num[-4:]}"
+        else:
+            contact_phone = ph
+            
+    contact_whatsapp = contact_phone if has_whatsapp_btn else ""
+    
     full_site_text = page_text
     sub_text_crawled = ""
     
-    # If no email/whatsapp found on home page, try to scan contact subpages
-    if not contact_email or not contact_whatsapp:
+    # Scan contact subpages if email is missing
+    if not contact_email:
         contact_subpage_url = find_contact_page_url(final_url, soup)
         if contact_subpage_url:
             add_log(f'Buscando contatos na página de contato: {contact_subpage_url}')
@@ -1451,71 +1550,17 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
                 full_site_text += "\n" + sub_text_crawled
                 
                 sub_emails = find_emails_in_text(sub_resp.text)
-                sub_whatsapp = find_whatsapp_links(sub_resp.text, sub_soup)
-                sub_phones = find_phones_in_text(sub_text_crawled)
-                
-                if not contact_email and sub_emails:
+                if sub_emails:
                     contact_email = sub_emails[0]
-                if not contact_whatsapp and sub_whatsapp:
-                    contact_whatsapp = sub_whatsapp[0]
-                if not contact_phone and sub_phones:
-                    contact_phone = sub_phones[0]
             except Exception as e:
                 add_log(f'Erro ao ler página de contato {contact_subpage_url}: {e}')
 
     # Location check
     is_location_valid = check_location_match(full_site_text, state_uf, allowed_cities)
-    if not is_location_valid:
-        # If the check failed, try to crawl the contact page if we haven't done it yet
-        if not sub_text_crawled:
-            contact_subpage_url = find_contact_page_url(final_url, soup)
-            if contact_subpage_url:
-                try:
-                    sub_resp = requests.get(contact_subpage_url, headers=headers, timeout=5)
-                    sub_resp.encoding = sub_resp.apparent_encoding or 'utf-8'
-                    sub_soup = BeautifulSoup(sub_resp.text, 'html.parser')
-                    sub_text_crawled = sub_soup.get_text()
-                    full_site_text += "\n" + sub_text_crawled
-                    is_location_valid = check_location_match(full_site_text, state_uf, allowed_cities)
-                except:
-                    pass
-                    
     if not is_location_valid and (state_uf or allowed_cities):
         add_log(f"Ignorando {url} pois não corresponde à localização especificada ({state_uf} | Cidades: {allowed_cities}).")
         return None
 
-    notes = []
-    if is_wix:
-        notes.append("Site hospedado ou desenvolvido na plataforma Wix (geralmente mais lento e com limitações de SEO).")
-    if 'Não Responsivo (Sem tag Viewport)' in issues:
-        notes.append("O site não possui a tag meta viewport. Isso significa que ele não se adapta a telas de celulares.")
-    if outdated_year:
-        notes.append(f"Copyright do rodapé indica ano de {outdated_year}, demonstrando abandono do site.")
-    if is_subdomain:
-        notes.append("O site roda em um subdomínio, o que reduz a credibilidade da marca.")
-    if 'Inseguro (HTTP)' in issues:
-        notes.append("O site não possui HTTPS configurado, exibindo aviso de 'Não seguro' no navegador.")
-    if not is_wix and not is_wp:
-        notes.append("Site parece usar código HTML estático antigo, sem frameworks modernos.")
-        
-    if any('Site Lento' in x for x in issues):
-        slow_tag = next((x for x in issues if 'Site Lento' in x), None)
-        notes.append(f"O site é lento ({slow_tag.split(' ')[-1] if slow_tag else ''}), o que pode fazer com que potenciais clientes desistam do acesso.")
-    if 'Sem Descrição SEO' in issues:
-        notes.append("O site não tem uma descrição de busca (Meta Description) configurada, o que prejudica seu ranqueamento no Google.")
-    if 'Sem Título H1' in issues:
-        notes.append("Falta a tag de cabeçalho principal H1, o que dificulta que os mecanismos de busca entendam o tema da página.")
-    if 'Sem Prévia no WhatsApp' in issues:
-        notes.append("Falta a imagem de prévia (Open Graph) para compartilhamento em redes sociais como o WhatsApp.")
-    if 'Sem Favicon (Ícone)' in issues or 'Favicon Genérico' in issues:
-        notes.append("O site não possui um ícone personalizado para a aba do navegador (favicon), o que reduz o profissionalismo da marca.")
-    if 'Uso de Frames (Obsoleto)' in issues:
-        notes.append("O site usa frames obsoletos para carregar conteúdo, uma tecnologia antiga não suportada por dispositivos móveis modernos.")
-    if 'Texto Provisório' in issues:
-        notes.append("Detectamos textos provisórios de rascunho (Lorem Ipsum) no conteúdo do site, passando a impressão de abandono ou site inacabado.")
-    if 'Formulário Inseguro' in issues:
-        notes.append("Os formulários de contato transmitem dados de forma insegura (HTTP simples), o que faz o navegador exibir avisos de segurança ao usuário.")
-        
     # Capture screenshot using Playwright
     import time
     screenshot_filename = f"{domain}_{int(time.time())}.png"
@@ -1531,7 +1576,8 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
         'contact_email': contact_email or '',
         'contact_whatsapp': contact_whatsapp or '',
         'contact_phone': contact_phone or '',
-        'notes': '\n'.join(notes),
+        'tech_stack': ", ".join(tech_detected) if tech_detected else 'HTML5 / Customizado',
+        'notes': '\n'.join(opportunities),
         'screenshot': screenshot_filename if screenshot_path else ''
     }
 
