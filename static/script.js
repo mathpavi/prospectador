@@ -574,10 +574,12 @@ const filterTags = document.querySelectorAll('.filter-tag');
 const leadsContainer = document.getElementById('leads-container');
 const leadSearchInput = document.getElementById('lead-search-input');
 const leadsPerPageSelect = document.getElementById('leads-per-page-select');
+const leadsOriginSelect = document.getElementById('leads-origin-select');
 
 let currentLeadPage = 1;
 let leadsPerPage = 24;
 let leadSearchFilterText = '';
+let currentLeadOrigin = 'all';
 let leadSearchTimeout = null;
 
 if (leadSearchInput) {
@@ -594,6 +596,14 @@ if (leadSearchInput) {
 if (leadsPerPageSelect) {
     leadsPerPageSelect.addEventListener('change', (e) => {
         leadsPerPage = parseInt(e.target.value) || 24;
+        currentLeadPage = 1;
+        loadLeads();
+    });
+}
+
+if (leadsOriginSelect) {
+    leadsOriginSelect.addEventListener('change', (e) => {
+        currentLeadOrigin = e.target.value;
         currentLeadPage = 1;
         loadLeads();
     });
@@ -621,6 +631,7 @@ async function loadLeads() {
         const params = new URLSearchParams();
         if (currentFilter && currentFilter !== 'all') params.append('status', currentFilter);
         if (leadSearchFilterText) params.append('q', leadSearchFilterText);
+        if (currentLeadOrigin && currentLeadOrigin !== 'all') params.append('is_surgical', currentLeadOrigin);
         params.append('page', currentLeadPage);
         params.append('limit', leadsPerPage);
         
@@ -811,6 +822,7 @@ function renderLeadCards(prospects) {
         }
         
         const pilotBadge = lead.is_autopilot ? `<span class="badge" style="background-color:rgba(56,189,248,0.15); color:#38bdf8; font-size:0.7rem; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:2px; border:1px solid rgba(56,189,248,0.3); vertical-align:middle; margin-left:6px;">⚡ Autopilot</span>` : '';
+        const surgicalBadge = lead.is_surgical ? `<span class="badge" style="background-color:rgba(239,68,68,0.15); color:#f87171; font-size:0.7rem; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:2px; border:1px solid rgba(239,68,68,0.3); vertical-align:middle; margin-left:6px;" title="${escapeHtml(lead.surgical_type || 'Alvo Cirúrgico')}">🎯 Cirúrgico</span>` : '';
         
         // Setup Email Preview HTML (Direct on Lead Card)
         let emailPreviewHtml = '';
@@ -909,7 +921,7 @@ function renderLeadCards(prospects) {
             ${screenshotHtml}
             <div class="lead-header">
                 <div>
-                    <div class="lead-company">${lead.company_name}${pilotBadge}</div>
+                    <div class="lead-company">${lead.company_name}${pilotBadge}${surgicalBadge}</div>
                     <a href="${lead.website}" target="_blank" class="lead-website">
                         ${lead.website}
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

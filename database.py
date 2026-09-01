@@ -420,7 +420,7 @@ def get_prospects(status_filter=None, is_surgical_filter=None, is_international_
         result.append(res)
     return result
 
-def get_prospects_stats(is_surgical_filter=0, is_international_filter=0):
+def get_prospects_stats(is_surgical_filter=None, is_international_filter=0):
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -455,7 +455,7 @@ def get_prospects_stats(is_surgical_filter=0, is_international_filter=0):
         "daily_limit": int(get_setting('daily_email_limit', '20'))
     }
 
-def get_prospects_paginated(page=1, limit=24, status_filter=None, search_query=None, is_surgical_filter=0, is_international_filter=0):
+def get_prospects_paginated(page=1, limit=24, status_filter=None, search_query=None, is_surgical_filter=None, is_international_filter=0):
     conn = get_db_connection()
     cursor = conn.cursor()
     

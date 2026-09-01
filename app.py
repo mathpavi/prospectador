@@ -930,15 +930,13 @@ def api_prospects():
     if request.args.get('limit') == 'all' or request.args.get('all') == 'true':
         limit = None
         
-    if is_surgical == 'all':
-        is_surgical_filter = None
-    elif is_surgical is not None:
+    if is_surgical is not None and is_surgical != 'all':
         try:
             is_surgical_filter = int(is_surgical)
         except:
-            is_surgical_filter = 0
+            is_surgical_filter = None
     else:
-        is_surgical_filter = 0 # Default to standard prospects
+        is_surgical_filter = None # Default to ALL prospects (unified)
         
     paginated = database.get_prospects_paginated(
         page=page,

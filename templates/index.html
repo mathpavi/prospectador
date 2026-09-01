@@ -690,14 +690,24 @@
                 <div style="flex: 1; min-width: 260px; position: relative;">
                     <input type="text" id="lead-search-input" placeholder="🔍 Filtrar leads por nome da empresa, site, e-mail..." style="width: 100%; padding: 10px 14px; background: rgba(15,23,42,0.6); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem;">
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">
-                    <span>Itens por página:</span>
-                    <select id="leads-per-page-select" class="form-control" style="padding: 7px 12px; font-size: 0.85rem; background: rgba(15,23,42,0.8); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
-                        <option value="12">12 leads</option>
-                        <option value="24" selected>24 leads</option>
-                        <option value="48">48 leads</option>
-                        <option value="96">96 leads</option>
-                    </select>
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">
+                        <span>Origem:</span>
+                        <select id="leads-origin-select" class="form-control" style="padding: 7px 12px; font-size: 0.85rem; background: rgba(15,23,42,0.8); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                            <option value="all" selected>🌐 Todos os Leads</option>
+                            <option value="0">🔍 Prospecção Geral</option>
+                            <option value="1">🎯 Cirúrgicos (Maps / Críticos)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">
+                        <span>Por página:</span>
+                        <select id="leads-per-page-select" class="form-control" style="padding: 7px 12px; font-size: 0.85rem; background: rgba(15,23,42,0.8); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                            <option value="12">12 leads</option>
+                            <option value="24" selected>24 leads</option>
+                            <option value="48">48 leads</option>
+                            <option value="96">96 leads</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             
