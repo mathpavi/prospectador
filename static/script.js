@@ -1879,6 +1879,7 @@ function renderAutopilotTargets() {
 window.removeAutopilotTarget = function(index) {
     autopilotTargets.splice(index, 1);
     renderAutopilotTargets();
+    saveAutopilotSettings(false);
 };
 
 const addTargetBtn = document.getElementById('add-target-btn');
@@ -1904,6 +1905,8 @@ if (addTargetBtn) {
         });
         
         renderAutopilotTargets();
+        saveAutopilotSettings(false);
+        showToast(`Alvo "${segment}" adicionado e salvo na rotação!`);
         
         // Clear inputs
         document.getElementById('target_segment').value = '';
@@ -1913,7 +1916,7 @@ if (addTargetBtn) {
     });
 }
 
-document.getElementById('save-autopilot-btn').addEventListener('click', async () => {
+async function saveAutopilotSettings(showFeedback = true) {
     const enabledSender = document.getElementById('autopilot_sender_enabled').checked ? '1' : '0';
     const enabledSearch = document.getElementById('autopilot_search_enabled').checked ? '1' : '0';
     const autoApprove = document.getElementById('autopilot_auto_approve').checked ? '1' : '0';
@@ -1957,15 +1960,70 @@ document.getElementById('save-autopilot-btn').addEventListener('click', async ()
         });
         const res = await response.json();
         if (res.success) {
-            showToast('Configurações do Autopilot salvas com sucesso!');
+            if (showFeedback) showToast('Configurações do Autopilot salvas com sucesso!');
             updateMasterAutopilotStatusUI(enabledSender, enabledSearch);
         } else {
-            showToast(res.message || 'Erro ao salvar.', 'error');
+            if (showFeedback) showToast(res.message || 'Erro ao salvar.', 'error');
         }
     } catch (error) {
-        showToast('Erro de rede ao salvar configurações.', 'error');
+        if (showFeedback) showToast('Erro de rede ao salvar configurações.', 'error');
     }
+}
+
+document.getElementById('save-autopilot-btn').addEventListener('click', () => {
+    saveAutopilotSettings(true);
 });
+
+// Hook up Force Search & Force Send buttons
+const forceSearchBtn = document.getElementById('force-search-btn');
+if (forceSearchBtn) {
+    forceSearchBtn.addEventListener('click', async () => {
+        try {
+            forceSearchBtn.disabled = true;
+            forceSearchBtn.innerHTML = '⏳ Iniciando busca...';
+            const res = await fetch('/api/autopilot/force-search', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                showToast('🚀 Busca automática disparada agora com sucesso!');
+                pollAutopilotStatus();
+            } else {
+                showToast(data.message || 'Não foi possível iniciar a busca.', 'error');
+            }
+        } catch (e) {
+            showToast('Erro de conexão ao forçar busca.', 'error');
+        } finally {
+            setTimeout(() => {
+                forceSearchBtn.disabled = false;
+                forceSearchBtn.innerHTML = '⚡ Rodar Busca Agora';
+            }, 2500);
+        }
+    });
+}
+
+const forceSendBtn = document.getElementById('force-send-btn');
+if (forceSendBtn) {
+    forceSendBtn.addEventListener('click', async () => {
+        try {
+            forceSendBtn.disabled = true;
+            forceSendBtn.innerHTML = '⏳ Disparando...';
+            const res = await fetch('/api/autopilot/force-send', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                showToast('🚀 Disparo automático iniciado!');
+                pollAutopilotStatus();
+            } else {
+                showToast(data.message || 'Não foi possível disparar.', 'error');
+            }
+        } catch (e) {
+            showToast('Erro de conexão ao forçar envio.', 'error');
+        } finally {
+            setTimeout(() => {
+                forceSendBtn.disabled = false;
+                forceSendBtn.innerHTML = '🚀 Disparar E-mail Agora';
+            }, 2500);
+        }
+    });
+}
 
 const hoursCheckbox = document.getElementById('autopilot_sender_hours_enabled');
 if (hoursCheckbox) {
