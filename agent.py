@@ -111,6 +111,30 @@ def search_serper(query, max_results=20):
         logger.warning(f"Serper API search failed for '{query}': {e}")
     return []
 
+def search_google_places(query):
+    """
+    Directly queries Google Maps Places via Serper API to discover real local businesses.
+    """
+    api_key = database.get_setting('serper_api_key', '')
+    if not api_key:
+        return []
+    try:
+        headers = {
+            'X-API-KEY': api_key.strip(),
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            'q': query,
+            'gl': 'br',
+            'hl': 'pt-br'
+        }
+        r = requests.post('https://google.serper.dev/places', headers=headers, json=payload, timeout=15)
+        if r.status_code == 200:
+            return r.json().get('places', [])
+    except Exception as e:
+        logger.warning(f"Google Places API search failed for '{query}': {e}")
+    return []
+
 def ddg_text_search(query, max_results=20):
     """
     Runs DuckDuckGo text search with fallback to HTML backend if API is rate-limited.
@@ -2084,12 +2108,12 @@ def search_contacts_for_company(company_name, region):
     emails = []
     phones = []
     try:
-        results = ddg_text_search(query, max_results=5)
+        results = search_web_candidates(query, max_results=5)
         for r in results:
-                text = r.get('title', '') + " " + r.get('body', '')
-                em, ph = extract_contacts_from_text(text)
-                emails.extend(em)
-                phones.extend(ph)
+            text = r.get('title', '') + " " + r.get('body', '')
+            em, ph = extract_contacts_from_text(text)
+            emails.extend(em)
+            phones.extend(ph)
     except Exception as e:
         add_log(f"Aviso: Falha na busca direcionada de contatos para '{company_name}': {e}")
         
@@ -2260,9 +2284,103 @@ def run_surgical_job(segment, region, max_results, state_uf=None, city_name=None
     
     new_prospects_count = 0
     
-    # 1. Process "No Site" Targets (Social Profiles)
+    # 1. Process "No Site" Targets (Social Profiles & Google Places)
     if surgical_type in ['no_site', 'both', 'maps_only']:
         is_maps_only = (surgical_type == 'maps_only')
+        
+        # 1.1 Direct Google Places API search for high-precision local businesses
+        if database.get_setting('serper_api_key', ''):
+            clean_loc = (city_name or location_query or region).replace('"', '').strip()
+            places_query = f"{segment} {clean_loc}"
+            add_log(f"Consultando Google Maps (Google Places) para '{places_query}'...")
+            places = search_google_places(places_query)
+            add_log(f"Google Maps retornou {len(places)} empresas locais.")
+            
+            for p in places:
+                if new_prospects_count >= max_results:
+                    break
+                p_name = p.get('title', '').strip()
+                p_phone = p.get('phoneNumber', '')
+                p_addr = p.get('address', '')
+                p_web = p.get('website', '')
+                p_rating = p.get('rating')
+                p_reviews = p.get('ratingCount', 0)
+                
+                check_domain = extract_base_domain(p_web) if p_web else p_name.lower().replace(' ', '')
+                if database.check_domain_exists(check_domain):
+                    continue
+                if is_rejected_pattern(p_name, check_domain):
+                    continue
+                    
+                clean_p_phone = ""
+                if p_phone:
+                    digits = ''.join(c for c in p_phone if c.isdigit())
+                    if len(digits) == 11:
+                        clean_p_phone = f"({digits[:2]}) {digits[2:7]}-{digits[7:]}"
+                    elif len(digits) == 10:
+                        clean_p_phone = f"({digits[:2]}) {digits[2:6]}-{digits[6:]}"
+                    else:
+                        clean_p_phone = p_phone
+                        
+                if not p_web:
+                    maps_search_url = f"https://www.google.com/maps/search/?api=1&query={requests.utils.quote(p_name + ' ' + p_addr)}"
+                    p_emails, extra_phones = search_contacts_for_company(p_name, db_region)
+                    email_contact = p_emails[0] if p_emails else ""
+                    phone_contact = clean_p_phone or (extra_phones[0] if extra_phones else "")
+                    
+                    if not email_contact and not phone_contact:
+                        continue
+                        
+                    rating_str = f" Nota {p_rating} ({p_reviews} avaliações)." if p_rating else ""
+                    addr_str = f" Endereço: {p_addr}." if p_addr else ""
+                    notes_str = f"Empresa ativa no Google Maps.{rating_str}{addr_str} Não possui website próprio indexado."
+                    
+                    p_data = {
+                        'company_name': p_name,
+                        'website': maps_search_url,
+                        'segment': segment,
+                        'region': db_region,
+                        'status': 'approved' if (is_autopilot and database.get_setting('autopilot_auto_approve', '0') == '1' and email_contact) else 'pending',
+                        'detected_issues': ['Não possui site próprio (Empresa Local no Google Maps)'],
+                        'contact_email': email_contact,
+                        'contact_whatsapp': phone_contact,
+                        'contact_phone': phone_contact,
+                        'notes': notes_str,
+                        'screenshot': '',
+                        'tech_stack': 'Google Maps Local',
+                        'is_autopilot': is_autopilot
+                    }
+                    database.insert_prospect(p_data)
+                    new_prospects_count += 1
+                    add_log(f"Lead Maps SEM SITE salvo: '{p_name}' | WhatsApp: {phone_contact} | Email: {email_contact}")
+                else:
+                    if is_valid_company_website(p_web):
+                        add_log(f"Analisando site do Google Maps de '{p_name}': {p_web}...")
+                        audit_res = analyze_website(p_web, segment=segment, location=db_region)
+                        if audit_res.get('status') == 'success':
+                            audit_emails = audit_res.get('contact_emails', [])
+                            email_contact = audit_emails[0] if audit_emails else ""
+                            phone_contact = clean_p_phone or (audit_res.get('contact_phones', [''])[0])
+                            
+                            p_data = {
+                                'company_name': p_name,
+                                'website': p_web,
+                                'segment': segment,
+                                'region': db_region,
+                                'status': 'approved' if (is_autopilot and database.get_setting('autopilot_auto_approve', '0') == '1' and email_contact) else 'pending',
+                                'detected_issues': audit_res.get('detected_issues', []),
+                                'contact_email': email_contact,
+                                'contact_whatsapp': phone_contact,
+                                'contact_phone': phone_contact,
+                                'notes': f"Empresa mapeada no Google Maps. {audit_res.get('notes', '')}",
+                                'screenshot': audit_res.get('screenshot', ''),
+                                'tech_stack': audit_res.get('tech_stack', ''),
+                                'is_autopilot': is_autopilot
+                            }
+                            database.insert_prospect(p_data)
+                            new_prospects_count += 1
+                            add_log(f"Lead Maps com site salvo: '{p_name}' | Site: {p_web} | Email: {email_contact}")
+
         if is_maps_only:
             add_log("Buscando empresas sem site próprio EXCLUSIVAMENTE no Google Maps...")
         else:
