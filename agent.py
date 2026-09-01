@@ -81,6 +81,7 @@ IGNORED_DOMAINS = [
 def search_serper(query, max_results=20):
     """
     Executes a high-precision Google search using the Serper API with Brazilian localization.
+    Uses page pagination (Serper rejects num > 10 with HTTP 400).
     """
     api_key = database.get_setting('serper_api_key', '')
     if not api_key:
@@ -91,23 +92,33 @@ def search_serper(query, max_results=20):
             'X-API-KEY': api_key.strip(),
             'Content-Type': 'application/json'
         }
-        payload = {
-            'q': query,
-            'gl': 'br',
-            'hl': 'pt-br',
-            'num': min(max_results, 40)
-        }
-        r = requests.post('https://google.serper.dev/search', headers=headers, json=payload, timeout=12)
-        if r.status_code == 200:
-            data = r.json()
-            results = []
-            for item in data.get('organic', []):
-                results.append({
-                    'title': item.get('title', ''),
-                    'href': item.get('link', ''),
-                    'body': item.get('snippet', '')
-                })
-            return results
+        results = []
+        pages_to_fetch = max(1, min(3, (max_results + 9) // 10))
+        for page in range(1, pages_to_fetch + 1):
+            payload = {
+                'q': query,
+                'gl': 'br',
+                'hl': 'pt-br',
+                'page': page
+            }
+            r = requests.post('https://google.serper.dev/search', headers=headers, json=payload, timeout=12)
+            if r.status_code == 200:
+                data = r.json()
+                items = data.get('organic', [])
+                if not items:
+                    break
+                for item in items:
+                    results.append({
+                        'title': item.get('title', ''),
+                        'href': item.get('link', ''),
+                        'body': item.get('snippet', '')
+                    })
+                if len(results) >= max_results:
+                    break
+            else:
+                logger.warning(f"Serper API returned {r.status_code} for '{query}': {r.text}")
+                break
+        return results
     except Exception as e:
         logger.warning(f"Serper API search failed for '{query}': {e}")
     return []
@@ -864,23 +875,31 @@ def search_companies(segment, region, max_results=10, location_query=None):
     queries = []
     zones = ["", "centro", "zona norte", "zona sul", "zona leste"]
     
+    loc_clean = loc.strip()
+    if any(ch in loc_clean for ch in ['(', ')', ' OR ', '"']):
+        loc_term = loc_clean
+    else:
+        loc_term = f'"{loc_clean}"'
+
     queries = []
     # Primary high-yield Brazilian business queries
     for sv in selected_seg_vars:
-        queries.append(f'site:com.br "{sv}" "{loc}"')
-        queries.append(f'"{sv}" "{loc}"')
-        queries.append(f'"{sv}" em "{loc}"')
-        queries.append(f'site:com.br "{sv}" {loc}')
+        queries.append(f'site:com.br "{sv}" {loc_term}')
+        queries.append(f'"{sv}" {loc_term}')
+        queries.append(f'"{sv}" em {loc_term}')
+        queries.append(f'site:com.br "{sv}" {loc_clean.replace(chr(34), "")}')
         if is_industrial:
-            queries.append(f'indústria "{sv}" "{loc}"')
+            queries.append(f'indústria "{sv}" {loc_term}')
         else:
-            queries.append(f'serviços "{sv}" "{loc}"')
+            queries.append(f'serviços "{sv}" {loc_term}')
             
-    # Zone variations for extra candidate volume
-    for sv in selected_seg_vars[:2]:
-        for zone in ["centro", "zona norte", "zona sul"]:
-            queries.append(f'site:com.br "{sv}" "{loc} {zone}"')
-            queries.append(f'"{sv}" "{loc} {zone}"')
+    # Zone variations for extra candidate volume (only for simple location strings)
+    if ' OR ' not in loc_clean and '(' not in loc_clean:
+        clean_zone_loc = loc_clean.replace('"', '').strip()
+        for sv in selected_seg_vars[:2]:
+            for zone in ["centro", "zona norte", "zona sul"]:
+                queries.append(f'site:com.br "{sv}" "{clean_zone_loc} {zone}"')
+                queries.append(f'"{sv}" "{clean_zone_loc} {zone}"')
     
     has_serper = bool(database.get_setting('serper_api_key', ''))
     engine_name = "Google (Serper API)" if has_serper else "DuckDuckGo"
@@ -1903,19 +1922,19 @@ def run_prospecting_job(segment, region, max_results, state_uf=None, city_name=N
                     allowed_cities = closest_cities
                     
                     # Build OR query
-                    or_terms = " OR ".join([f'"{city}"' for city in closest_cities])
-                    location_query = f'({or_terms}) "{state_full}"'
+                    or_terms = " OR ".join([f'"{city}"' for city in closest_cities[:3]])
+                    location_query = f'({or_terms})'
                     db_region = f'{city_name} - {state_uf} (+{radius_km}km)'
                     add_log(f"Pesquisa por raio de {radius_km}km em {city_name}-{state_uf} expandida para: {or_terms}")
                 else:
                     # Target city not found in database, fallback to single city
-                    location_query = f'"{city_name}" "{state_full}"'
-                    db_region = f'{city_name} - {state_uf}'
+                    location_query = f'"{city_name}" {state_uf}' if state_uf else f'"{city_name}"'
+                    db_region = f'{city_name} - {state_uf}' if state_uf else city_name
                     add_log(f"Aviso: Cidade {city_name}-{state_uf} não encontrada na base de dados. Buscando sem raio.")
             else:
                 # No radius
-                location_query = f'"{city_name}" "{state_full}"'
-                db_region = f'{city_name} - {state_uf}'
+                location_query = f'"{city_name}" {state_uf}' if state_uf else f'"{city_name}"'
+                db_region = f'{city_name} - {state_uf}' if state_uf else city_name
         else:
             # Whole state
             location_query = f'"{state_full}"'
@@ -2261,16 +2280,16 @@ def run_surgical_job(segment, region, max_results, state_uf=None, city_name=None
                     closest_cities = [c[1] for c in candidates[:5]]
                     allowed_cities = closest_cities
                     
-                    or_terms = " OR ".join([f'"{city}"' for city in closest_cities])
-                    location_query = f'({or_terms}) "{state_full}"'
+                    or_terms = " OR ".join([f'"{city}"' for city in closest_cities[:3]])
+                    location_query = f'({or_terms})'
                     db_region = f'{city_name} - {state_uf} (+{radius_km}km)'
                     add_log(f"Pesquisa cirúrgica por raio de {radius_km}km em {city_name}-{state_uf} expandida para: {or_terms}")
                 else:
-                    location_query = f'"{city_name}" "{state_full}"'
-                    db_region = f'{city_name} - {state_uf}'
+                    location_query = f'"{city_name}" {state_uf}' if state_uf else f'"{city_name}"'
+                    db_region = f'{city_name} - {state_uf}' if state_uf else city_name
             else:
-                location_query = f'"{city_name}" "{state_full}"'
-                db_region = f'{city_name} - {state_uf}'
+                location_query = f'"{city_name}" {state_uf}' if state_uf else f'"{city_name}"'
+                db_region = f'{city_name} - {state_uf}' if state_uf else city_name
         else:
             location_query = f'"{state_full}"'
             db_region = f'{state_uf}'
