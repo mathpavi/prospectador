@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import json
+import math
 import zoneinfo
 from datetime import datetime, timezone, timedelta
 
@@ -418,6 +419,94 @@ def get_prospects(status_filter=None, is_surgical_filter=None, is_international_
         res['detected_issues'] = json.loads(res['detected_issues']) if res['detected_issues'] else []
         result.append(res)
     return result
+
+def get_prospects_stats(is_surgical_filter=0, is_international_filter=0):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    clauses = ['is_international = ?']
+    params = [int(is_international_filter)]
+    if is_surgical_filter is not None:
+        clauses.append('is_surgical = ?')
+        params.append(int(is_surgical_filter))
+        
+    query = 'SELECT status, COUNT(*) as count FROM prospects WHERE ' + ' AND '.join(clauses) + ' GROUP BY status'
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    
+    counts = {r['status']: r['count'] for r in rows}
+    total = sum(counts.values())
+    
+    today_start = get_today_start_str()
+    cursor.execute('SELECT COUNT(*) as count FROM prospects WHERE status = "sent" AND sent_at >= ?', (today_start,))
+    sent_today_row = cursor.fetchone()
+    sent_today = sent_today_row['count'] if sent_today_row else 0
+    
+    conn.close()
+    
+    return {
+        "total": total,
+        "pending": counts.get("pending", 0),
+        "approved": counts.get("approved", 0),
+        "rejected": counts.get("rejected", 0),
+        "sent": counts.get("sent", 0),
+        "failed": counts.get("failed", 0),
+        "sent_today": sent_today,
+        "daily_limit": int(get_setting('daily_email_limit', '20'))
+    }
+
+def get_prospects_paginated(page=1, limit=24, status_filter=None, search_query=None, is_surgical_filter=0, is_international_filter=0):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    clauses = ['is_international = ?']
+    params = [int(is_international_filter)]
+    
+    if is_surgical_filter is not None:
+        clauses.append('is_surgical = ?')
+        params.append(int(is_surgical_filter))
+        
+    if status_filter and status_filter != 'all':
+        clauses.append('status = ?')
+        params.append(status_filter)
+        
+    if search_query:
+        search_pattern = f'%{search_query.strip()}%'
+        clauses.append('(company_name LIKE ? OR website LIKE ? OR contact_email LIKE ? OR contact_phone LIKE ? OR contact_whatsapp LIKE ? OR notes LIKE ? OR cnpj LIKE ?)')
+        params.extend([search_pattern] * 7)
+        
+    where_sql = ' WHERE ' + ' AND '.join(clauses)
+    
+    # Fast count of matching filtered records
+    count_query = 'SELECT COUNT(*) as count FROM prospects' + where_sql
+    cursor.execute(count_query, params)
+    total_filtered = cursor.fetchone()['count']
+    
+    # Query only page slice
+    query = 'SELECT * FROM prospects' + where_sql + ' ORDER BY id DESC'
+    
+    if limit is not None and limit > 0:
+        offset = (max(1, page) - 1) * limit
+        query += ' LIMIT ? OFFSET ?'
+        params.extend([limit, offset])
+        
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    prospects = []
+    for row in rows:
+        res = dict(row)
+        res['detected_issues'] = json.loads(res['detected_issues']) if res['detected_issues'] else []
+        prospects.append(res)
+        
+    return {
+        "prospects": prospects,
+        "total": total_filtered,
+        "page": page,
+        "limit": limit or total_filtered,
+        "total_pages": math.ceil(total_filtered / limit) if (limit and limit > 0) else 1
+    }
 
 def update_prospect(prospect_id, update_dict):
     conn = get_db_connection()

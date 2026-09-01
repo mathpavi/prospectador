@@ -578,12 +578,16 @@ const leadsPerPageSelect = document.getElementById('leads-per-page-select');
 let currentLeadPage = 1;
 let leadsPerPage = 24;
 let leadSearchFilterText = '';
+let leadSearchTimeout = null;
 
 if (leadSearchInput) {
     leadSearchInput.addEventListener('input', (e) => {
         leadSearchFilterText = e.target.value.trim();
         currentLeadPage = 1;
-        renderLeadsWithPagination();
+        if (leadSearchTimeout) clearTimeout(leadSearchTimeout);
+        leadSearchTimeout = setTimeout(() => {
+            loadLeads();
+        }, 300);
     });
 }
 
@@ -591,7 +595,7 @@ if (leadsPerPageSelect) {
     leadsPerPageSelect.addEventListener('change', (e) => {
         leadsPerPage = parseInt(e.target.value) || 24;
         currentLeadPage = 1;
-        renderLeadsWithPagination();
+        loadLeads();
     });
 }
 
@@ -607,71 +611,64 @@ filterTags.forEach(tag => {
 
 async function loadLeads() {
     try {
-        const url = currentFilter === 'all' ? '/api/prospects' : `/api/prospects?status=${currentFilter}`;
+        leadsContainer.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+                <div class="console-dot active" style="margin: 0 auto 12px; display: block; width: 12px; height: 12px;"></div>
+                Carregando leads...
+            </div>
+        `;
+        
+        const params = new URLSearchParams();
+        if (currentFilter && currentFilter !== 'all') params.append('status', currentFilter);
+        if (leadSearchFilterText) params.append('q', leadSearchFilterText);
+        params.append('page', currentLeadPage);
+        params.append('limit', leadsPerPage);
+        
+        const url = `/api/prospects?${params.toString()}`;
         const response = await fetch(url);
         const data = await response.json();
         
-        allProspects = data.prospects;
+        allProspects = data.prospects || [];
+        const totalItems = data.total || 0;
+        const totalPages = data.total_pages || 1;
         
         // Update stats
-        document.getElementById('stats-total').textContent = data.stats.total;
-        document.getElementById('stats-pending').textContent = data.stats.pending;
-        document.getElementById('stats-approved').textContent = data.stats.approved;
-        document.getElementById('stats-sent').textContent = data.stats.sent;
-        document.getElementById('stats-failed').textContent = data.stats.failed;
+        if (data.stats) {
+            document.getElementById('stats-total').textContent = data.stats.total;
+            document.getElementById('stats-pending').textContent = data.stats.pending;
+            document.getElementById('stats-approved').textContent = data.stats.approved;
+            document.getElementById('stats-sent').textContent = data.stats.sent;
+            document.getElementById('stats-failed').textContent = data.stats.failed;
+            
+            document.getElementById('sent-today-count').textContent = data.stats.sent_today;
+            document.getElementById('daily-limit-val').textContent = data.stats.daily_limit;
+            
+            // In Queue Tab as well
+            const queuePending = document.getElementById('queue-pending-count');
+            if (queuePending) queuePending.textContent = `${data.stats.approved} e-mails`;
+            
+            const queueSentToday = document.getElementById('queue-sent-today');
+            if (queueSentToday) queueSentToday.textContent = `${data.stats.sent_today} / ${data.stats.daily_limit}`;
+        }
         
-        document.getElementById('sent-today-count').textContent = data.stats.sent_today;
-        document.getElementById('daily-limit-val').textContent = data.stats.daily_limit;
+        renderLeadCards(allProspects);
         
-        // In Queue Tab as well
-        const queuePending = document.getElementById('queue-pending-count');
-        if (queuePending) queuePending.textContent = `${data.stats.approved} e-mails`;
-        
-        const queueSentToday = document.getElementById('queue-sent-today');
-        if (queueSentToday) queueSentToday.textContent = `${data.stats.sent_today} / ${data.stats.daily_limit}`;
-        
-        renderLeadsWithPagination();
+        const startIndex = totalItems > 0 ? (currentLeadPage - 1) * leadsPerPage : 0;
+        const endIndex = Math.min(startIndex + allProspects.length, totalItems);
+        renderPaginationControls(totalItems, totalPages, startIndex, endIndex);
     } catch (error) {
+        console.error('Erro ao carregar leads:', error);
         showToast('Erro ao carregar leads.', 'error');
     }
 }
 
 function setLeadPage(page) {
     currentLeadPage = page;
-    renderLeadsWithPagination();
+    loadLeads();
     const anchor = document.getElementById('leads-container');
     if (anchor) {
         anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-}
-
-function renderLeadsWithPagination() {
-    let filtered = allProspects || [];
-    if (leadSearchFilterText) {
-        const q = leadSearchFilterText.toLowerCase();
-        filtered = filtered.filter(l => 
-            (l.company_name && l.company_name.toLowerCase().includes(q)) ||
-            (l.website && l.website.toLowerCase().includes(q)) ||
-            (l.contact_email && l.contact_email.toLowerCase().includes(q)) ||
-            (l.contact_phone && l.contact_phone.includes(q)) ||
-            (l.contact_whatsapp && l.contact_whatsapp.includes(q)) ||
-            (l.notes && l.notes.toLowerCase().includes(q)) ||
-            (l.cnpj && l.cnpj.includes(q))
-        );
-    }
-    
-    const totalItems = filtered.length;
-    const totalPages = Math.ceil(totalItems / leadsPerPage) || 1;
-    
-    if (currentLeadPage > totalPages) currentLeadPage = totalPages;
-    if (currentLeadPage < 1) currentLeadPage = 1;
-    
-    const startIndex = (currentLeadPage - 1) * leadsPerPage;
-    const endIndex = Math.min(startIndex + leadsPerPage, totalItems);
-    const pageItems = filtered.slice(startIndex, endIndex);
-    
-    renderLeadCards(pageItems);
-    renderPaginationControls(totalItems, totalPages, startIndex, endIndex);
 }
 
 function renderPaginationControls(totalItems, totalPages, startIndex, endIndex) {

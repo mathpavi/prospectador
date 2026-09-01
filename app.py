@@ -923,7 +923,13 @@ def api_international_stats():
 def api_prospects():
     status_filter = request.args.get('status')
     is_surgical = request.args.get('is_surgical')
+    search_query = request.args.get('q') or request.args.get('search')
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 24, type=int)
     
+    if request.args.get('limit') == 'all' or request.args.get('all') == 'true':
+        limit = None
+        
     if is_surgical == 'all':
         is_surgical_filter = None
     elif is_surgical is not None:
@@ -934,23 +940,26 @@ def api_prospects():
     else:
         is_surgical_filter = 0 # Default to standard prospects
         
-    prospects = database.get_prospects(status_filter, is_surgical_filter)
+    paginated = database.get_prospects_paginated(
+        page=page,
+        limit=limit,
+        status_filter=status_filter,
+        search_query=search_query,
+        is_surgical_filter=is_surgical_filter,
+        is_international_filter=0
+    )
     
-    # Calculate counters based on surgical filter
-    all_prospects = database.get_prospects(is_surgical_filter=is_surgical_filter)
-    stats = {
-        "total": len(all_prospects),
-        "pending": len([p for p in all_prospects if p['status'] == 'pending']),
-        "approved": len([p for p in all_prospects if p['status'] == 'approved']),
-        "rejected": len([p for p in all_prospects if p['status'] == 'rejected']),
-        "sent": len([p for p in all_prospects if p['status'] == 'sent']),
-        "failed": len([p for p in all_prospects if p['status'] == 'failed']),
-        "sent_today": database.get_sent_count_today(),
-        "daily_limit": int(database.get_setting('daily_email_limit', '20'))
-    }
+    stats = database.get_prospects_stats(
+        is_surgical_filter=is_surgical_filter,
+        is_international_filter=0
+    )
     
     return jsonify({
-        "prospects": prospects,
+        "prospects": paginated["prospects"],
+        "total": paginated["total"],
+        "page": paginated["page"],
+        "limit": paginated["limit"],
+        "total_pages": paginated["total_pages"],
         "stats": stats
     })
 
