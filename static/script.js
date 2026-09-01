@@ -2,8 +2,16 @@
 let currentTab = 'tab-prospector';
 let searchInterval = null;
 let queueInterval = null;
+let surgicalSearchInterval = null;
+let automationInterval = null;
+let importerInterval = null;
+let intlSearchInterval = null;
 let currentFilter = 'all';
+let surgicalFilter = 'all';
+let intlFilter = 'all';
 let allProspects = [];
+let surgicalProspects = [];
+let intlProspects = [];
 let systemSettings = {};
 
 
@@ -132,43 +140,53 @@ function showToast(message, type = 'success') {
 navItems.forEach(item => {
     item.addEventListener('click', () => {
         const tabId = item.getAttribute('data-tab');
+        if (!tabId) return;
+        
+        const targetPane = document.getElementById(tabId);
+        if (!targetPane) return;
         
         navItems.forEach(nav => nav.classList.remove('active'));
         tabPanes.forEach(pane => pane.classList.remove('active'));
         
         item.classList.add('active');
-        document.getElementById(tabId).classList.add('active');
+        targetPane.classList.add('active');
         
         currentTab = tabId;
         
-        // Tab specific loading
-        if (tabId === 'tab-leads') {
-            loadLeads();
-        } else if (tabId === 'tab-queue') {
-            loadQueueStatus();
-            loadSentHistory();
-        } else if (tabId === 'tab-followup') {
-            loadFollowupList();
-        } else if (tabId === 'tab-settings') {
-            loadSettings();
-        } else if (tabId === 'tab-surgical') {
-            loadSurgicalTab();
-        } else if (tabId === 'tab-international') {
-            loadInternationalTab();
-        } else if (tabId === 'tab-automation') {
-            loadAutomationTab();
+        try {
+            // Tab specific loading
+            if (tabId === 'tab-leads') {
+                if (typeof loadLeads === 'function') loadLeads();
+            } else if (tabId === 'tab-queue') {
+                if (typeof loadQueueStatus === 'function') loadQueueStatus();
+                if (typeof loadSentHistory === 'function') loadSentHistory();
+            } else if (tabId === 'tab-followup') {
+                if (typeof loadFollowupList === 'function') loadFollowupList();
+            } else if (tabId === 'tab-settings') {
+                if (typeof loadSettings === 'function') loadSettings();
+            } else if (tabId === 'tab-surgical') {
+                if (typeof loadSurgicalTab === 'function') loadSurgicalTab();
+            } else if (tabId === 'tab-international') {
+                if (typeof loadInternationalTab === 'function') loadInternationalTab();
+            } else if (tabId === 'tab-automation') {
+                if (typeof loadAutomationTab === 'function') loadAutomationTab();
+            }
+        } catch (err) {
+            console.error("Erro ao carregar dados da aba:", tabId, err);
         }
         
         // Clear automation/importer polling when leaving automation tab
         if (tabId !== 'tab-automation') {
-            if (automationInterval) {
-                clearInterval(automationInterval);
-                automationInterval = null;
-            }
-            if (importerInterval) {
-                clearInterval(importerInterval);
-                importerInterval = null;
-            }
+            try {
+                if (automationInterval) {
+                    clearInterval(automationInterval);
+                    automationInterval = null;
+                }
+                if (importerInterval) {
+                    clearInterval(importerInterval);
+                    importerInterval = null;
+                }
+            } catch (err) {}
         }
     });
 });
@@ -1460,9 +1478,6 @@ function handleWaFollowupClick(id) {
 // ==========================================
 // 7. SURGICAL PROSPECTING TAB
 // ==========================================
-let surgicalProspects = [];
-let surgicalSearchInterval = null;
-let surgicalFilter = 'all';
 
 // Load Surgical tab details
 async function loadSurgicalTab() {
@@ -1804,8 +1819,6 @@ sfilterTags.forEach(tag => {
 // ==========================================
 // 6. PILOTO AUTOMÁTICO & IMPORTADOR
 // ==========================================
-let automationInterval = null;
-let importerInterval = null;
 
 async function loadAutomationTab() {
     loadAutomationSettings();
@@ -2161,53 +2174,6 @@ if (stopMasterBtn) {
     });
 }
 
-const forceSearchBtn = document.getElementById('force-search-btn');
-const forceSendBtn = document.getElementById('force-send-btn');
-
-if (forceSearchBtn) {
-    forceSearchBtn.addEventListener('click', async () => {
-        forceSearchBtn.disabled = true;
-        forceSearchBtn.innerText = '⏳ Iniciando...';
-        try {
-            const response = await fetch('/api/autopilot/force-search', { method: 'POST' });
-            const res = await response.json();
-            if (res.success) {
-                showToast('Busca em background iniciada com sucesso!');
-                updateAutomationStatus();
-            } else {
-                showToast(res.message || 'Falha ao forçar busca.', 'error');
-            }
-        } catch (e) {
-            showToast('Erro de rede ao iniciar busca.', 'error');
-        } finally {
-            forceSearchBtn.disabled = false;
-            forceSearchBtn.innerText = '🔍 Forçar Busca Agora';
-        }
-    });
-}
-
-if (forceSendBtn) {
-    forceSendBtn.addEventListener('click', async () => {
-        forceSendBtn.disabled = true;
-        forceSendBtn.innerText = '⏳ Iniciando...';
-        try {
-            const response = await fetch('/api/autopilot/force-send', { method: 'POST' });
-            const res = await response.json();
-            if (res.success) {
-                showToast('Disparo automático forçado!');
-                updateAutomationStatus();
-            } else {
-                showToast(res.message || 'Falha ao forçar disparo.', 'error');
-            }
-        } catch (e) {
-            showToast('Erro de rede ao iniciar disparo.', 'error');
-        } finally {
-            forceSendBtn.disabled = false;
-            forceSendBtn.innerText = '📧 Forçar Disparo Agora';
-        }
-    });
-}
-
 function startPollingAutomation() {
     if (automationInterval) clearInterval(automationInterval);
     
@@ -2427,9 +2393,6 @@ setInterval(async () => {
 // ==========================================
 // 12. INTERNATIONAL PROSPECTING
 // ==========================================
-let intlProspects = [];
-let intlSearchInterval = null;
-let intlFilter = 'all';
 
 async function loadInternationalTab() {
     loadInternationalLeads();
