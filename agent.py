@@ -71,7 +71,9 @@ IGNORED_DOMAINS = [
     'reclameaqui.com.br', 'trustpilot.com', 'yelp.com', 'bbb.org', 'glassdoor.com', 'glassdoor.com.br', 
     'indeed.com', 'indeed.com.br', 'catho.com.br', 'vagas.com.br', 'infojobs.com.br', 'gupy.io', 
     'solides.com.br', 'olx.com.br', 'craigslist.org', 'quintoandar.com.br', 'zapimoveis.com.br', 
-    'vivareal.com.br', 'imovelweb.com.br', 'webmotors.com.br', 'icarros.com.br',
+    'vivareal.com.br', 'imovelweb.com.br', 'webmotors.com.br', 'icarros.com.br', 'jobijoba.com.br',
+    'jobijoba.com', 'adzuna.com.br', 'jooble.org', 'neuvoo.com.br', 'talent.com', 'trabalhabrasil.com.br',
+    'bne.com.br', 'trampos.co', 'empregos.com.br',
     
     # Education & Institutional
     'sebrae.com.br', 'sebraers.com.br', 'senai.br', 'sesi.org.br', 'fiesp.com.br', 'senac.br',
