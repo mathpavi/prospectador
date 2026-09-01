@@ -864,28 +864,23 @@ def search_companies(segment, region, max_results=10, location_query=None):
     queries = []
     zones = ["", "centro", "zona norte", "zona sul", "zona leste"]
     
-    if is_industrial:
-        # Base industrial queries with segment variations
-        for sv in selected_seg_vars:
-            for zone in zones[:3]: # base, centro, zona norte
-                zone_str = f" {zone}" if zone else ""
-                queries.append(f'indústria "{sv}" "{loc}{zone_str}" -noticias -portal -vagas -empregos')
-                queries.append(f'fábrica de "{sv}" "{loc}{zone_str}" -noticias -portal -vagas -empregos')
-        
-        # Add fallback queries
-        queries.append(f'site:ind.br "{segment}" {loc}')
-        queries.append(f'site:ind.br {loc}')
-    else:
-        # Service queries
-        for sv in selected_seg_vars:
-            for zone in zones: # all zones (centro, norte, sul, leste)
-                zone_str = f" {zone}" if zone else ""
-                queries.append(f'"{sv}" "{loc}{zone_str}" -noticias -portal -vagas -empregos')
-                queries.append(f'"{sv}" em "{loc}{zone_str}" -noticias -portal -vagas -empregos')
-                
-        # site:com.br fallback queries
-        queries.append(f'site:com.br "{segment}" {loc}')
-        queries.append(f'site:com.br "{segment}" em {loc}')
+    queries = []
+    # Primary high-yield Brazilian business queries
+    for sv in selected_seg_vars:
+        queries.append(f'site:com.br "{sv}" "{loc}"')
+        queries.append(f'"{sv}" "{loc}"')
+        queries.append(f'"{sv}" em "{loc}"')
+        queries.append(f'site:com.br "{sv}" {loc}')
+        if is_industrial:
+            queries.append(f'indústria "{sv}" "{loc}"')
+        else:
+            queries.append(f'serviços "{sv}" "{loc}"')
+            
+    # Zone variations for extra candidate volume
+    for sv in selected_seg_vars[:2]:
+        for zone in ["centro", "zona norte", "zona sul"]:
+            queries.append(f'site:com.br "{sv}" "{loc} {zone}"')
+            queries.append(f'"{sv}" "{loc} {zone}"')
     
     has_serper = bool(database.get_setting('serper_api_key', ''))
     engine_name = "Google (Serper API)" if has_serper else "DuckDuckGo"
