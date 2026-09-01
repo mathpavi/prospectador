@@ -366,6 +366,9 @@ def add_prospect(prospect_dict):
     conn.close()
     return new_id
 
+# Alias for compatibility
+insert_prospect = add_prospect
+
 def get_prospect(prospect_id):
     conn = get_db_connection()
     cursor = conn.cursor()

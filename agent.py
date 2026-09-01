@@ -2365,7 +2365,7 @@ def run_surgical_job(segment, region, max_results, state_uf=None, city_name=None
                         'tech_stack': 'Google Maps Local',
                         'is_autopilot': is_autopilot
                     }
-                    database.insert_prospect(p_data)
+                    new_id = database.add_prospect(p_data)
                     new_prospects_count += 1
                     add_log(f"Lead Maps SEM SITE salvo: '{p_name}' | WhatsApp: {phone_contact} | Email: {email_contact}")
                 else:
@@ -2393,7 +2393,7 @@ def run_surgical_job(segment, region, max_results, state_uf=None, city_name=None
                                     'tech_stack': audit_res.get('tech_stack', ''),
                                     'is_autopilot': is_autopilot
                                 }
-                                database.insert_prospect(p_data)
+                                new_id = database.add_prospect(p_data)
                                 new_prospects_count += 1
                                 add_log(f"Lead Maps com site salvo: '{p_name}' | Site: {p_web} | Email: {email_contact}")
                         except Exception as err:
