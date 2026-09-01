@@ -588,14 +588,17 @@ def api_autopilot_diagnostics():
         except Exception:
             current_target_index = 0
             
-        recent_prospects = database.get_prospects()[:10]
+        recent_prospects = database.get_prospects()[:15]
         prospects_summary = []
         for p in recent_prospects:
             prospects_summary.append({
                 "id": p.get("id"),
                 "company_name": p.get("company_name"),
                 "website": p.get("website"),
-                "email": p.get("email"),
+                "email": p.get("contact_email") or p.get("email"),
+                "phone": p.get("contact_phone") or p.get("phone"),
+                "whatsapp": p.get("contact_whatsapp") or p.get("whatsapp"),
+                "tech_stack": p.get("tech_stack"),
                 "segment": p.get("segment"),
                 "region": p.get("region"),
                 "status": p.get("status"),

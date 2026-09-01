@@ -477,7 +477,17 @@ def is_valid_company_website(url):
         return False
         
     # Block government, educational and generic non-profit domains
-    if any(domain_lower.endswith(ext) for ext in ['.gov.br', '.edu.br', '.org.br', '.gov', '.edu', '.org']):
+    if any(domain_lower.endswith(ext) for ext in ['.gov.br', '.edu.br', '.org.br', '.gov', '.edu', '.org', '.jus.br', '.leg.br', '.mil.br', '.mp.br']):
+        return False
+        
+    # Block academic, university repositories and research libraries
+    academic_patterns = [
+        'repositorio.', 'biblioteca.', 'revista.', 'dspace.', 'scholar.', 'scielo.', 'periodicos.',
+        '.ucs.br', '.ufrgs.br', '.pucrs.br', '.usp.br', '.unicamp.br', '.ufmg.br', '.ufsc.br',
+        '.ufpr.br', '.unb.br', '.unesp.br', '.feevale.br', '.unisinos.br', '.unilassalle.edu.br',
+        'macnarama.com', 'iagora.com'
+    ]
+    if any(pat in domain_lower for pat in academic_patterns):
         return False
         
     # Check if domain contains forbidden keywords
@@ -1618,7 +1628,7 @@ def find_emails_in_text(text):
         # Filter out static resource emails or noise
         if any(email.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.css', '.js', '.webp', '.svg']):
             continue
-        if any(bad in email for bad in ['wix', 'wordpress', 'sentry', 'example', 'test', 'domain', 'email@email']):
+        if any(bad in email for bad in ['wix', 'wordpress', 'sentry', 'example', 'exemplo', 'test', 'teste', 'domain', 'dominio', 'email@email', 'seusite', 'empresa@', 'user@', 'usuario@', 'admin@domain', 'name@']):
             continue
         if email not in clean_emails:
             if validate_email_dns(email):
