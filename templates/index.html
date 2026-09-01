@@ -1428,9 +1428,12 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="cancel-edit-btn">Cancelar</button>
-                <button class="btn btn-primary" id="save-lead-btn">Salvar Alterações</button>
+            <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+                <button type="button" class="btn btn-secondary" onclick="copyModalEmailText()">📋 Copiar E-mail</button>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-secondary" id="cancel-edit-btn">Cancelar</button>
+                    <button class="btn btn-primary" id="save-lead-btn">Salvar Alterações</button>
+                </div>
             </div>
         </div>
     </div>

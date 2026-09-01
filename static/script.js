@@ -24,6 +24,53 @@ function getFormattedWhatsappDraft(lead) {
     return draft;
 }
 
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+function toggleEmailCard(id) {
+    const container = document.getElementById(`email-body-container-${id}`);
+    const icon = document.getElementById(`email-toggle-icon-${id}`);
+    if (!container) return;
+    if (container.style.display === 'none' || container.style.display === '') {
+        container.style.display = 'block';
+        if (icon) {
+            icon.textContent = 'Ocultar ▲';
+            icon.style.background = 'rgba(56,189,248,0.15)';
+            icon.style.color = '#38bdf8';
+        }
+    } else {
+        container.style.display = 'none';
+        if (icon) {
+            icon.textContent = 'Ver Texto ▼';
+            icon.style.background = 'rgba(255,255,255,0.05)';
+            icon.style.color = 'var(--text-muted)';
+        }
+    }
+}
+
+function copyEmailText(id) {
+    const lead = allProspects.find(l => l.id === id) || (typeof surgicalProspects !== 'undefined' ? surgicalProspects.find(l => l.id === id) : null);
+    if (!lead || !lead.email_body) {
+        showToast('Nenhum texto de e-mail para copiar.', 'error');
+        return;
+    }
+    const fullText = `Assunto: ${lead.email_subject || ''}\n\n${lead.email_body}`;
+    navigator.clipboard.writeText(fullText).then(() => {
+        showToast('Texto do e-mail copiado com sucesso!', 'success');
+    }).catch(() => {
+        showToast('Erro ao copiar texto.', 'error');
+    });
+}
+
 // Helper to format date and time in Portuguese
 function formatDateTime(dateStr) {
     if (!dateStr) return 'Não informado';
@@ -625,6 +672,7 @@ function renderLeadCards(prospects) {
                 <span style="font-size:0.8rem; color:var(--success); font-weight:600; display:flex; align-items:center; gap:4px;">
                     ✅ Enviado com Sucesso
                 </span>
+                <button class="btn btn-secondary btn-sm" onclick="openEditModal(${lead.id})">👁️ Ver E-mail</button>
                 ${waButton}
                 <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="deleteLead(${lead.id})">Excluir</button>
             `;
@@ -637,6 +685,42 @@ function renderLeadCards(prospects) {
         
         const pilotBadge = lead.is_autopilot ? `<span class="badge" style="background-color:rgba(56,189,248,0.15); color:#38bdf8; font-size:0.7rem; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:2px; border:1px solid rgba(56,189,248,0.3); vertical-align:middle; margin-left:6px;">⚡ Autopilot</span>` : '';
         
+        // Setup Email Preview HTML (Direct on Lead Card)
+        let emailPreviewHtml = '';
+        if (lead.email_body || lead.email_subject) {
+            const isSent = lead.status === 'sent';
+            const titlePrefix = isSent ? '✉️ E-mail Enviado' : '📝 E-mail Proposto';
+            const titleColor = isSent ? '#4ade80' : '#38bdf8';
+            const sentInfo = lead.sent_at ? `<span style="font-size:0.72rem; color:var(--text-muted); float:right;">Enviado em: ${formatDateTime(lead.sent_at)}</span>` : '';
+            
+            emailPreviewHtml = `
+                <div class="lead-email-preview-card" style="margin-top: 12px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden;">
+                    <div class="email-preview-header" onclick="toggleEmailCard(${lead.id})" style="padding: 9px 12px; background: rgba(30, 41, 59, 0.6); cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+                        <div style="font-size: 0.78rem; font-weight: 600; color: ${titleColor}; display:flex; align-items:center; gap:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            <span>${titlePrefix}</span>
+                            <span style="font-weight: normal; color: var(--text-secondary); font-size: 0.75rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">— "${escapeHtml(lead.email_subject || 'Sem assunto')}"</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span id="email-toggle-icon-${lead.id}" style="font-size: 0.7rem; color: var(--text-muted); padding: 2px 6px; background: rgba(255,255,255,0.05); border-radius: 4px;">Ver Texto ▼</span>
+                        </div>
+                    </div>
+                    <div id="email-body-container-${lead.id}" style="display: none; padding: 12px; border-top: 1px solid rgba(255,255,255,0.06); background: rgba(10, 15, 30, 0.4);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">
+                            <strong>Destinatário:</strong> ${escapeHtml(lead.contact_email || 'N/A')} ${sentInfo}
+                        </div>
+                        <div style="font-size: 0.78rem; color: #f1f5f9; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.1);">
+                            <strong>Assunto:</strong> ${escapeHtml(lead.email_subject || 'Sem assunto')}
+                        </div>
+                        <div style="font-size: 0.8rem; color: #cbd5e1; line-height: 1.55; white-space: pre-wrap; font-family: inherit; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.04); max-height: 250px; overflow-y: auto;">${escapeHtml(lead.email_body || 'Nenhum texto de e-mail gerado.')}</div>
+                        <div style="margin-top: 10px; display:flex; justify-content: flex-end; gap: 8px;">
+                            <button type="button" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:4px 10px;" onclick="copyEmailText(${lead.id})">📋 Copiar Texto</button>
+                            <button type="button" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:4px 10px;" onclick="openEditModal(${lead.id})">✏️ Editar Completo</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         // Setup B2B/KipFlow data HTML
         let b2bHtml = '';
         if (lead.cnpj) {
@@ -730,6 +814,7 @@ function renderLeadCards(prospects) {
                 </div>
                 
                 ${lead.notes ? `<div class="lead-notes">${lead.notes}</div>` : ''}
+                ${emailPreviewHtml}
                 ${b2bHtml}
                 
                 ${lead.error_message ? `
@@ -934,7 +1019,8 @@ function openEditModal(id) {
     if (!lead) return;
     
     document.getElementById('edit-lead-id').value = lead.id;
-    document.getElementById('modal-company-title').textContent = `Editar Lead: ${lead.company_name}`;
+    const isSent = lead.status === 'sent';
+    document.getElementById('modal-company-title').textContent = isSent ? `✉️ E-mail Enviado para: ${lead.company_name}` : `Editar Lead & E-mail: ${lead.company_name}`;
     document.getElementById('edit-company-name').value = lead.company_name;
     document.getElementById('edit-website').value = lead.website;
     document.getElementById('edit-email').value = lead.contact_email;
@@ -945,6 +1031,21 @@ function openEditModal(id) {
     document.getElementById('edit-whatsapp-draft').value = lead.whatsapp_draft || '';
     
     editModal.classList.add('active');
+}
+
+function copyModalEmailText() {
+    const subject = document.getElementById('edit-subject').value || '';
+    const body = document.getElementById('edit-body').value || '';
+    if (!body) {
+        showToast('Nenhum texto de e-mail para copiar.', 'error');
+        return;
+    }
+    const fullText = `Assunto: ${subject}\n\n${body}`;
+    navigator.clipboard.writeText(fullText).then(() => {
+        showToast('Texto do e-mail copiado com sucesso!', 'success');
+    }).catch(() => {
+        showToast('Erro ao copiar texto.', 'error');
+    });
 }
 
 function closeModal() {
