@@ -556,75 +556,79 @@ def api_autopilot_status():
 # Autopilot Diagnostics Endpoint
 @app.route('/api/autopilot/diagnostics', methods=['GET', 'POST'])
 def api_autopilot_diagnostics():
-    now = database.get_now()
-    now_str = database.get_now_str()
-    
-    last_search_str = database.get_setting('autopilot_last_search_run_at', '')
     try:
-        interval_hours = int(database.get_setting('autopilot_search_interval_hours', '2'))
-    except Exception:
-        interval_hours = 2
+        now = database.get_now()
+        now_str = database.get_now_str()
         
-    elapsed_hours = None
-    next_search_eta = None
-    if last_search_str:
+        last_search_str = database.get_setting('autopilot_last_search_run_at', '')
         try:
-            last_search = datetime.strptime(last_search_str, '%Y-%m-%d %H:%M:%S').replace(tzinfo=database.SAO_PAULO_TZ)
-            elapsed_hours = round((now - last_search).total_seconds() / 3600.0, 2)
-            remaining_hours = round(max(0.0, interval_hours - elapsed_hours), 2)
-            next_search_eta = f"{remaining_hours}h restantes"
+            interval_hours = int(database.get_setting('autopilot_search_interval_hours', '2'))
         except Exception:
-            pass
+            interval_hours = 2
+            
+        elapsed_hours = None
+        next_search_eta = None
+        if last_search_str:
+            try:
+                last_search = datetime.strptime(last_search_str, '%Y-%m-%d %H:%M:%S').replace(tzinfo=database.SAO_PAULO_TZ)
+                elapsed_hours = round((now - last_search).total_seconds() / 3600.0, 2)
+                remaining_hours = round(max(0.0, interval_hours - elapsed_hours), 2)
+                next_search_eta = f"{remaining_hours}h restantes"
+            except Exception:
+                pass
 
-    targets_str = database.get_setting('autopilot_search_targets', '[]')
-    try:
-        targets = json.loads(targets_str)
-    except Exception:
-        targets = []
+        targets_str = database.get_setting('autopilot_search_targets', '[]')
+        try:
+            targets = json.loads(targets_str)
+        except Exception:
+            targets = []
+            
+        try:
+            current_target_index = int(database.get_setting('autopilot_search_target_index', '0'))
+        except Exception:
+            current_target_index = 0
+            
+        recent_prospects = database.get_prospects()[:10]
+        prospects_summary = []
+        for p in recent_prospects:
+            prospects_summary.append({
+                "id": p.get("id"),
+                "company_name": p.get("company_name"),
+                "website": p.get("website"),
+                "email": p.get("email"),
+                "segment": p.get("segment"),
+                "region": p.get("region"),
+                "status": p.get("status"),
+                "created_at": p.get("created_at")
+            })
+
+        recent_activity = get_autopilot_history()[:15]
         
-    try:
-        current_target_index = int(database.get_setting('autopilot_search_target_index', '0'))
-    except Exception:
-        current_target_index = 0
-        
-    recent_prospects = database.get_prospects()[:10]
-    prospects_summary = []
-    for p in recent_prospects:
-        prospects_summary.append({
-            "id": p.get("id"),
-            "company_name": p.get("company_name"),
-            "website": p.get("website"),
-            "email": p.get("email"),
-            "segment": p.get("segment"),
-            "region": p.get("region"),
-            "status": p.get("status"),
-            "created_at": p.get("created_at")
+        return jsonify({
+            "server_time": now_str,
+            "timezone": "America/Sao_Paulo (UTC-3)",
+            "autopilot_search_enabled": database.get_setting('autopilot_search_enabled', '0'),
+            "autopilot_sender_enabled": database.get_setting('autopilot_sender_enabled', '0'),
+            "autopilot_auto_approve": database.get_setting('autopilot_auto_approve', '0'),
+            "autopilot_search_interval_hours": interval_hours,
+            "autopilot_search_batch_size": database.get_setting('autopilot_search_batch_size', '30'),
+            "autopilot_sender_interval_min": database.get_setting('autopilot_sender_interval_min', '3'),
+            "autopilot_last_search_run_at": last_search_str,
+            "elapsed_hours": elapsed_hours,
+            "next_search_eta": next_search_eta,
+            "search_status": autopilot_status["search_status"],
+            "sender_status": autopilot_status["sender_status"],
+            "targets_count": len(targets),
+            "current_target_index": current_target_index,
+            "targets": targets,
+            "serper_configured": bool(database.get_setting('serper_api_key', '')),
+            "recent_logs": autopilot_status["logs"][-30:],
+            "recent_activity": recent_activity,
+            "recent_prospects": prospects_summary
         })
-
-    recent_activity = database.get_autopilot_activity()[:15]
-    
-    return jsonify({
-        "server_time": now_str,
-        "timezone": "America/Sao_Paulo (UTC-3)",
-        "autopilot_search_enabled": database.get_setting('autopilot_search_enabled', '0'),
-        "autopilot_sender_enabled": database.get_setting('autopilot_sender_enabled', '0'),
-        "autopilot_auto_approve": database.get_setting('autopilot_auto_approve', '0'),
-        "autopilot_search_interval_hours": interval_hours,
-        "autopilot_search_batch_size": database.get_setting('autopilot_search_batch_size', '30'),
-        "autopilot_sender_interval_min": database.get_setting('autopilot_sender_interval_min', '3'),
-        "autopilot_last_search_run_at": last_search_str,
-        "elapsed_hours": elapsed_hours,
-        "next_search_eta": next_search_eta,
-        "search_status": autopilot_status["search_status"],
-        "sender_status": autopilot_status["sender_status"],
-        "targets_count": len(targets),
-        "current_target_index": current_target_index,
-        "targets": targets,
-        "serper_configured": bool(database.get_setting('serper_api_key', '')),
-        "recent_logs": autopilot_status["logs"][-30:],
-        "recent_activity": recent_activity,
-        "recent_prospects": prospects_summary
-    })
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 # Force Autopilot Run Search
 @app.route('/api/autopilot/force-search', methods=['POST'])
