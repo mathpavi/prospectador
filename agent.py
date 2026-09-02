@@ -362,25 +362,27 @@ def clean_company_name(title, domain):
         
         for part in cleaned_parts:
             part_lower = part.lower()
+            import unicodedata
+            part_norm = unicodedata.normalize('NFKD', part_lower).encode('ASCII', 'ignore').decode('ASCII')
+            clean_part_letters = re.sub(r'[^a-z0-9]', '', part_norm)
             
-            # De-prioritize common page/action words or phone numbers
-            is_page_word = any(w in part_lower for w in ['home', 'início', 'inicio', 'principal', 'inicial', 'contato', 'sobre', 'quem somos', 'serviços', 'servicos', 'index', 'nossos serviços', 'nossos servicos', 'ligue', 'orçamento', 'orcamento'])
+            # De-prioritize common page/action words, generic SEO keywords or phone numbers
+            is_page_word = any(w in part_norm for w in ['home', 'início', 'inicio', 'principal', 'inicial', 'contato', 'sobre', 'quem somos', 'serviços', 'servicos', 'index', 'nossos serviços', 'nossos servicos', 'ligue', 'orçamento', 'orcamento', 'fabricante de', 'fabrica de', 'empresa de', 'loja de', 'distribuidora de'])
             has_phone_number = bool(re.search(r'\b\d{4}[-.\s]?\d{4}\b', part))
             
             overlap_score = 0
-            clean_part_letters = re.sub(r'[^a-z0-9]', '', part_lower)
             
             # If domain base is a substring of clean part, or vice-versa
             if clean_part_letters and domain_base:
                 if domain_base in clean_part_letters or clean_part_letters in domain_base:
-                    overlap_score += 25
+                    overlap_score += 50
                     
             # Count common letters
             intersection_len = len(set(clean_part_letters) & set(domain_base))
             overlap_score += intersection_len
             
             if is_page_word:
-                overlap_score -= 20
+                overlap_score -= 25
             if has_phone_number:
                 overlap_score -= 30
                 
@@ -1327,26 +1329,14 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
         add_log(f'Não foi possível acessar {url} (Site offline ou erro de conexao): {e}')
         return None
 
-    # 2. Precise HTTPS & Security Check (Zero False Positives)
+    # 2. Strict HTTPS Check (Zero False Positives)
     is_https = final_url.startswith('https://')
     if not is_https:
-        issues.append('Inseguro (HTTP)')
+        issues.append('Inseguro (Sem HTTPS)')
         opportunities.append("O site não possui certificado HTTPS configurado, exibindo aviso de 'Não seguro' na barra do navegador.")
         
     soup = BeautifulSoup(html_content, 'html.parser')
     page_text = soup.get_text()
-    
-    # Check Mixed Content on HTTPS pages
-    if is_https:
-        insecure_res = []
-        for tag, attr in [('img', 'src'), ('script', 'src'), ('link', 'href'), ('iframe', 'src')]:
-            for el in soup.find_all(tag, **{attr: True}):
-                src = el[attr]
-                if src.startswith('http://') and not any(src.startswith(p) for p in ['http://localhost', 'http://schemas.', 'http://www.w3.org']):
-                    insecure_res.append(src)
-        if len(insecure_res) >= 2:
-            issues.append('Conteúdo Misto Inseguro')
-            opportunities.append(f"O site possui {len(insecure_res)} recursos carregados via HTTP simples dentro de página HTTPS (Mixed Content).")
 
     title = soup.title.string.strip() if soup.title and soup.title.string else ""
     title_lower = title.lower()
@@ -1374,7 +1364,7 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
     
     synonyms = {
         'móveis': ['moveis', 'mobiliário', 'mobiliario', 'móvel', 'movel', 'marcenaria', 'estofados', 'sofa', 'sofá', 'cozinhas', 'dormitórios', 'closets', 'wood', 'madeira', 'esquadrias'],
-        'metalúrgica': ['metalurgica', 'metalurgia', 'ferro', 'aço', 'aco', 'usinagem', 'repuxo', 'estampagem', 'solda', 'caldeiraria', 'metal', 'metais', 'indústria metalúrgica', 'esquadrias', 'portões', 'estruturas metálicas'],
+        'metalúrgica': ['metalurgica', 'metalurgia', 'ferro', 'aço', 'aco', 'usinagem', 'repuxo', 'estampagem', 'solda', 'caldeiraria', 'metal', 'metais', 'indústria metalúrgica', 'esquadrias', 'portões', 'estruturas metálicas', 'parafusos', 'fixadores'],
         'usinagem': ['torno', 'fresa', 'cnc', 'metalurgica', 'peças', 'pecas', 'usinagem'],
         'estofados': ['estofaria', 'sofá', 'sofa', 'poltrona', 'cadeiras', 'tapeçaria', 'tapecaria', 'colchão', 'colchao'],
         'segurança': ['alarme', 'cameras', 'cftv', 'portaria', 'rastreamento', 'monitoramento', 'vigilancia', 'controle de acesso']
@@ -1449,7 +1439,7 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
         else:
             tech_detected.append('jQuery UI')
 
-    # 5. Conversion & Lead Generation (Crucial for selling websites!)
+    # 5. Conversion, Usability & Lead Generation (Crucial for selling websites!)
     has_whatsapp_btn = False
     for a in soup.find_all('a', href=True):
         href = a['href'].lower()
@@ -1466,6 +1456,29 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
     if phones_found and not has_tel_link:
         issues.append('Telefones Não Clicáveis')
         opportunities.append("Os telefones no site são textos comuns sem link 'tel:', dificultando que usuários de celular liguem com 1 toque.")
+
+    # Check for direct Quote / CTA button
+    has_quote_cta = any(any(k in b.get_text().lower() or k in b.get('href', '').lower() for k in ['orçamento', 'orcamento', 'cotacao', 'cotação', 'solicite', 'pedir', 'proposta']) for b in soup.find_all(['a', 'button']))
+    if not has_quote_cta and not has_whatsapp_btn:
+        issues.append('Sem Chamada para Orçamento (CTA)')
+        opportunities.append("Não possui botões de chamada para ação (CTA) destacados para solicitar orçamentos rápidos.")
+
+    # 5.1 Design Modernity, Clarity & Product Showcase
+    has_modern_framework = any(t in tech_detected for t in ['React / Next.js', 'Vue / Nuxt', 'Tailwind CSS', 'Bootstrap', 'Elementor', 'Webflow', 'Tray E-commerce', 'Nuvemshop', 'Shopify'])
+    has_old_slider = any(s in full_html_lower for s in ['revslider', 'slider revolution', 'layerslider', 'nivoslider', 'flexslider', 'bxslider'])
+    has_layout_tables = len(soup.find_all('table')) > 2
+    
+    # Check for visual product cards or catalog
+    product_indicators = ['card', 'produto', 'servico', 'catalogo', 'portfolio', 'gallery', 'item', 'grid', 'thumb']
+    has_product_cards = any(any(ind in c.lower() for ind in product_indicators) for el in soup.find_all(['div', 'section', 'article', 'li'], class_=True) for c in (el.get('class') or []))
+    
+    if not has_modern_framework or has_old_slider or has_layout_tables:
+        issues.append('Design Tradicional / Pouco Objetivo')
+        opportunities.append("O site utiliza uma estrutura visual simplista ou tradicional, sem destacar a autoridade e o catálogo de produtos da empresa de forma moderna.")
+        
+    if not has_product_cards:
+        issues.append('Sem Destaque dos Produtos e Serviços')
+        opportunities.append("A página não apresenta uma vitrine visual clara e objetiva para os produtos/serviços, dificultando o entendimento rápido do visitante.")
 
     # 6. Mobile & Viewport
     viewport = soup.find('meta', attrs={'name': 'viewport'})
@@ -1794,15 +1807,15 @@ def generate_prospect_email(prospect):
             - Serviço oferecido: {sender_pitch}
             
             Regras cruciais para escrever o e-mail (siga exatamente este estilo amigável, visual e de negócios):
-            1. Assunto: Escolha uma variação curta (ex: "Uma ideia para o site da {prospect['company_name']}", "Sobre o site da {prospect['company_name']}", "Enquanto analisava o site da {prospect['company_name']}, surgiu uma ideia").
+            1. Assunto: Escolha uma variação curta e atraente (ex: "Uma ideia para o site da {prospect['company_name']}", "Sobre a apresentação digital da {prospect['company_name']}", "Enquanto analisava o site da {prospect['company_name']}, surgiu uma ideia").
             2. Saudação: Comece com "Olá, tudo bem?" ou "Olá [Nome do contato], tudo bem?".
-            3. Elogio Sincero Baseado em Fatos (Primeiro Parágrafo): Apresente-se ("Meu nome é {sender_name}"). Diga que chegou até eles pelo Google e te chamou atenção a credibilidade, tradição ou qualidade do trabalho em {prospect['segment']}. Elogie isso como um diferencial forte da empresa.
-            4. Diagnóstico Visual, Usabilidade e Conversão em Linguagem Clara (Segundo Parágrafo):
-               Em vez de apenas usar jargões técnicos frios, explique de forma simples e visual o impacto prático no dia a dia do cliente:
-               - **Chamadas de Ação (CTAs) e Contato Rápido:** A importância de botões de WhatsApp flutuantes e botões de orçamento visíveis em 1 toque na tela do celular.
-               - **Informações Fáceis e Diretas:** Apresentação clara dos serviços de {prospect['segment']} para que o visitante encontre exatamente o que precisa em poucos segundos sem se perder.
-               - **Velocidade de Carregamento e Navegação Ágil:** Uma estrutura leve que carrega rápido no smartphone de quem pesquisa pelo 4G/5G.
-               - **Autoridade e Apelo Visual:** Citar com tato pontos que merecem modernização (ex: {issues_list}, copyright desatualizado, falta de certificado de segurança ou layout antigo) que fazem a empresa parecer menor ou menos atualizada do que realmente é.
+            3. Elogio Sincero Baseado em Fatos (Primeiro Parágrafo): Apresente-se ("Meu nome é {sender_name}"). Diga que chegou até eles pelo Google e te chamou atenção a qualidade, tradição ou capacidade de trabalho em {prospect['segment']}. Elogie isso como um diferencial forte da empresa.
+            4. Diagnóstico de Usabilidade, Design e Objetividade Comercial (Segundo Parágrafo):
+               Em vez de usar termos técnicos frios ou citar problemas que o usuário comum não vê, foque no que realmente impacta as vendas e a percepção do cliente:
+               - **Design e Autoridade:** Explicar como um visual simplista ou antigo (anos 2000 / layout tradicional) faz a empresa parecer menor e não valoriza a real capacidade industrial/comercial dela.
+               - **Destaque dos Produtos e Serviços:** A importância de uma vitrine/catálogo visual moderno para o cliente bater o olho e entender na hora tudo o que a empresa fabrica ou executa, com fotos e acabamento de alto nível.
+               - **Objetividade e Clareza:** Eliminar textos confusos e poluição visual, tornando a navegação intuitiva e rápida no celular.
+               - **Contato Rápido e Conversão (CTA / WhatsApp):** Botões visíveis de WhatsApp flutuante e formulário de orçamento em 1 toque na tela do smartphone.
             5. Pitch Comercial e Estudo Visual (Terceiro Parágrafo): NÃO envie nenhum link pronto para a pessoa olhar. Use exatamente a seguinte ideia e frase:
                "Por isso, desenvolvi um estudo visual mostrando como a {prospect['company_name']} poderia se apresentar hoje: um site moderno, ultrarrápido, com navegação intuitiva no celular e chamadas estratégicas para transformar visitantes em orçamentos. Fiz esse material especificamente para vocês."
             6. Chamada para Ação Simples e Apresentação (Quarto Parágrafo): Use exatamente a seguinte ideia e frase:
@@ -1811,7 +1824,7 @@ def generate_prospect_email(prospect):
             8. Regras adicionais informadas pelo usuário: {email_rules}
             
             Regras para a mensagem curta de WhatsApp:
-            - Apresente-se e seja amigável. Diga que analisou o site deles, notou boas oportunidades para agilizar o contato no celular e que preparou uma proposta visual com um design mais moderno e conversivo. Pergunte se pode apresentar em 5 minutos, sem enviar links.
+            - Apresente-se e seja amigável. Diga que analisou o site deles, notou ótimas oportunidades para modernizar a apresentação dos produtos e agilizar o contato no celular. Pergunte se pode apresentar a proposta visual em 5 minutos, sem enviar links.
             
             Retorne estritamente um objeto JSON com três propriedades: "subject" (o assunto do e-mail), "body" (o texto do e-mail) e "whatsapp" (o texto da mensagem curta para WhatsApp). Não adicione nenhuma formatação markdown fora do JSON (como ```json ou ```). Retorne APENAS o JSON puro.
             """
@@ -1863,7 +1876,7 @@ Portfólio: {sender_portfolio}"""
     subjects = [
         f"Uma ideia para o site da {prospect['company_name']}",
         f"Enquanto analisava o site da {prospect['company_name']}, surgiu uma ideia",
-        f"Sobre o site da {prospect['company_name']}"
+        f"Sobre a apresentação digital da {prospect['company_name']}"
     ]
     subject = random.choice(subjects)
     
@@ -1872,19 +1885,25 @@ Portfólio: {sender_portfolio}"""
     
     for issue in prospect.get('detected_issues', []):
         if 'WhatsApp' in issue:
-            issues_text_parts.append("a ausência de um botão de WhatsApp flutuante para o cliente chamar em 1 clique pelo celular")
+            issues_text_parts.append("a ausência de um botão direto de WhatsApp flutuante para o cliente chamar em 1 toque pelo celular")
+        elif 'Destaque dos Produtos' in issue:
+            issues_text_parts.append("a falta de uma vitrine visual organizada para destacar com clareza os produtos e serviços de vocês")
+        elif 'Design Tradicional' in issue or 'Design Antigo' in issue:
+            issues_text_parts.append("um layout visual simplista que não transmite toda a autoridade e o porte que a empresa possui")
+        elif 'Orçamento' in issue or 'CTA' in issue:
+            issues_text_parts.append("a falta de botões diretos de chamada para orçamento rápido no smartphone")
         elif 'Telefone' in issue:
-            issues_text_parts.append("telefones que não permitem discagem rápida com um toque no smartphone")
+            issues_text_parts.append("telefones que não permitem discagem rápida com um toque na tela")
         elif 'Responsivo' in issue or 'Mobile' in issue:
             issues_text_parts.append("uma navegação que fica desajustada na tela do celular")
         elif 'Copyright' in issue:
             match = re.search(r'\d{4}', issue)
             yr = match.group() if match else "anos atrás"
             issues_text_parts.append(f"um design com aparência desatualizada (com o copyright parado em {yr})")
-        elif 'Inseguro' in issue:
-            issues_text_parts.append("a falta do selo de segurança HTTPS, que gera aviso de site não seguro no navegador")
+        elif issue == 'Inseguro (Sem HTTPS)':
+            issues_text_parts.append("a ausência do certificado de segurança (HTTPS) no endereço")
         elif 'Lentidão' in issue or 'Wix' in issue:
-            issues_text_parts.append("um tempo de carregamento que pode ser muito mais rápido e leve")
+            issues_text_parts.append("um tempo de carregamento que pode ser muito mais leve e ágil")
         elif 'SEO' in issue or 'H1' in issue:
             issues_text_parts.append("a falta de estrutura clara para o Google encontrar facilmente os serviços de vocês")
 
@@ -1892,9 +1911,9 @@ Portfólio: {sender_portfolio}"""
         flaws_desc = " e ".join(issues_text_parts[:2])
         opportunity_desc = f"a página tem alguns pontos que atrapalham a experiência de quem visita ({flaws_desc}), o que acaba fazendo o site converter menos orçamentos do que a {prospect['company_name']} merece"
     else:
-        opportunity_desc = f"a estrutura atual pode ser otimizada com chamadas de ação mais claras, carregamento mais rápido no celular e destaque visual para os principais diferenciais de {prospect['segment']}"
+        opportunity_desc = f"a estrutura atual pode ser otimizada com um design mais imponente, destaque visual para os produtos de {prospect['segment']} e botões estratégicos de WhatsApp no celular"
         
-    whatsapp_draft = f"Olá, tudo bem? Meu nome é {sender_name}. Dei uma olhada no site da {prospect['company_name']} e vi que ele tem um bom posicionamento, mas reparei em oportunidades visuais para agilizar o contato no celular e gerar mais orçamentos. Montei uma proposta visual moderna. Posso te apresentar rápido sem compromisso?"
+    whatsapp_draft = f"Olá, tudo bem? Meu nome é {sender_name}. Dei uma olhada no site da {prospect['company_name']} e vi que ele tem um bom posicionamento, mas reparei em oportunidades visuais para destacar os produtos e agilizar o contato no celular. Montei uma proposta visual moderna. Posso te apresentar rápido sem compromisso?"
     
     body = f"""Olá, tudo bem?
 
