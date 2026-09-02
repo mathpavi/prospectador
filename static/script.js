@@ -2490,26 +2490,48 @@ async function pollImporterStatus() {
     }
 }
 
-// Global background sync to refresh active tab lists periodically
+// Lightweight background sync to refresh summary numbers without disrupting the user
+async function updateGlobalStats() {
+    try {
+        const response = await fetch('/api/prospects?limit=1');
+        const data = await response.json();
+        if (data && data.stats) {
+            const elTotal = document.getElementById('stats-total');
+            if (elTotal) elTotal.textContent = data.stats.total;
+            const elPending = document.getElementById('stats-pending');
+            if (elPending) elPending.textContent = data.stats.pending;
+            const elApproved = document.getElementById('stats-approved');
+            if (elApproved) elApproved.textContent = data.stats.approved;
+            const elSent = document.getElementById('stats-sent');
+            if (elSent) elSent.textContent = data.stats.sent;
+            const elFailed = document.getElementById('stats-failed');
+            if (elFailed) elFailed.textContent = data.stats.failed;
+            
+            const elSentToday = document.getElementById('sent-today-count');
+            if (elSentToday) elSentToday.textContent = data.stats.sent_today;
+            const elDailyLimit = document.getElementById('daily-limit-val');
+            if (elDailyLimit) elDailyLimit.textContent = data.stats.daily_limit;
+            
+            const queuePending = document.getElementById('queue-pending-count');
+            if (queuePending) queuePending.textContent = `${data.stats.approved} e-mails`;
+        }
+    } catch (e) {
+        // quiet background update
+    }
+}
+
+// Global background sync for statistics only (never destroys lead DOM or closes previews)
 setInterval(async () => {
     if (document.hidden) return;
     try {
-        if (currentTab === 'tab-leads') {
-            await loadLeads();
-        } else if (currentTab === 'tab-surgical') {
-            await loadSurgicalLeads();
-        } else if (currentTab === 'tab-international') {
-            await loadInternationalLeads();
-        } else if (currentTab === 'tab-queue') {
+        await updateGlobalStats();
+        if (currentTab === 'tab-queue') {
             await loadQueueStatus();
-            await loadSentHistory();
-        } else if (currentTab === 'tab-followup') {
-            await loadFollowupList();
         }
     } catch (e) {
         console.error("Erro no sincronizador global:", e);
     }
-}, 15000);
+}, 20000);
 
 // ==========================================
 // 12. INTERNATIONAL PROSPECTING
