@@ -4,8 +4,9 @@ import random
 import requests
 import os
 import math
+import urllib.parse
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, quote
 import google.generativeai as genai
 import json
 import logging
@@ -151,46 +152,174 @@ def search_google_places(query):
         logger.warning(f"Google Places API search failed for '{query}': {e}")
     return []
 
-def ddg_text_search(query, max_results=20):
+def search_bing(query, max_results=20):
     """
-    Runs DuckDuckGo text search with fallback to HTML backend if API is rate-limited.
+    100% Free & Unlimited Bing search scraper.
+    Extracts real Brazilian company websites without requiring any API keys.
     """
-    # 1. Try 'auto' (API) backend first
+    import base64
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8'
+    }
+    results = []
+    seen = set()
+    pages = max(1, min(3, (max_results + 9) // 10))
+    for page in range(pages):
+        first = page * 10 + 1
+        url = f"https://www.bing.com/search?q={urllib.parse.quote(query)}&first={first}"
+        try:
+            r = requests.get(url, headers=headers, timeout=10)
+            if r.status_code != 200:
+                break
+            soup = BeautifulSoup(r.text, 'html.parser')
+            items = soup.find_all('li', class_='b_algo')
+            if not items:
+                break
+            for li in items:
+                h2 = li.find('h2')
+                a = h2.find('a') if h2 else None
+                p = li.find('p')
+                snippet = p.get_text() if p else ''
+                if a and a.get('href'):
+                    raw_href = a['href']
+                    real_href = raw_href
+                    if 'bing.com/ck/a' in raw_href and '&u=' in raw_href:
+                        try:
+                            u_param = raw_href.split('&u=')[1].split('&')[0]
+                            if u_param.startswith('a1'):
+                                b64 = u_param[2:] + '=' * (-len(u_param[2:]) % 4)
+                                real_href = base64.b64decode(b64).decode('utf-8', errors='ignore')
+                        except Exception:
+                            pass
+                    if real_href and real_href not in seen and real_href.startswith('http'):
+                        seen.add(real_href)
+                        results.append({
+                            'title': a.get_text().strip(),
+                            'href': real_href,
+                            'body': snippet.strip()
+                        })
+                if len(results) >= max_results:
+                    break
+        except Exception:
+            break
+    return results
+
+def search_ddg_lite(query, max_results=20):
+    """
+    100% Free DuckDuckGo Lite search scraper.
+    """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+    url = 'https://lite.duckduckgo.com/lite/'
+    data = {'q': query}
+    results = []
+    seen = set()
     try:
-        with DDGS() as ddgs:
-            res = ddgs.text(query, max_results=max_results, backend='auto')
-            res_list = list(res) if res else []
-            if res_list:
-                return res_list
-    except Exception as e:
-        logger.warning(f"DDG auto backend failed for query '{query}': {e}")
-        
-    # 2. Try 'html' backend as a fallback
+        r = requests.post(url, headers=headers, data=data, timeout=10)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        for a in soup.find_all('a', class_='result-link'):
+            href = a.get('href', '')
+            if href.startswith('http') and href not in seen:
+                seen.add(href)
+                results.append({
+                    'title': a.get_text().strip(),
+                    'href': href,
+                    'body': ''
+                })
+            if len(results) >= max_results:
+                break
+    except Exception:
+        pass
+    return results
+
+def search_brave(query, max_results=20):
+    """
+    Executes a high-precision search using the Brave Search API (2,000 free queries/month).
+    """
+    api_key = database.get_setting('brave_api_key', '')
+    if not api_key:
+        return []
+    url = 'https://api.search.brave.com/res/v1/web/search'
+    headers = {
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip',
+        'X-Subscription-Token': api_key.strip()
+    }
+    params = {
+        'q': query,
+        'country': 'BR',
+        'search_lang': 'pt',
+        'count': min(20, max_results)
+    }
     try:
-        with DDGS() as ddgs:
-            res = ddgs.text(query, max_results=max_results, backend='html')
-            res_list = list(res) if res else []
-            if res_list:
-                return res_list
+        r = requests.get(url, headers=headers, params=params, timeout=12)
+        if r.status_code == 200:
+            data = r.json()
+            web_results = data.get('web', {}).get('results', [])
+            results = []
+            for item in web_results:
+                results.append({
+                    'title': item.get('title', ''),
+                    'href': item.get('url', ''),
+                    'body': item.get('description', '')
+                })
+            return results
+        elif r.status_code in [401, 403, 429]:
+            add_log(f"⚠️ Aviso Brave Search API (status {r.status_code}). Alternando automaticamente para busca complementar.")
+            logger.warning(f"Brave Search API error {r.status_code}: {r.text}")
     except Exception as e:
-        logger.warning(f"DDG html backend failed for query '{query}': {e}")
-        
+        logger.warning(f"Brave Search API failed for '{query}': {e}")
     return []
 
 def search_web_candidates(query, max_results=20):
     """
     Unified candidate discovery search engine.
-    Uses Google (Serper API) as primary for high-precision local business discovery,
-    and automatically falls back to DuckDuckGo if Serper key is missing or runs out of credits.
+    1. Uses Brave Search API (2,000 free queries/month) if configured.
+    2. Uses Google (Serper API) if configured and has credits.
+    3. Falls back automatically to Free Bing + DuckDuckGo search with zero cost and no API keys required!
     """
-    api_key = database.get_setting('serper_api_key', '')
-    if api_key:
+    # 1. Try Brave Search API
+    brave_key = database.get_setting('brave_api_key', '')
+    if brave_key:
+        brave_results = search_brave(query, max_results=max_results)
+        if brave_results:
+            return brave_results
+
+    # 2. Try Serper API (Google)
+    serper_key = database.get_setting('serper_api_key', '')
+    if serper_key:
         serper_results = search_serper(query, max_results=max_results)
         if serper_results:
             return serper_results
         
-    # Resilient fallback to DuckDuckGo
-    return ddg_text_search(query, max_results=max_results)
+    # 3. Free Multi-Engine Fallback (Bing + DDG Lite)
+    combined = []
+    seen_urls = set()
+    
+    # 1. Bing (very strong on Brazilian websites)
+    bing_results = search_bing(query, max_results=max_results)
+    for r in bing_results:
+        u = r.get('href', '')
+        if u and u not in seen_urls:
+            seen_urls.add(u)
+            combined.append(r)
+            
+    # 2. DDG Lite if we need more candidates
+    if len(combined) < max_results:
+        ddg_results = search_ddg_lite(query, max_results=max_results - len(combined))
+        for r in ddg_results:
+            u = r.get('href', '')
+            if u and u not in seen_urls:
+                seen_urls.add(u)
+                combined.append(r)
+                
+    return combined
+
+ddg_text_search = search_web_candidates
 
 # Keywords in domain names to block immediately
 FORBIDDEN_DOMAIN_KEYWORDS = [
@@ -953,8 +1082,14 @@ def search_companies(segment, region, max_results=10, location_query=None):
                 queries.append(f'site:com.br "{sv}" "{clean_zone_loc} {zone}"')
                 queries.append(f'"{sv}" "{clean_zone_loc} {zone}"')
     
+    has_brave = bool(database.get_setting('brave_api_key', ''))
     has_serper = bool(database.get_setting('serper_api_key', ''))
-    engine_name = "Google (Serper API)" if has_serper else "DuckDuckGo"
+    if has_brave:
+        engine_name = "Brave Search API"
+    elif has_serper:
+        engine_name = "Google (Serper API)"
+    else:
+        engine_name = "Bing / DuckDuckGo (Multi-Engine Gratuito)"
     add_log(f'Executando busca no {engine_name} com {len(queries)} variações de consulta...')
     
     for idx, q in enumerate(queries):

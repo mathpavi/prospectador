@@ -113,6 +113,7 @@ def init_db():
         'gemini_api_key': '',
         'kipflow_api_key': '27faee9a-15f3-4dfb-a1d0-383ac5fef117',
         'serper_api_key': '',
+        'brave_api_key': '',
         'gosom_api_url': '',
         'smtp_host': 'smtp.hostinger.com',
         'smtp_port': '465',

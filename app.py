@@ -625,6 +625,7 @@ def api_autopilot_diagnostics():
             "current_target_index": current_target_index,
             "targets": targets,
             "serper_configured": bool(database.get_setting('serper_api_key', '')),
+            "brave_configured": bool(database.get_setting('brave_api_key', '')),
             "recent_logs": autopilot_status["logs"][-30:],
             "recent_activity": recent_activity,
             "recent_prospects": prospects_summary

@@ -908,7 +908,18 @@
                         </div>
                     </div>
                     
-                    <!-- Section A3: Serper API -->
+                    <!-- Section A3: Brave Search API & Serper API -->
+                    <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 30px;">
+                        🦁 Brave Search API (2.000 Buscas Gratuitas Todo Mês)
+                    </h3>
+                    <div class="form-group">
+                        <label for="brave_api_key">Chave de API do Brave Search</label>
+                        <input type="password" id="brave_api_key" name="brave_api_key" placeholder="Insira sua Brave Search API Key (ex: BSA...)">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            Motor de busca oficial e independente. O Brave libera <strong>2.000 buscas gratuitas todo mês</strong>. Obtenha sua chave grátis no painel oficial do <a href="https://brave.com/search/api/" target="_blank" style="color:var(--secondary); font-weight:600;">Brave Search API</a>.
+                        </div>
+                    </div>
+
                     <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 30px;">
                         🔍 Google Search & Maps (Serper.dev API)
                     </h3>
@@ -916,7 +927,7 @@
                         <label for="serper_api_key">Chave de API do Serper.dev</label>
                         <input type="password" id="serper_api_key" name="serper_api_key" placeholder="Insira sua Serper.dev API Key">
                         <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
-                            Usada para buscar empresas locais estrangeiras diretamente no Google Maps sem bloqueios ou limites de taxa. Obtenha 2.500 buscas gratuitas se cadastrando no <a href="https://serper.dev/" target="_blank" style="color:var(--secondary);">Serper.dev</a>. Se estiver vazia, o sistema usará o DuckDuckGo.
+                            Usada para buscas no Google e Google Maps. Obtenha 2.500 buscas gratuitas se cadastrando no <a href="https://serper.dev/" target="_blank" style="color:var(--secondary);">Serper.dev</a>.
                         </div>
                     </div>
 
@@ -924,7 +935,7 @@
                         <label for="gosom_api_url">URL do gosom local</label>
                         <input type="url" id="gosom_api_url" name="gosom_api_url" placeholder="http://localhost:8080">
                         <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
-                            Motor self-hosted preferencial para Google Maps. Deixe vazio para usar Serper/DuckDuckGo.
+                            Motor self-hosted opcional para Google Maps. Deixe vazio para usar Brave/Serper/Bing.
                         </div>
                     </div>
                     
