@@ -118,6 +118,8 @@ def search_serper(query, max_results=20):
                 if len(results) >= max_results:
                     break
             else:
+                if r.status_code == 400 and 'Not enough credits' in r.text:
+                    add_log("⚠️ Aviso: Créditos da API Serper (Google) esgotados no momento. Alternando automaticamente para DuckDuckGo.")
                 logger.warning(f"Serper API returned {r.status_code} for '{query}': {r.text}")
                 break
         return results
@@ -179,16 +181,15 @@ def search_web_candidates(query, max_results=20):
     """
     Unified candidate discovery search engine.
     Uses Google (Serper API) as primary for high-precision local business discovery,
-    and falls back to DuckDuckGo only if Serper key is not configured.
+    and automatically falls back to DuckDuckGo if Serper key is missing or runs out of credits.
     """
     api_key = database.get_setting('serper_api_key', '')
     if api_key:
         serper_results = search_serper(query, max_results=max_results)
         if serper_results:
             return serper_results
-        return []
         
-    # Fallback to DuckDuckGo only if no Serper key is configured
+    # Resilient fallback to DuckDuckGo
     return ddg_text_search(query, max_results=max_results)
 
 # Keywords in domain names to block immediately
