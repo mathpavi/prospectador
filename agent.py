@@ -252,7 +252,7 @@ def search_brave(query, max_results=20):
     params = {
         'q': query,
         'country': 'BR',
-        'search_lang': 'pt',
+        'search_lang': 'pt-br',
         'count': min(20, max_results)
     }
     try:
@@ -275,12 +275,55 @@ def search_brave(query, max_results=20):
         logger.warning(f"Brave Search API failed for '{query}': {e}")
     return []
 
+def search_cloro(query, max_results=20):
+    """
+    Executes a Google Search using the Cloro.dev API (500 free queries/month).
+    """
+    api_key = database.get_setting('cloro_api_key', '')
+    if not api_key:
+        return []
+    url = 'https://api.cloro.dev/v1/monitor/google'
+    headers = {
+        'Authorization': f'Bearer {api_key.strip()}',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'query': query,
+        'country': 'BR',
+        'hl': 'pt-BR'
+    }
+    try:
+        r = requests.post(url, headers=headers, json=payload, timeout=12)
+        if r.status_code == 200:
+            data = r.json()
+            result = data.get('result', {})
+            organic = result.get('organicResults', [])
+            results = []
+            for item in organic:
+                href = item.get('link', '') or item.get('url', '')
+                if href and href.startswith('http'):
+                    results.append({
+                        'title': item.get('title', ''),
+                        'href': href,
+                        'body': item.get('snippet', '')
+                    })
+                if len(results) >= max_results:
+                    break
+            return results
+        elif r.status_code in [401, 403, 429]:
+            add_log(f"⚠️ Aviso Cloro.dev API (status {r.status_code}). Alternando automaticamente para outro buscador.")
+            logger.warning(f"Cloro.dev API error {r.status_code}: {r.text}")
+    except Exception as e:
+        logger.warning(f"Cloro.dev API search failed for '{query}': {e}")
+    return []
+
 def search_web_candidates(query, max_results=20):
     """
     Unified candidate discovery search engine.
     1. Uses Brave Search API (2,000 free queries/month) if configured.
-    2. Uses Google (Serper API) if configured and has credits.
-    3. Falls back automatically to Free Bing + DuckDuckGo search with zero cost and no API keys required!
+    2. Uses Cloro.dev Google Search API (500 free queries/month) if configured.
+    3. Uses Google (Serper API) if configured and has credits.
+    4. Falls back automatically to Free Bing + DuckDuckGo search with zero cost and no API keys required!
     """
     # 1. Try Brave Search API
     brave_key = database.get_setting('brave_api_key', '')
@@ -289,14 +332,21 @@ def search_web_candidates(query, max_results=20):
         if brave_results:
             return brave_results
 
-    # 2. Try Serper API (Google)
+    # 2. Try Cloro.dev Google Search API
+    cloro_key = database.get_setting('cloro_api_key', '')
+    if cloro_key:
+        cloro_results = search_cloro(query, max_results=max_results)
+        if cloro_results:
+            return cloro_results
+
+    # 3. Try Serper API (Google)
     serper_key = database.get_setting('serper_api_key', '')
     if serper_key:
         serper_results = search_serper(query, max_results=max_results)
         if serper_results:
             return serper_results
         
-    # 3. Free Multi-Engine Fallback (Bing + DDG Lite)
+    # 4. Free Multi-Engine Fallback (Bing + DDG Lite)
     combined = []
     seen_urls = set()
     
@@ -1083,9 +1133,12 @@ def search_companies(segment, region, max_results=10, location_query=None):
                 queries.append(f'"{sv}" "{clean_zone_loc} {zone}"')
     
     has_brave = bool(database.get_setting('brave_api_key', ''))
+    has_cloro = bool(database.get_setting('cloro_api_key', ''))
     has_serper = bool(database.get_setting('serper_api_key', ''))
     if has_brave:
         engine_name = "Brave Search API"
+    elif has_cloro:
+        engine_name = "Google (Cloro.dev API)"
     elif has_serper:
         engine_name = "Google (Serper API)"
     else:
@@ -2530,11 +2583,12 @@ def run_surgical_job(segment, region, max_results, state_uf=None, city_name=None
     if surgical_type in ['no_site', 'both', 'maps_only']:
         is_maps_only = (surgical_type == 'maps_only')
         
-        # 1.1 Direct Google Places API search for high-precision local businesses
-        if database.get_setting('serper_api_key', ''):
+        # 1.1 Direct Google Places API search (Serper Reserva - preservado enquanto houver Brave/Cloro)
+        has_primary = bool(database.get_setting('brave_api_key', '')) or bool(database.get_setting('cloro_api_key', ''))
+        if not has_primary and database.get_setting('serper_api_key', ''):
             clean_loc = (city_name or location_query or region).replace('"', '').strip()
             places_query = f"{segment} {clean_loc}"
-            add_log(f"Consultando Google Maps (Google Places) para '{places_query}'...")
+            add_log(f"Consultando Google Maps via Serper API (Reserva) para '{places_query}'...")
             places = search_google_places(places_query)
             add_log(f"Google Maps retornou {len(places)} empresas locais.")
             
