@@ -78,7 +78,12 @@ IGNORED_DOMAINS = [
     
     # Education & Institutional
     'sebrae.com.br', 'sebraers.com.br', 'senai.br', 'sesi.org.br', 'fiesp.com.br', 'senac.br',
-    'getninjas.com.br', 'habitissimo.com.br', 'starofservice.com.br', 'cronoshare.com.br'
+    'getninjas.com.br', 'habitissimo.com.br', 'starofservice.com.br', 'cronoshare.com.br',
+
+    # Online Calculators, Math Tools, Utilities & Foreign Blogs
+    'symbolab.com', 'wolframalpha.com', 'fazaconta.com', 'calculadorafacil.com.br',
+    'calculoexato.com.br', 'todamateria.com.br', 'brasilescola.uol.com.br', 'mundoeducacao.uol.com.br',
+    'theharvestkitchen.com', 'eatyourselfskinny.com', 'allrecipes.com', 'tudogostoso.com.br'
 ]
 
 def search_serper(query, max_results=20):
@@ -406,7 +411,11 @@ FORBIDDEN_DOMAIN_KEYWORDS = [
     'leroymerlin', 'elo7', 'aliexpress', 'shein', 'kabum', 'temu',
     
     # Job search portals
-    'catho', 'vagas', 'emprego', 'infojobs', 'indeed', 'gupy', 'solides', 'glassdoor'
+    'catho', 'vagas', 'emprego', 'infojobs', 'indeed', 'gupy', 'solides', 'glassdoor',
+
+    # Calculators, solvers, educational utilities, recipes & food blogs
+    'symbolab', 'wolfram', 'fazaconta', 'calculadora', 'solucionador', 'equacao',
+    'exercicio', 'matematica', 'calculo', 'recipe', 'receita', 'kitchen', 'culinaria'
 ]
 
 # Thread-safe log store for real-time progress updates in the UI
@@ -427,32 +436,39 @@ def check_location_match(text, state_uf, allowed_cities=None):
         return False
     text_lower = text.lower()
     
-    # 1. City check (takes precedence if allowed_cities is provided)
+    # 1. City check (matches any of the allowed cities in radius)
     if allowed_cities:
-        city_matched = False
         for city in allowed_cities:
             if city.lower() in text_lower:
-                city_matched = True
-                break
-        # If the city matches, we return True immediately (assumes state is correct since city matches)
-        # This avoids false negatives where a local page mentions the city but not the state abbreviation (e.g. "RS")
-        return city_matched
-        
-    # 2. State check (only if allowed_cities is not provided/empty)
+                return True
+                
+    # 2. State check (UF abbreviation or full state name)
     if state_uf:
         state_uf = state_uf.upper().strip()
-        state_matched = False
-        # Word boundary check for state abbreviation (e.g. \brs\b)
         if re.search(r'\b' + re.escape(state_uf.lower()) + r'\b', text_lower):
-            state_matched = True
-        else:
-            # Check for full state names
-            names = STATE_NAMES.get(state_uf, [])
-            for name in names:
-                if name.lower() in text_lower:
-                    state_matched = True
-                    break
-        return state_matched
+            return True
+        names = STATE_NAMES.get(state_uf, [])
+        for name in names:
+            if name.lower() in text_lower:
+                return True
+                
+        # 3. Regional DDD check for the state
+        state_ddds = {
+            'RS': ['51', '53', '54', '55'],
+            'SC': ['47', '48', '49'],
+            'PR': ['41', '42', '43', '44', '45', '46'],
+            'SP': ['11', '12', '13', '14', '15', '16', '17', '18', '19'],
+            'RJ': ['21', '22', '24'],
+            'MG': ['31', '32', '33', '34', '35', '37', '38']
+        }
+        target_ddds = state_ddds.get(state_uf, [])
+        for ddd in target_ddds:
+            if f"({ddd})" in text or f"({ddd}) " in text:
+                return True
+            if re.search(r'\b' + ddd + r'\s*9?\d{4}[-.\s]?\d{4}\b', text):
+                return True
+                
+        return False
             
     return True
 
@@ -634,7 +650,11 @@ def is_valid_company_title(title, snippet):
         'jornal', 'revista', 'diário', 'diario', 'portal de', 'blog', 'fórum', 'forum', 'tcc', 'monografia',
         'história de', 'historico', 'histórico', 'estudo de caso', 'artigo', 'quais são', 'o que é',
         'como fazer', 'dicas de', 'guia de', 'lista de', 'catálogo de', 'catalogo de', 'cnpj da empresa',
-        'dados da empresa', 'casadosdados', 'econodata', 'cnpj.biz', 'consultacnpj'
+        'dados da empresa', 'casadosdados', 'econodata', 'cnpj.biz', 'consultacnpj',
+        # Online tools, calculators, academic solvers, recipes
+        'calculadora', 'solucionador', 'simulador', 'exercício', 'exercicio', 'matemática', 'matematica',
+        'fórmula', 'formula', 'receita', 'culinária', 'culinaria', 'tabela fipe', 'cálculo trabalhista',
+        'calculo trabalhista', 'resumo de', 'significado de'
     ]
     
     for kw in forbidden_title_keywords:
@@ -814,6 +834,17 @@ def is_invalid_industry_site(url, title, page_text):
     ]
     for w in agency_words:
         if w in title_lower or re.search(rf'\b{w}\b', text_lower[:1000], re.IGNORECASE):
+            return True
+
+    # Check if it's an online tool, calculator, solver, math site or food recipe blog
+    tool_words = [
+        'calculadora', 'solucionador de problemas', 'solucionador', 'passo a passo de',
+        'calculo online', 'cálculo online', 'simulador online', 'exercícios resolvidos',
+        'exercicios resolvidos', 'fórmulas matemáticas', 'formulas matematicas',
+        'tabela fipe', 'receitas culinárias', 'receitas faceis', 'como preparar'
+    ]
+    for w in tool_words:
+        if w in title_lower or re.search(rf'\b{w}\b', text_lower[:1500], re.IGNORECASE):
             return True
             
     return False
@@ -1564,7 +1595,17 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
             extended_keywords.extend(synonyms[kw])
     extended_keywords.append(segment_lower)
     
-    has_segment_match = any(kw in page_text_lower or kw in title_lower for kw in extended_keywords)
+    def matches_keyword(kw, text):
+        kw_clean = kw.strip().lower()
+        if not kw_clean:
+            return False
+        # Short words (< 5 chars like 'aco', 'aço', 'peças') must match whole words only to avoid matching 'acompanhe', 'acordo', etc.
+        if len(kw_clean) < 5 or ' ' in kw_clean:
+            pattern = r'(?<!\w)' + re.escape(kw_clean) + r'(?!\w)'
+            return bool(re.search(pattern, text, re.IGNORECASE))
+        return kw_clean in text
+
+    has_segment_match = any(matches_keyword(kw, page_text_lower) or matches_keyword(kw, title_lower) for kw in extended_keywords)
     if not has_segment_match and segment_keywords:
         add_log(f"Ignorando {url} pois o conteúdo não parece relacionado ao segmento '{segment}'.")
         return None
@@ -2142,6 +2183,16 @@ def parse_autopilot_region(region_str):
         if city.lower() in ["estado inteiro", "todo o estado", "todos", ""]:
             return uf_part, None
         return uf_part, city
+
+    # Check if format ends with space/comma + UF (e.g. "Porto Alegre RS", "Porto Alegre, RS")
+    m = re.search(r'[\s,]+([A-Za-z]{2})$', reg_clean)
+    if m:
+        candidate_uf = m.group(1).upper()
+        if candidate_uf in STATE_NAMES:
+            city_part = reg_clean[:m.start()].strip(' -,')
+            if city_part.lower() in ["estado inteiro", "todo o estado", "todos", ""]:
+                return candidate_uf, None
+            return candidate_uf, city_part if city_part else None
         
     # Check if UF directly (e.g. "RS", "SP", "SC", "PR", "RJ", "MG")
     reg_upper = reg_clean.split('(')[0].strip().upper()
@@ -2157,6 +2208,14 @@ def parse_autopilot_region(region_str):
     return None, reg_clean
 
 def run_prospecting_job(segment, region, max_results, state_uf=None, city_name=None, radius_km=0, is_autopilot=0, source_mode="organic"):
+    # If state_uf is not explicitly provided, auto-parse from region string
+    if not state_uf and region:
+        parsed_uf, parsed_city = parse_autopilot_region(region)
+        if parsed_uf:
+            state_uf = parsed_uf
+            if not city_name and parsed_city:
+                city_name = parsed_city
+
     # Resolve geographic location queries
     location_query = region
     db_region = region
@@ -2248,7 +2307,15 @@ def run_prospecting_job(segment, region, max_results, state_uf=None, city_name=N
         if existing_id:
             add_log(f"Ignorando {resolved_website} (Já cadastrado no banco de dados com ID {existing_id}).")
             continue
-            
+
+        # Validate commercial contact existence
+        email_contact = p_data.get('contact_email', '')
+        whatsapp_contact = p_data.get('contact_whatsapp', '')
+        phone_contact = p_data.get('contact_phone', '')
+        if not email_contact and not whatsapp_contact and not phone_contact:
+            add_log(f"Ignorando {resolved_website} pois não possui canais de contato válidos (sem e-mail e sem telefone/WhatsApp).")
+            continue
+
         # Generate custom drafts
         subject, body, whatsapp_draft = generate_prospect_email(p_data)
         p_data['email_subject'] = subject
@@ -2520,6 +2587,14 @@ def search_social_profiles(segment, region, max_results=10, maps_only=False):
     return results
 
 def run_surgical_job(segment, region, max_results, state_uf=None, city_name=None, radius_km=0, surgical_type='both', is_autopilot=0):
+    # If state_uf is not explicitly provided, auto-parse from region string
+    if not state_uf and region:
+        parsed_uf, parsed_city = parse_autopilot_region(region)
+        if parsed_uf:
+            state_uf = parsed_uf
+            if not city_name and parsed_city:
+                city_name = parsed_city
+
     # Resolve geographic location queries
     location_query = region
     db_region = region
