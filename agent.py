@@ -3195,6 +3195,9 @@ def parse_directory_profile(url, html_content, dir_key):
         
     company_name = re.sub(r'\s*\|\s*.*$', '', company_name)
     company_name = re.sub(r'\s*-\s*(Guia Mais|Solutudo|Apontador|Telelistas|CNPJ\.biz).*$', '', company_name, flags=re.IGNORECASE)
+    # Remove common directory suffixes like "em Vila...", "em Distrito Industrial"
+    if ' em ' in company_name.lower() and dir_key in ['telelistas', 'guiamais', 'apontador']:
+        company_name = re.split(r'\s+em\s+', company_name, flags=re.IGNORECASE)[0].strip()
     company_name = clean_company_name(company_name, '')
     
     whatsapp = ""
@@ -3204,12 +3207,15 @@ def parse_directory_profile(url, html_content, dir_key):
     for a in soup.find_all('a', href=True):
         href = a['href']
         if 'wa.me' in href or 'whatsapp' in href or 'api.whatsapp.com' in href:
+            # Ignore platform support / report numbers (e.g. Solutudo's 14997985358 or generic share text)
+            if '14997985358' in href or 'excluir' in href.lower() or 'conhece%20a%20solutudo' in href.lower():
+                continue
             m = re.search(r'(?:phone=|send\?phone=|\.me/)(\d+)', href)
             if m:
                 num = m.group(1)
                 if num.startswith('55'):
                     num = num[2:]
-                if len(num) in [10, 11]:
+                if len(num) in [10, 11] and num != '14997985358':
                     whatsapp = num
                     break
                     
@@ -3218,6 +3224,8 @@ def parse_directory_profile(url, html_content, dir_key):
         href = a['href']
         if href.startswith('tel:'):
             clean = re.sub(r'\D', '', href)
+            if clean.startswith('0') and len(clean) in [11, 12]:
+                clean = clean[1:]  # e.g. 05134392027 -> 5134392027
             if clean.startswith('55'):
                 clean = clean[2:]
             if len(clean) in [10, 11]:
@@ -3228,15 +3236,34 @@ def parse_directory_profile(url, html_content, dir_key):
                 if phone and whatsapp:
                     break
                     
-    # 3. Text fallback for phones
+    # 3. Directory-specific patterns & text fallback for phones
+    page_text = soup.get_text()
+    if not phone or not whatsapp:
+        # Solutudo explicit phone question answer
+        sol_match = re.search(r'O telefone de contato é\s*([0-9\(\)\s-]{10,20})', page_text)
+        if sol_match:
+            c_ph = re.sub(r'\D', '', sol_match.group(1))
+            if len(c_ph) in [10, 11]:
+                phone = c_ph
+                if len(c_ph) == 11 and c_ph[2] == '9':
+                    whatsapp = c_ph
+                    
+        # Solutudo explicit whatsapp answer
+        sol_wa = re.search(r'pelo WhatsApp no número\s*([0-9\(\)\s-]{10,20})', page_text)
+        if sol_wa:
+            c_wa = re.sub(r'\D', '', sol_wa.group(1))
+            if len(c_wa) in [10, 11]:
+                whatsapp = c_wa
+                if not phone:
+                    phone = c_wa
+
     if not phone and not whatsapp:
-        page_text = soup.get_text()
-        found_phones = find_phones_in_text(page_text)
+        found_phones = re.findall(r'(?:\(?\d{2}\)?\s*)?(?:9\d{4}|\d{4})[-\s]?\d{4}', page_text)
         for ph in found_phones:
             clean = re.sub(r'\D', '', ph)
-            if clean.startswith('55'):
+            if clean.startswith('55') and len(clean) > 11:
                 clean = clean[2:]
-            if len(clean) in [10, 11]:
+            if len(clean) in [10, 11] and clean != '14997985358':
                 if not phone:
                     phone = clean
                 if not whatsapp and len(clean) == 11 and clean[2] == '9':
@@ -3244,28 +3271,33 @@ def parse_directory_profile(url, html_content, dir_key):
                 if phone:
                     break
                     
-    # 4. External Website detection
+    # 4. External Website detection (Strictly company website, ignore widgets/portals/aggregators)
     external_website = None
-    ignored_external = [
+    ignored_external_domains = [
         'guiamais.com.br', 'solutudo.com.br', 'apontador.com.br', 'telelistas.net', 'cnpj.biz',
         'google.com', 'google.com.br', 'facebook.com', 'instagram.com', 'whatsapp.com',
         'wa.me', 'waze.com', 'apple.com', 'twitter.com', 'x.com', 'youtube.com', 'linkedin.com',
-        'pinterest.com', 'tiktok.com', 'w3.org', 'schema.org', 'cloudflare.com'
+        'pinterest.com', 'tiktok.com', 'w3.org', 'schema.org', 'cloudflare.com',
+        'octo.legal', 'conexaomercado.com.br', 'telelistas.com.br', 'clarity.ms', 'hotjar.com',
+        'onetrust.com', 'cookielaw.org', 'schema.org', 'recaptcha.net', 'google-analytics.com'
     ]
     for a in soup.find_all('a', href=True):
         href = a['href'].strip()
         if href.startswith(('http://', 'https://')):
             p = urlparse(href)
             netloc = p.netloc.lower()
-            if not any(ign in netloc for ign in ignored_external):
+            if not any(ign in netloc for ign in ignored_external_domains):
                 text = a.get_text().lower()
                 classes = " ".join(a.get('class', [])).lower()
                 rel = a.get('rel', [])
-                if any(k in text or k in classes for k in ['site', 'website', 'visitar', 'página', 'acessar', 'portal']) or 'nofollow' in rel:
+                
+                # Check if this anchor really points to the company's website
+                is_explicit_site_link = any(k in text or k in classes for k in ['site', 'website', 'visitar', 'página', 'pagina', 'acessar site'])
+                has_external_rel = 'nofollow' in rel or 'external' in rel
+                
+                if is_explicit_site_link or has_external_rel:
                     external_website = href
                     break
-                if not external_website and len(netloc.split('.')) >= 2:
-                    external_website = href
 
     # 5. Extract Address
     address = ""
@@ -3359,9 +3391,60 @@ def run_directories_job(segment, region, state_uf=None, city_name=None, max_resu
                 results = search_web_candidates(q, max_results=12)
                 for r in results:
                     href = r.get('href')
-                    if href and href not in scanned_urls and dir_domain in href:
-                        scanned_urls.add(href)
-                        candidate_results.append(href)
+                    if not href or href in scanned_urls or dir_domain not in href:
+                        continue
+                    scanned_urls.add(href)
+                    
+                    # If this is a category/city listing page, crawl it quickly to extract real company profiles!
+                    is_listing_page = False
+                    if dir_key == 'telelistas' and '/bu-' not in href and any(s in href for s in ['/rs/', '/sp/', '/mg/', '/pr/', '/sc/', '/rj/']):
+                        is_listing_page = True
+                    elif dir_key == 'solutudo' and (href.endswith(f'/{city_name.lower()}' if city_name else '') or f'/{segment.lower()}' in href) and not re.search(r'-\d+$', href):
+                        is_listing_page = True
+                        
+                    if is_listing_page:
+                        try:
+                            list_res = fetch_html_resilient(href, timeout=8)
+                            if list_res:
+                                list_soup = BeautifulSoup(list_res['html'], 'html.parser')
+                                for a in list_soup.find_all('a', href=True):
+                                    a_href = a['href']
+                                    if a_href.startswith('/'):
+                                        a_href = f"https://{dir_domain}{a_href}"
+                                    if dir_domain in a_href and a_href not in scanned_urls:
+                                        if dir_key == 'telelistas' and '/bu-' in a_href:
+                                            scanned_urls.add(a_href)
+                                            candidate_results.append(a_href)
+                                        elif dir_key == 'solutudo' and re.search(r'/empresas/.+-\d+$', a_href):
+                                            scanned_urls.add(a_href)
+                                            candidate_results.append(a_href)
+                        except Exception as e_list:
+                            logger.debug(f"Erro ao listar links da página de listagem {href}: {e_list}")
+                    else:
+                        # Validate profile URL pattern and ensure geographic relevance if specified
+                        is_valid_profile = True
+                        if dir_key == 'apontador':
+                            is_valid_profile = '/local/' in href and href.endswith('.html') and not any(k in href for k in ['/em/', '/guia_de_ruas', '/cep'])
+                            if is_valid_profile and state_uf and f"/{state_uf.lower()}/" not in href.lower():
+                                is_valid_profile = False
+                        elif dir_key == 'telelistas':
+                            is_valid_profile = '/bu-' in href
+                            if is_valid_profile and state_uf and f"/{state_uf.lower()}/" not in href.lower():
+                                is_valid_profile = False
+                        elif dir_key == 'solutudo':
+                            is_valid_profile = bool(re.search(r'-\d+$', href)) and not any(k in href for k in ['/listas/', '/busca'])
+                            if is_valid_profile and state_uf and f"/{state_uf.lower()}/" not in href.lower():
+                                is_valid_profile = False
+                        elif dir_key == 'guiamais':
+                            is_valid_profile = bool(re.search(r'-\d+/', href))
+                            if is_valid_profile and state_uf and f"-{state_uf.lower()}/" not in href.lower():
+                                is_valid_profile = False
+                        elif dir_key == 'cnpj_biz':
+                            is_valid_profile = bool(re.search(r'/\d{14}$', href))
+                            
+                        if is_valid_profile:
+                            candidate_results.append(href)
+                            
                 if len(candidate_results) >= (max_results - saved_count) * 2:
                     break
             except Exception as e:
