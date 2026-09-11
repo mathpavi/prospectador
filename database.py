@@ -103,6 +103,10 @@ def init_db():
         cursor.execute("ALTER TABLE prospects ADD COLUMN rating REAL DEFAULT 0.0")
     if 'opportunity_score' not in columns:
         cursor.execute("ALTER TABLE prospects ADD COLUMN opportunity_score INTEGER DEFAULT 0")
+    if 'is_directory' not in columns:
+        cursor.execute("ALTER TABLE prospects ADD COLUMN is_directory INTEGER DEFAULT 0")
+    if 'directory_source' not in columns:
+        cursor.execute("ALTER TABLE prospects ADD COLUMN directory_source TEXT")
     
     
     # Seed default settings if they don't exist
@@ -295,7 +299,9 @@ def add_prospect(prospect_dict):
         except:
             domain = ''
             
-    if domain:
+    is_dir = prospect_dict.get('is_directory', 0)
+    directory_domains = ['guiamais.com.br', 'solutudo.com.br', 'apontador.com.br', 'telelistas.net', 'cnpj.biz']
+    if domain and not is_dir and not any(d in domain for d in directory_domains):
         existing_id = check_domain_exists(domain, full_url=website)
         if existing_id:
             return existing_id
@@ -330,8 +336,9 @@ def add_prospect(prospect_dict):
             is_surgical, surgical_type, is_autopilot, cnpj, faturamento,
             porte, funcionarios, socios, redes_sociais, is_international,
             international_country, reviews_count, rating, opportunity_score,
+            is_directory, directory_source,
             created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         prospect_dict.get('company_name'),
         prospect_dict.get('website'),
@@ -361,6 +368,8 @@ def add_prospect(prospect_dict):
         prospect_dict.get('reviews_count', 0),
         prospect_dict.get('rating', 0.0),
         prospect_dict.get('opportunity_score', 0),
+        prospect_dict.get('is_directory', 0),
+        prospect_dict.get('directory_source'),
         now, now
     ))
     
@@ -384,7 +393,7 @@ def get_prospect(prospect_id):
         return res
     return None
 
-def get_prospects(status_filter=None, is_surgical_filter=None, is_international_filter=None):
+def get_prospects(status_filter=None, is_surgical_filter=None, is_international_filter=None, is_directory_filter=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -399,6 +408,10 @@ def get_prospects(status_filter=None, is_surgical_filter=None, is_international_
     if is_surgical_filter is not None:
         clauses.append('is_surgical = ?')
         params.append(int(is_surgical_filter))
+
+    if is_directory_filter is not None:
+        clauses.append('is_directory = ?')
+        params.append(int(is_directory_filter))
         
     if is_international_filter is not None:
         clauses.append('is_international = ?')
@@ -422,7 +435,7 @@ def get_prospects(status_filter=None, is_surgical_filter=None, is_international_
         result.append(res)
     return result
 
-def get_prospects_stats(is_surgical_filter=None, is_international_filter=0):
+def get_prospects_stats(is_surgical_filter=None, is_international_filter=0, is_directory_filter=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -431,6 +444,9 @@ def get_prospects_stats(is_surgical_filter=None, is_international_filter=0):
     if is_surgical_filter is not None:
         clauses.append('is_surgical = ?')
         params.append(int(is_surgical_filter))
+    if is_directory_filter is not None:
+        clauses.append('is_directory = ?')
+        params.append(int(is_directory_filter))
         
     query = 'SELECT status, COUNT(*) as count FROM prospects WHERE ' + ' AND '.join(clauses) + ' GROUP BY status'
     cursor.execute(query, params)
@@ -457,7 +473,7 @@ def get_prospects_stats(is_surgical_filter=None, is_international_filter=0):
         "daily_limit": int(get_setting('daily_email_limit', '20'))
     }
 
-def get_prospects_paginated(page=1, limit=24, status_filter=None, search_query=None, is_surgical_filter=None, is_international_filter=0):
+def get_prospects_paginated(page=1, limit=24, status_filter=None, search_query=None, is_surgical_filter=None, is_international_filter=0, is_directory_filter=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -467,6 +483,10 @@ def get_prospects_paginated(page=1, limit=24, status_filter=None, search_query=N
     if is_surgical_filter is not None:
         clauses.append('is_surgical = ?')
         params.append(int(is_surgical_filter))
+
+    if is_directory_filter is not None:
+        clauses.append('is_directory = ?')
+        params.append(int(is_directory_filter))
         
     if status_filter and status_filter != 'all':
         clauses.append('status = ?')

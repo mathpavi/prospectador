@@ -16,8 +16,97 @@ except ImportError:
     from duckduckgo_search import DDGS
 import database
 
+try:
+    from scrapling import Fetcher, StealthyFetcher
+    SCRAPLING_AVAILABLE = True
+except Exception as e:
+    SCRAPLING_AVAILABLE = False
+    Fetcher = None
+    StealthyFetcher = None
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def fetch_html_resilient(url, timeout=8, referer="https://www.google.com/"):
+    """
+    Tier 1: Fast standard requests.get (lowest memory/overhead).
+    Tier 2: Scrapling Fetcher with TLS impersonation (bypasses WAF/Cloudflare 403/422).
+    Tier 3: Scrapling StealthyFetcher with Headless Browser (bypasses Turnstile / advanced challenges).
+    """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Referer': referer
+    }
+    
+    # 1. Primary: Standard requests
+    try:
+        t0 = time.time()
+        r = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
+        load_time = time.time() - t0
+        
+        text = r.text or ""
+        is_cf_block = r.status_code in [403, 422, 503] or 'just a moment...' in text.lower() or 'checking your browser' in text.lower() or 'cf-turnstile' in text.lower()
+        
+        if r.status_code == 200 and not is_cf_block:
+            r.encoding = r.apparent_encoding or 'utf-8'
+            return {
+                'html': r.text,
+                'final_url': r.url,
+                'status': r.status_code,
+                'load_time': load_time,
+                'engine': 'requests'
+            }
+        else:
+            if is_cf_block:
+                logger.info(f"Requests bloqueado por WAF/Cloudflare ({r.status_code}) em {url}. Tentando Scrapling...")
+    except Exception as e:
+        logger.info(f"Requests falhou para {url}: {e}. Tentando Scrapling...")
+        
+    # 2. Tier 2: Scrapling Fetcher
+    if SCRAPLING_AVAILABLE and Fetcher:
+        try:
+            t0 = time.time()
+            page = Fetcher.get(url, timeout=timeout)
+            load_time = time.time() - t0
+            if page.status == 200:
+                raw_bytes = page.body if hasattr(page, 'body') else b''
+                encoding = page.encoding or 'utf-8'
+                html = raw_bytes.decode(encoding, errors='ignore')
+                
+                is_cf_block = 'just a moment...' in html.lower() or 'checking your browser' in html.lower() or 'cf-turnstile' in html.lower()
+                if not is_cf_block:
+                    return {
+                        'html': html,
+                        'final_url': page.url or url,
+                        'status': page.status,
+                        'load_time': load_time,
+                        'engine': 'scrapling_fetcher'
+                    }
+        except Exception as e:
+            logger.info(f"Scrapling Fetcher falhou para {url}: {e}")
+            
+        # 3. Tier 3: Scrapling StealthyFetcher (Headless Browser)
+        try:
+            t0 = time.time()
+            page = StealthyFetcher.fetch(url, headless=True)
+            load_time = time.time() - t0
+            if page.status == 200:
+                raw_bytes = page.body if hasattr(page, 'body') else b''
+                encoding = page.encoding or 'utf-8'
+                html = raw_bytes.decode(encoding, errors='ignore')
+                return {
+                    'html': html,
+                    'final_url': page.url or url,
+                    'status': page.status,
+                    'load_time': load_time,
+                    'engine': 'scrapling_stealth'
+                }
+        except Exception as e:
+            logger.info(f"Scrapling StealthyFetcher falhou para {url}: {e}")
+
+    return None
 
 # List of domains to ignore (directories, social media, portals, news, global tech, travel aggregators)
 IGNORED_DOMAINS = [
@@ -1524,29 +1613,21 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
         issues.append('Subdomínio')
         opportunities.append("O site roda em um subdomínio, o que reduz a autoridade da marca.")
         
-    # Fetch content with timeout
-    html_content = ""
-    final_url = url
-    load_time = 0.0
-    try:
-        t0 = datetime.now()
-        response = requests.get(url, headers=headers, timeout=8, allow_redirects=True)
-        load_time = (datetime.now() - t0).total_seconds()
+    # Fetch content with resilient multi-tier fetcher (requests -> Scrapling Fetcher -> StealthyFetcher)
+    fetch_res = fetch_html_resilient(url, timeout=8)
+    if not fetch_res:
+        add_log(f'Não foi possível acessar {url} (Site offline ou bloqueado persistentemente)')
+        return None
         
-        if response.status_code != 200:
-            add_log(f"Ignorando {url} pois retornou HTTP status {response.status_code}")
-            return None
-            
-        final_url = response.url
-        response.encoding = response.apparent_encoding or 'utf-8'
-        html_content = response.text
+    final_url = fetch_res['final_url']
+    html_content = fetch_res['html']
+    load_time = fetch_res['load_time']
+    if fetch_res['engine'] in ['scrapling_fetcher', 'scrapling_stealth']:
+        add_log(f"⚡ Bypass anti-bot bem sucedido com Scrapling para {url} ({fetch_res['engine']})")
         
-        # Re-check domain validity after redirects
-        if not is_valid_company_website(final_url):
-            add_log(f"Ignorando {url} pois redirecionou para um domínio/URL inválido: {final_url}")
-            return None
-    except Exception as e:
-        add_log(f'Não foi possível acessar {url} (Site offline ou erro de conexao): {e}')
+    # Re-check domain validity after redirects
+    if not is_valid_company_website(final_url):
+        add_log(f"Ignorando {url} pois redirecionou para um domínio/URL inválido: {final_url}")
         return None
 
     # 2. Strict HTTPS Check (Zero False Positives)
@@ -3038,3 +3119,349 @@ def import_and_verify_leads(items, auto_approve=False, progress_callback=None):
                     add_log(f"[Importer] Não foi possível encontrar contatos ou site válido para '{item}'.")
             except Exception as e:
                 add_log(f"[Importer] Erro ao processar empresa '{item}': {e}")
+
+# ==============================================================================
+# MOTOR DE BUSCA EM DIRETÓRIOS LOCAIS (EMPRESAS SEM SITE / CONTATO WHATSAPP)
+# ==============================================================================
+
+directory_logs = []
+directory_job_cancelled = False
+
+def add_directory_log(message):
+    logger.info(f"[Diretórios] {message}")
+    directory_logs.append({
+        'time': datetime.now().strftime('%H:%M:%S'),
+        'message': message
+    })
+    if len(directory_logs) > 500:
+        directory_logs.pop(0)
+
+def cancel_directory_job():
+    global directory_job_cancelled
+    directory_job_cancelled = True
+    add_directory_log("⚠️ Cancelamento solicitado pelo usuário. Finalizando varredura...")
+
+def format_br_phone(num):
+    if not num:
+        return ""
+    clean = re.sub(r'\D', '', str(num))
+    if clean.startswith('55') and len(clean) in [12, 13]:
+        clean = clean[2:]
+    if len(clean) == 11:
+        return f"({clean[:2]}) {clean[2:7]}-{clean[7:]}"
+    elif len(clean) == 10:
+        return f"({clean[:2]}) {clean[2:6]}-{clean[6:]}"
+    return num
+
+def generate_directory_pitch(company_name, segment, region, directory_name, phone_or_wa):
+    sender_name = database.get_setting('sender_name', 'Matheus Paviani')
+    sender_whatsapp = database.get_setting('sender_whatsapp', '(51) 99766-1506')
+    sender_pitch = database.get_setting('sender_pitch', 'Criação e modernização de sites de alta conversão')
+    sender_portfolio = database.get_setting('sender_portfolio', 'https://paviani.net/portfolio/')
+    
+    wa_draft = (
+        f"Olá, tudo bem? Falo com o responsável pela *{company_name}*?\n\n"
+        f"Me chamo {sender_name}. Estava fazendo uma pesquisa no {directory_name} por empresas de {segment} em {region} "
+        f"e encontrei o perfil de vocês com ótimas referências.\n\n"
+        f"Notei que vocês ainda não possuem um site profissional próprio indexado no Google. "
+        f"Hoje em dia, a grande maioria dos clientes pesquisa no Google antes de fechar orçamentos ou contratar serviços.\n\n"
+        f"Eu desenvolvo páginas modernas, rápidas e de alta conversão para empresas da sua área ({sender_portfolio}). "
+        f"Posso te mandar um exemplo visual rápido e sem compromisso de como ficaria a presença digital da {company_name}?"
+    )
+    
+    email_subject = f"Ideia para a presença digital da {company_name}"
+    email_body = (
+        f"Olá, equipe da {company_name},\n\n"
+        f"Me chamo {sender_name}. Estava mapeando empresas de {segment} em {region} e encontrei o cadastro de vocês no {directory_name}.\n\n"
+        f"Percebi que a empresa tem uma atuação sólida na região, porém ainda não conta com um site profissional próprio no Google. "
+        f"Em um mercado concorrido, uma página moderna e rápida transmite máxima confiança e gera novos orçamentos todos os dias.\n\n"
+        f"Desenvolvi um conceito visual focado no seu setor para apresentar com excelência o trabalho da {company_name}.\n\n"
+        f"Você teria 5 a 10 minutos esta semana para eu te apresentar essa prévia sem qualquer compromisso?\n\n"
+        f"Atenciosamente,\n{sender_name}\nWhatsApp: {sender_whatsapp}\nPortfólio: {sender_portfolio}"
+    )
+    
+    return email_subject, email_body, wa_draft
+
+def parse_directory_profile(url, html_content, dir_key):
+    soup = BeautifulSoup(html_content, 'html.parser')
+    
+    company_name = ""
+    h1 = soup.find('h1')
+    if h1:
+        company_name = h1.get_text(strip=True)
+    elif soup.title:
+        title_text = soup.title.get_text(strip=True)
+        company_name = title_text.split('|')[0].split('-')[0].strip()
+        
+    company_name = re.sub(r'\s*\|\s*.*$', '', company_name)
+    company_name = re.sub(r'\s*-\s*(Guia Mais|Solutudo|Apontador|Telelistas|CNPJ\.biz).*$', '', company_name, flags=re.IGNORECASE)
+    company_name = clean_company_name(company_name, '')
+    
+    whatsapp = ""
+    phone = ""
+    
+    # 1. WhatsApp links
+    for a in soup.find_all('a', href=True):
+        href = a['href']
+        if 'wa.me' in href or 'whatsapp' in href or 'api.whatsapp.com' in href:
+            m = re.search(r'(?:phone=|send\?phone=|\.me/)(\d+)', href)
+            if m:
+                num = m.group(1)
+                if num.startswith('55'):
+                    num = num[2:]
+                if len(num) in [10, 11]:
+                    whatsapp = num
+                    break
+                    
+    # 2. Tel links
+    for a in soup.find_all('a', href=True):
+        href = a['href']
+        if href.startswith('tel:'):
+            clean = re.sub(r'\D', '', href)
+            if clean.startswith('55'):
+                clean = clean[2:]
+            if len(clean) in [10, 11]:
+                if not phone:
+                    phone = clean
+                if not whatsapp and len(clean) == 11 and clean[2] == '9':
+                    whatsapp = clean
+                if phone and whatsapp:
+                    break
+                    
+    # 3. Text fallback for phones
+    if not phone and not whatsapp:
+        page_text = soup.get_text()
+        found_phones = find_phones_in_text(page_text)
+        for ph in found_phones:
+            clean = re.sub(r'\D', '', ph)
+            if clean.startswith('55'):
+                clean = clean[2:]
+            if len(clean) in [10, 11]:
+                if not phone:
+                    phone = clean
+                if not whatsapp and len(clean) == 11 and clean[2] == '9':
+                    whatsapp = clean
+                if phone:
+                    break
+                    
+    # 4. External Website detection
+    external_website = None
+    ignored_external = [
+        'guiamais.com.br', 'solutudo.com.br', 'apontador.com.br', 'telelistas.net', 'cnpj.biz',
+        'google.com', 'google.com.br', 'facebook.com', 'instagram.com', 'whatsapp.com',
+        'wa.me', 'waze.com', 'apple.com', 'twitter.com', 'x.com', 'youtube.com', 'linkedin.com',
+        'pinterest.com', 'tiktok.com', 'w3.org', 'schema.org', 'cloudflare.com'
+    ]
+    for a in soup.find_all('a', href=True):
+        href = a['href'].strip()
+        if href.startswith(('http://', 'https://')):
+            p = urlparse(href)
+            netloc = p.netloc.lower()
+            if not any(ign in netloc for ign in ignored_external):
+                text = a.get_text().lower()
+                classes = " ".join(a.get('class', [])).lower()
+                rel = a.get('rel', [])
+                if any(k in text or k in classes for k in ['site', 'website', 'visitar', 'página', 'acessar', 'portal']) or 'nofollow' in rel:
+                    external_website = href
+                    break
+                if not external_website and len(netloc.split('.')) >= 2:
+                    external_website = href
+
+    # 5. Extract Address
+    address = ""
+    for line in soup.get_text().splitlines():
+        line_clean = line.strip()
+        if any(k in line_clean.lower() for k in ['av.', 'avenida', 'rua', 'travessa', 'rodovia', 'alameda', 'estrada']) and any(c in line_clean for c in [' - ', 'CEP', 'Porto', 'São', 'Curitiba', 'Belo', 'Joinville', 'Caxias', 'Novo Hamburgo', 'RS', 'SP', 'PR', 'SC', 'MG', 'RJ']):
+            if 15 < len(line_clean) < 150:
+                address = line_clean
+                break
+
+    # 6. Extract Email
+    email = ""
+    for a in soup.find_all('a', href=True):
+        if a['href'].startswith('mailto:'):
+            email = a['href'].replace('mailto:', '').split('?')[0].strip()
+            break
+            
+    formatted_wa = format_br_phone(whatsapp) if whatsapp else ""
+    formatted_phone = format_br_phone(phone) if phone else ""
+    
+    return {
+        'company_name': company_name,
+        'phone': formatted_phone or formatted_wa,
+        'whatsapp': formatted_wa or (formatted_phone if formatted_phone and len(re.sub(r'\D', '', formatted_phone)) == 11 and re.sub(r'\D', '', formatted_phone)[2] == '9' else ""),
+        'email': email,
+        'address': address,
+        'has_website': bool(external_website),
+        'external_website': external_website
+    }
+
+def run_directories_job(segment, region, state_uf=None, city_name=None, max_results=10, 
+                        selected_directories=None, only_without_website=True, 
+                        prioritize_whatsapp=True):
+    global directory_job_cancelled
+    directory_job_cancelled = False
+    directory_logs.clear()
+    
+    add_directory_log(f"🚀 Iniciando Varredura em Diretórios Locais para '{segment}' em '{city_name or region}'...")
+    
+    # Available directories
+    dir_configs = {
+        'guiamais': {'name': 'GuiaMais', 'domain': 'guiamais.com.br'},
+        'solutudo': {'name': 'Solutudo', 'domain': 'solutudo.com.br'},
+        'apontador': {'name': 'Apontador', 'domain': 'apontador.com.br'},
+        'telelistas': {'name': 'Telelistas', 'domain': 'telelistas.net'},
+        'cnpj_biz': {'name': 'CNPJ.biz', 'domain': 'cnpj.biz'}
+    }
+    
+    if not selected_directories or 'all' in selected_directories:
+        active_dirs = ['guiamais', 'solutudo', 'apontador', 'telelistas', 'cnpj_biz']
+    else:
+        active_dirs = [d for d in selected_directories if d in dir_configs]
+        if not active_dirs:
+            active_dirs = ['guiamais', 'solutudo']
+            
+    add_directory_log(f"Diretórios ativos: {', '.join([dir_configs[d]['name'] for d in active_dirs])}")
+    add_directory_log(f"Filtro: {'Apenas empresas SEM site' if only_without_website else 'Todas as empresas'}")
+    add_directory_log(f"Prioridade: {'WhatsApp Móvel' if prioritize_whatsapp else 'Qualquer contato'}")
+    
+    saved_count = 0
+    scanned_urls = set()
+    
+    loc_term = f'"{city_name}"' if city_name else f'"{region}"'
+    if state_uf and city_name:
+        loc_term_full = f'"{city_name}" "{state_uf}"'
+    else:
+        loc_term_full = loc_term
+        
+    for dir_key in active_dirs:
+        if directory_job_cancelled or saved_count >= max_results:
+            break
+            
+        cfg = dir_configs[dir_key]
+        dir_name = cfg['name']
+        dir_domain = cfg['domain']
+        
+        add_directory_log(f"🔍 Pesquisando fichas no {dir_name} ({dir_domain})...")
+        
+        queries = [
+            f'site:{dir_domain} "{segment}" {loc_term_full}',
+            f'site:{dir_domain} {segment} {loc_term} telefone',
+            f'site:{dir_domain} {segment} {city_name or region}'
+        ]
+        
+        candidate_results = []
+        for q in queries:
+            if directory_job_cancelled or saved_count >= max_results:
+                break
+            try:
+                add_directory_log(f"Executando query: {q}")
+                results = search_web_candidates(q, max_results=12)
+                for r in results:
+                    href = r.get('href')
+                    if href and href not in scanned_urls and dir_domain in href:
+                        scanned_urls.add(href)
+                        candidate_results.append(href)
+                if len(candidate_results) >= (max_results - saved_count) * 2:
+                    break
+            except Exception as e:
+                add_directory_log(f"Aviso ao pesquisar {q}: {e}")
+                
+        add_directory_log(f"Encontradas {len(candidate_results)} fichas candidatas no {dir_name}.")
+        
+        for url in candidate_results:
+            if directory_job_cancelled or saved_count >= max_results:
+                break
+                
+            add_directory_log(f"Analisando perfil: {url}")
+            fetch_res = fetch_html_resilient(url, timeout=10)
+            if not fetch_res:
+                add_directory_log(f"Não foi possível ler {url}")
+                continue
+                
+            html = fetch_res['html']
+            lead_info = parse_directory_profile(url, html, dir_key)
+            company_name = lead_info.get('company_name', '').strip()
+            
+            if not company_name or len(company_name) < 3:
+                add_directory_log(f"Nome da empresa não identificado em {url}. Ignorando.")
+                continue
+                
+            # Filter by website presence
+            has_website = lead_info.get('has_website', False)
+            if only_without_website and has_website:
+                add_directory_log(f"Empresa '{company_name}' possui site ({lead_info['external_website']}). Ignorando conforme filtro 'Sem Site'.")
+                continue
+                
+            phone = lead_info.get('phone', '')
+            whatsapp = lead_info.get('whatsapp', '')
+            email = lead_info.get('email', '')
+            
+            if not phone and not whatsapp and not email:
+                add_directory_log(f"Empresa '{company_name}' não possui telefone, WhatsApp ou e-mail na ficha. Ignorando.")
+                continue
+                
+            if prioritize_whatsapp and not whatsapp and phone:
+                clean_ph = re.sub(r'\D', '', phone)
+                if len(clean_ph) == 11 and clean_ph[2] == '9':
+                    whatsapp = phone
+                    
+            # Check duplicate in database
+            conn = database.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM prospects WHERE company_name LIKE ? OR contact_whatsapp = ? OR contact_phone = ?", 
+                           (f"%{company_name}%", whatsapp or "___NONE___", phone or "___NONE___"))
+            existing = cursor.fetchone()
+            conn.close()
+            
+            if existing:
+                add_directory_log(f"Empresa '{company_name}' já cadastrada no sistema (ID {existing['id']}). Pulando.")
+                continue
+                
+            # Build prospect dictionary
+            location_str = f"{city_name}, {state_uf}" if (city_name and state_uf) else (region or "Brasil")
+            
+            issues = ["Sem Presença Digital (Apenas Diretório)", f"Cadastrado no {dir_name}"]
+            if not has_website:
+                issues.append("Sem Site Próprio no Google")
+                
+            email_sub, email_body, wa_draft = generate_directory_pitch(
+                company_name=company_name,
+                segment=segment,
+                region=location_str,
+                directory_name=dir_name,
+                phone_or_wa=whatsapp or phone
+            )
+            
+            p_data = {
+                'company_name': company_name,
+                'website': lead_info.get('external_website') or f"{url} (Ficha {dir_name})",
+                'segment': segment,
+                'region': location_str,
+                'status': 'pending',
+                'detected_issues': issues,
+                'contact_email': email,
+                'contact_whatsapp': whatsapp,
+                'contact_phone': phone,
+                'email_subject': email_sub,
+                'email_body': email_body,
+                'whatsapp_draft': wa_draft,
+                'notes': f"Ficha extraída de {dir_name} ({url}). Endereço: {lead_info.get('address') or 'N/A'}",
+                'screenshot': '',
+                'is_surgical': 0,
+                'surgical_type': 'directory',
+                'is_directory': 1,
+                'directory_source': dir_key,
+                'is_autopilot': 0,
+                'opportunity_score': 95 if not has_website else 75
+            }
+            
+            new_id = database.add_prospect(p_data)
+            saved_count += 1
+            add_directory_log(f"✅ Lead Salvo #{new_id}: {company_name} | Tel: {phone} | WhatsApp: {whatsapp or 'Não detectado'} | Sem Site: {'Sim' if not has_website else 'Não'}")
+            
+    if directory_job_cancelled:
+        add_directory_log(f"🛑 Varredura cancelada. Total de {saved_count} novos leads de diretórios salvos.")
+    else:
+        add_directory_log(f"🎉 Varredura em Diretórios concluída com sucesso! Total de {saved_count} novos leads qualificados salvos.")
+

@@ -84,6 +84,10 @@ international_search_lock = threading.Lock()
 is_international_searching = False
 international_search_params = {}
 
+directory_search_lock = threading.Lock()
+is_directory_searching = False
+directory_search_params = {}
+
 queue_lock = threading.Lock()
 is_sending_queue = False
 queue_status = {"current": 0, "total": 0, "status": "idle", "logs": []}
@@ -837,6 +841,89 @@ def api_surgical_status():
         "logs": agent.job_logs
     })
 
+def background_directory_search_worker(segment, region, state_uf, city_name, max_results, selected_directories, only_without_website, prioritize_whatsapp):
+    global is_directory_searching
+    try:
+        agent.run_directories_job(
+            segment=segment,
+            region=region,
+            state_uf=state_uf,
+            city_name=city_name,
+            max_results=max_results,
+            selected_directories=selected_directories,
+            only_without_website=only_without_website,
+            prioritize_whatsapp=prioritize_whatsapp
+        )
+    except Exception as e:
+        agent.add_directory_log(f"Erro crítico no motor de diretórios: {e}")
+    finally:
+        with directory_search_lock:
+            is_directory_searching = False
+
+# Run Directory Prospector Endpoint
+@app.route('/api/directories/run', methods=['POST'])
+def api_directories_run():
+    global is_directory_searching, directory_search_params
+    
+    with directory_search_lock:
+        if is_directory_searching:
+            return jsonify({"error": "Já existe uma varredura em diretórios em andamento."}), 400
+        is_directory_searching = True
+        
+    data = request.json or {}
+    segment = data.get('segment', '')
+    region = data.get('region', '')
+    state_uf = data.get('state_uf', '')
+    city_name = data.get('city_name', '')
+    selected_directories = data.get('directories', ['all'])
+    only_without_website = data.get('only_without_website', True)
+    prioritize_whatsapp = data.get('prioritize_whatsapp', True)
+    
+    try:
+        max_results = int(data.get('max_results', 10))
+    except:
+        max_results = 10
+        
+    directory_search_params = {
+        "segment": segment,
+        "region": region,
+        "state_uf": state_uf,
+        "city_name": city_name,
+        "directories": selected_directories,
+        "only_without_website": only_without_website,
+        "prioritize_whatsapp": prioritize_whatsapp,
+        "max_results": max_results,
+        "start_time": time.strftime('%d/%m/%Y %H:%M:%S')
+    }
+    
+    agent.directory_logs.clear()
+    agent.add_directory_log("Preparando motor de busca em diretórios locais...")
+    
+    thread = threading.Thread(
+        target=background_directory_search_worker,
+        args=(segment, region, state_uf, city_name, max_results, selected_directories, only_without_website, prioritize_whatsapp)
+    )
+    thread.daemon = True
+    thread.start()
+    
+    return jsonify({"message": "Varredura em diretórios iniciada!", "params": directory_search_params})
+
+# Directory Status & Logs Endpoint
+@app.route('/api/directories/status', methods=['GET'])
+def api_directories_status():
+    global is_directory_searching, directory_search_params
+    return jsonify({
+        "is_searching": is_directory_searching,
+        "params": directory_search_params,
+        "logs": agent.directory_logs
+    })
+
+# Directory Cancel Endpoint
+@app.route('/api/directories/cancel', methods=['POST'])
+def api_directories_cancel():
+    agent.cancel_directory_job()
+    return jsonify({"message": "Cancelamento solicitado com sucesso."})
+
 def background_international_search_worker(segment, country_code, city_name, limit, source_mode):
     global is_international_searching
     try:
@@ -925,6 +1012,8 @@ def api_international_stats():
 def api_prospects():
     status_filter = request.args.get('status')
     is_surgical = request.args.get('is_surgical')
+    is_directory = request.args.get('is_directory')
+    origin = request.args.get('origin')
     search_query = request.args.get('q') or request.args.get('search')
     page = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 24, type=int)
@@ -932,13 +1021,21 @@ def api_prospects():
     if request.args.get('limit') == 'all' or request.args.get('all') == 'true':
         limit = None
         
-    if is_surgical is not None and is_surgical != 'all':
+    is_surgical_filter = None
+    is_directory_filter = None
+
+    if origin == 'directory' or is_directory == '1':
+        is_directory_filter = 1
+    elif origin == 'surgical' or is_surgical == '1':
+        is_surgical_filter = 1
+    elif origin == 'standard' or (is_surgical == '0' and is_directory != '1'):
+        is_surgical_filter = 0
+        is_directory_filter = 0
+    elif is_surgical is not None and is_surgical != 'all':
         try:
             is_surgical_filter = int(is_surgical)
         except:
             is_surgical_filter = None
-    else:
-        is_surgical_filter = None # Default to ALL prospects (unified)
         
     paginated = database.get_prospects_paginated(
         page=page,
@@ -946,12 +1043,14 @@ def api_prospects():
         status_filter=status_filter,
         search_query=search_query,
         is_surgical_filter=is_surgical_filter,
-        is_international_filter=0
+        is_international_filter=0,
+        is_directory_filter=is_directory_filter
     )
     
     stats = database.get_prospects_stats(
         is_surgical_filter=is_surgical_filter,
-        is_international_filter=0
+        is_international_filter=0,
+        is_directory_filter=is_directory_filter
     )
     
     return jsonify({

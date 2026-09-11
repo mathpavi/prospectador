@@ -168,6 +168,8 @@ navItems.forEach(item => {
                 if (typeof loadSurgicalTab === 'function') loadSurgicalTab();
             } else if (tabId === 'tab-international') {
                 if (typeof loadInternationalTab === 'function') loadInternationalTab();
+            } else if (tabId === 'tab-directories') {
+                if (typeof loadDirectoriesTab === 'function') loadDirectoriesTab();
             } else if (tabId === 'tab-automation') {
                 if (typeof loadAutomationTab === 'function') loadAutomationTab();
             }
@@ -631,7 +633,13 @@ async function loadLeads() {
         const params = new URLSearchParams();
         if (currentFilter && currentFilter !== 'all') params.append('status', currentFilter);
         if (leadSearchFilterText) params.append('q', leadSearchFilterText);
-        if (currentLeadOrigin && currentLeadOrigin !== 'all') params.append('is_surgical', currentLeadOrigin);
+        if (currentLeadOrigin && currentLeadOrigin !== 'all') {
+            if (currentLeadOrigin === 'directory') {
+                params.append('origin', 'directory');
+            } else {
+                params.append('is_surgical', currentLeadOrigin);
+            }
+        }
         params.append('page', currentLeadPage);
         params.append('limit', leadsPerPage);
         
@@ -823,6 +831,7 @@ function renderLeadCards(prospects) {
         
         const pilotBadge = lead.is_autopilot ? `<span class="badge" style="background-color:rgba(56,189,248,0.15); color:#38bdf8; font-size:0.7rem; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:2px; border:1px solid rgba(56,189,248,0.3); vertical-align:middle; margin-left:6px;">⚡ Autopilot</span>` : '';
         const surgicalBadge = lead.is_surgical ? `<span class="badge" style="background-color:rgba(239,68,68,0.15); color:#f87171; font-size:0.7rem; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:2px; border:1px solid rgba(239,68,68,0.3); vertical-align:middle; margin-left:6px;" title="${escapeHtml(lead.surgical_type || 'Alvo Cirúrgico')}">🎯 Cirúrgico</span>` : '';
+        const directoryBadge = (lead.is_directory || lead.surgical_type === 'directory') ? `<span class="badge" style="background-color:rgba(168,85,247,0.15); color:#c084fc; font-size:0.7rem; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:2px; border:1px solid rgba(168,85,247,0.3); vertical-align:middle; margin-left:6px;" title="Diretório: ${escapeHtml(lead.directory_source || 'Comercial')}">📖 ${escapeHtml(lead.directory_source ? (lead.directory_source.charAt(0).toUpperCase() + lead.directory_source.slice(1)) : 'Diretório')}</span>` : '';
         
         // Setup Email Preview HTML (Direct on Lead Card)
         let emailPreviewHtml = '';
@@ -921,7 +930,7 @@ function renderLeadCards(prospects) {
             ${screenshotHtml}
             <div class="lead-header">
                 <div>
-                    <div class="lead-company">${lead.company_name}${pilotBadge}${surgicalBadge}</div>
+                    <div class="lead-company">${lead.company_name}${pilotBadge}${surgicalBadge}${directoryBadge}</div>
                     <a href="${lead.website}" target="_blank" class="lead-website">
                         ${lead.website}
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2906,3 +2915,265 @@ window.uploadDatabaseBackup = function(input) {
         input.value = '';
     });
 };
+
+// ==========================================
+// 9. BUSCA EM DIRETÓRIOS LOCAIS
+// ==========================================
+let directoryPollingInterval = null;
+let isDirectorySearching = false;
+
+function loadDirectoriesTab() {
+    checkDirectoryStatus();
+    loadDirectoryLeads();
+}
+
+async function checkDirectoryStatus() {
+    try {
+        const res = await fetch('/api/directories/status');
+        const data = await res.json();
+        
+        isDirectorySearching = data.is_searching;
+        updateDirectoryUI(data);
+        
+        if (data.is_searching) {
+            if (!directoryPollingInterval) {
+                directoryPollingInterval = setInterval(checkDirectoryStatus, 2000);
+            }
+        } else {
+            if (directoryPollingInterval) {
+                clearInterval(directoryPollingInterval);
+                directoryPollingInterval = null;
+                loadDirectoryLeads();
+            }
+        }
+    } catch (e) {
+        console.error("Erro ao verificar status de diretórios:", e);
+    }
+}
+
+function updateDirectoryUI(data) {
+    const startBtn = document.getElementById('start-dir-search-btn');
+    const cancelBtn = document.getElementById('cancel-dir-search-btn');
+    const badge = document.getElementById('dir-status-badge');
+    const consoleLogs = document.getElementById('dir-console-logs');
+    
+    if (data.is_searching) {
+        if (startBtn) {
+            startBtn.disabled = true;
+            startBtn.innerHTML = '⏳ Varrendo Diretórios...';
+        }
+        if (cancelBtn) cancelBtn.style.display = 'inline-block';
+        if (badge) {
+            badge.textContent = 'Em Andamento';
+            badge.style.background = 'rgba(59,130,246,0.15)';
+            badge.style.color = '#60a5fa';
+        }
+    } else {
+        if (startBtn) {
+            startBtn.disabled = false;
+            startBtn.innerHTML = '🚀 Iniciar Varredura';
+        }
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (badge) {
+            badge.textContent = 'Pronto';
+            badge.style.background = 'rgba(16,185,129,0.15)';
+            badge.style.color = '#34d399';
+        }
+    }
+    
+    if (data.logs && consoleLogs) {
+        if (data.logs.length > 0) {
+            consoleLogs.innerHTML = data.logs.map(log => {
+                let color = '#38bdf8';
+                if (log.message.includes('✅') || log.message.includes('🎉')) color = '#34d399';
+                else if (log.message.includes('Ignorando') || log.message.includes('Aviso')) color = '#fbbf24';
+                else if (log.message.includes('Erro') || log.message.includes('🛑')) color = '#f87171';
+                return `<div style="margin-bottom: 3px; color: ${color};"><span style="color: #64748b;">[${log.time}]</span> ${escapeHtml(log.message)}</div>`;
+            }).join('');
+            consoleLogs.scrollTop = consoleLogs.scrollHeight;
+        }
+    }
+}
+
+async function startDirectorySearch() {
+    const segment = document.getElementById('dir-segment')?.value.trim();
+    const city = document.getElementById('dir-city')?.value.trim();
+    const stateUf = document.getElementById('dir-state')?.value;
+    const limit = parseInt(document.getElementById('dir-limit')?.value || 10);
+    const onlyNoSite = document.getElementById('dir-only-no-site')?.checked;
+    const prioritizeWa = document.getElementById('dir-prioritize-wa')?.checked;
+    
+    const selectedDirs = [];
+    document.querySelectorAll('input[name="dir-source"]:checked').forEach(el => selectedDirs.push(el.value));
+    
+    if (!segment) {
+        showToast('Informe o segmento ou nicho da busca.', 'warning');
+        return;
+    }
+    if (!city) {
+        showToast('Informe a cidade alvo para a busca nos diretórios.', 'warning');
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/directories/run', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                segment: segment,
+                city_name: city,
+                state_uf: stateUf,
+                region: `${city}, ${stateUf}`,
+                directories: selectedDirs,
+                only_without_website: onlyNoSite,
+                prioritize_whatsapp: prioritizeWa,
+                max_results: limit
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message || 'Varredura em diretórios iniciada!', 'success');
+            checkDirectoryStatus();
+        } else {
+            showToast(data.error || 'Erro ao iniciar varredura.', 'error');
+        }
+    } catch (err) {
+        showToast('Erro de conexão ao iniciar busca.', 'error');
+    }
+}
+
+async function cancelDirectorySearch() {
+    try {
+        const res = await fetch('/api/directories/cancel', { method: 'POST' });
+        const data = await res.json();
+        showToast(data.message || 'Cancelamento solicitado.', 'info');
+    } catch (err) {
+        showToast('Erro ao cancelar busca.', 'error');
+    }
+}
+
+async function loadDirectoryLeads() {
+    const tbody = document.getElementById('dir-leads-tbody');
+    if (!tbody) return;
+    
+    try {
+        const res = await fetch('/api/prospects?origin=directory&limit=50');
+        const data = await res.json();
+        const leads = data.prospects || [];
+        
+        if (leads.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                        Nenhum lead de diretório gerado ainda. Configure e inicie a varredura acima!
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tbody.innerHTML = leads.map(l => {
+            const rawPhone = l.contact_whatsapp || l.contact_phone || '';
+            const cleanWa = rawPhone.replace(/\D/g, '');
+            const waDraft = l.whatsapp_draft || `Olá, tudo bem? Falo com o responsável pela ${l.company_name}?`;
+            const waUrl = cleanWa ? `https://wa.me/${cleanWa.startsWith('55') ? cleanWa : '55' + cleanWa}?text=${encodeURIComponent(waDraft)}` : '#';
+            const dirSource = l.directory_source ? (l.directory_source.charAt(0).toUpperCase() + l.directory_source.slice(1)) : 'Diretório';
+            
+            return `
+                <tr>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">${escapeHtml(l.company_name)}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                            ${escapeHtml(l.segment || '')} • <span style="color: #c084fc; font-weight: 500;">🚫 Presença Digital Zero</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge" style="background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); font-size: 0.75rem;">
+                            📖 ${escapeHtml(dirSource)}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="display: flex; flex-direction: column; gap: 2px; font-size: 0.85rem;">
+                            ${l.contact_whatsapp ? `<span style="color: #34d399; font-weight: 600;">💬 WA: ${escapeHtml(l.contact_whatsapp)}</span>` : ''}
+                            ${l.contact_phone ? `<span style="color: var(--text-secondary);">📞 Tel: ${escapeHtml(l.contact_phone)}</span>` : ''}
+                            ${l.contact_email ? `<span style="color: #60a5fa; font-size: 0.78rem;">✉️ ${escapeHtml(l.contact_email)}</span>` : ''}
+                            ${(!l.contact_whatsapp && !l.contact_phone) ? `<span style="color: var(--danger);">Sem telefone</span>` : ''}
+                        </div>
+                    </td>
+                    <td>
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);">${escapeHtml(l.region || 'N/A')}</span>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                            ${cleanWa ? `
+                                <a href="${waUrl}" target="_blank" class="btn btn-sm btn-success" style="background: #10b981; color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; font-size: 0.82rem; border-radius: 6px; font-weight: 600;" title="Abrir conversa pré-preenchida no WhatsApp">
+                                    💬 WhatsApp
+                                </a>
+                            ` : `
+                                <button type="button" class="btn btn-sm btn-secondary" disabled style="opacity: 0.5; padding: 6px 10px; font-size: 0.8rem;">
+                                    Sem WhatsApp
+                                </button>
+                            `}
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="copyDirectoryPitch('${l.id}')" title="Copiar mensagem personalizada" style="padding: 6px 10px; font-size: 0.82rem;">
+                                📋 Copiar
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteDirectoryLead(${l.id})" title="Excluir Lead" style="padding: 6px 8px; font-size: 0.82rem;">
+                                🗑️
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error("Erro ao carregar leads de diretórios:", err);
+    }
+}
+
+window.copyDirectoryPitch = async function(leadId) {
+    try {
+        const res = await fetch(`/api/prospects/${leadId}`);
+        const lead = await res.json();
+        const text = lead.whatsapp_draft || `Olá, falo com o responsável pela ${lead.company_name}?`;
+        await navigator.clipboard.writeText(text);
+        showToast('Mensagem copiada para a área de transferência!', 'success');
+    } catch (e) {
+        showToast('Não foi possível copiar.', 'error');
+    }
+};
+
+window.deleteDirectoryLead = async function(leadId) {
+    if (!confirm('Deseja excluir este lead de diretório?')) return;
+    try {
+        const res = await fetch(`/api/prospects/${leadId}`, { method: 'DELETE' });
+        if (res.ok) {
+            showToast('Lead excluído!', 'success');
+            loadDirectoryLeads();
+        }
+    } catch (e) {
+        showToast('Erro ao excluir lead.', 'error');
+    }
+};
+
+// Event listeners for Directory Tab
+document.addEventListener('DOMContentLoaded', () => {
+    const startBtn = document.getElementById('start-dir-search-btn');
+    if (startBtn) startBtn.addEventListener('click', startDirectorySearch);
+
+    const cancelBtn = document.getElementById('cancel-dir-search-btn');
+    if (cancelBtn) cancelBtn.addEventListener('click', cancelDirectorySearch);
+
+    const refreshBtn = document.getElementById('btn-refresh-dir-leads');
+    if (refreshBtn) refreshBtn.addEventListener('click', loadDirectoryLeads);
+
+    // Quick segment chips
+    document.querySelectorAll('.dir-quick-segment').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const segInput = document.getElementById('dir-segment');
+            if (segInput) segInput.value = chip.getAttribute('data-val');
+        });
+    });
+});
+
+window.loadDirectoriesTab = loadDirectoriesTab;
+

@@ -4,9 +4,12 @@ beautifulsoup4==4.12.2
 duckduckgo-search
 google-generativeai
 python-dotenv
-curl-cffi==0.15.0
+curl-cffi>=0.16.1
 dnspython
 playwright
 Pillow
 gunicorn==21.2.0
 tzdata
+scrapling[all]
+patchright
+
