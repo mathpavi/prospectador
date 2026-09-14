@@ -3339,7 +3339,7 @@ def parse_directory_profile(url, html_content, dir_key):
 
 def run_directories_job(segment, region, state_uf=None, city_name=None, max_results=10, 
                         selected_directories=None, only_without_website=True, 
-                        prioritize_whatsapp=True):
+                        prioritize_whatsapp=True, is_autopilot=0):
     global directory_job_cancelled
     directory_job_cancelled = False
     directory_logs.clear()
@@ -3544,7 +3544,7 @@ def run_directories_job(segment, region, state_uf=None, city_name=None, max_resu
                 'surgical_type': 'directory',
                 'is_directory': 1,
                 'directory_source': dir_key,
-                'is_autopilot': 0,
+                'is_autopilot': is_autopilot,
                 'opportunity_score': 95 if not has_website else 75
             }
             

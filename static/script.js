@@ -2096,7 +2096,9 @@ function renderAutopilotTargets() {
         item.style = "display: flex; justify-content: space-between; align-items: center; background: rgba(30,41,59,0.7); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.8rem; margin-bottom: 2px;";
         
         let typeLabel = '🔍 Orgânica (Sites)';
-        if (target.type === 'maps_only') {
+        if (target.type === 'directory') {
+            typeLabel = '📖 Diretórios Locais (Sem Site)';
+        } else if (target.type === 'maps_only') {
             typeLabel = '🗺️ Google Maps (Cirúrgica)';
         } else if (target.type === 'kipflow') {
             typeLabel = '📋 KipFlow (Base CNPJ)';

@@ -460,7 +460,22 @@ def autopilot_run_next_search(force=False):
         
         state_uf, city_name = agent.parse_autopilot_region(region)
             
-        if search_type == 'maps_only' or target.get('is_surgical', False):
+        if search_type == 'directory':
+            selected_dirs = target.get('directories') or ['guiamais', 'solutudo', 'apontador', 'telelistas', 'cnpj_biz']
+            only_no_site = target.get('only_without_website', True)
+            prio_wa = target.get('prioritize_whatsapp', True)
+            agent.run_directories_job(
+                segment=segment,
+                region=region,
+                state_uf=state_uf,
+                city_name=city_name,
+                max_results=search_limit,
+                selected_directories=selected_dirs,
+                only_without_website=only_no_site,
+                prioritize_whatsapp=prio_wa,
+                is_autopilot=1
+            )
+        elif search_type == 'maps_only' or target.get('is_surgical', False):
             agent.run_surgical_job(segment, region, max_results=search_limit, state_uf=state_uf, city_name=city_name, radius_km=radius_km, surgical_type='both', is_autopilot=1)
         elif search_type == 'kipflow':
             agent.run_prospecting_job(segment, region, max_results=search_limit, state_uf=state_uf, city_name=city_name, radius_km=radius_km, is_autopilot=1, source_mode="kipflow")
