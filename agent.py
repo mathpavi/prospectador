@@ -3314,6 +3314,15 @@ def parse_directory_profile(url, html_content, dir_key):
         if a['href'].startswith('mailto:'):
             email = a['href'].replace('mailto:', '').split('?')[0].strip()
             break
+    if not email:
+        # Fallback regex in page text
+        found_emails = re.findall(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', page_text)
+        ignored_email_domains = ['guiamais.com.br', 'solutudo.com.br', 'apontador.com.br', 'telelistas.net', 'cnpj.biz', 'sentry.io', 'w3.org']
+        for em in found_emails:
+            em_clean = em.lower().strip()
+            if not any(ign in em_clean for ign in ignored_email_domains):
+                email = em_clean
+                break
             
     formatted_wa = format_br_phone(whatsapp) if whatsapp else ""
     formatted_phone = format_br_phone(phone) if phone else ""
