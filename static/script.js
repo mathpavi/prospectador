@@ -170,6 +170,8 @@ navItems.forEach(item => {
                 if (typeof loadInternationalTab === 'function') loadInternationalTab();
             } else if (tabId === 'tab-directories') {
                 if (typeof loadDirectoriesTab === 'function') loadDirectoriesTab();
+            } else if (tabId === 'tab-whatsapp') {
+                if (typeof loadWhatsappOpportunities === 'function') loadWhatsappOpportunities();
             } else if (tabId === 'tab-automation') {
                 if (typeof loadAutomationTab === 'function') loadAutomationTab();
             }
@@ -2525,6 +2527,24 @@ async function updateGlobalStats() {
             
             const queuePending = document.getElementById('queue-pending-count');
             if (queuePending) queuePending.textContent = `${data.stats.approved} e-mails`;
+            
+            // Refresh WA opportunities badge in sidebar
+            try {
+                const waRes = await fetch('/api/whatsapp/opportunities?limit=1');
+                if (waRes.ok) {
+                    const waData = await waRes.json();
+                    const waPending = (waData.stats?.email_sent_count || 0) + (waData.stats?.no_email_count || 0);
+                    const waBadge = document.getElementById('sidebar-wa-count');
+                    if (waBadge) {
+                        if (waPending > 0) {
+                            waBadge.textContent = waPending;
+                            waBadge.style.display = 'inline-block';
+                        } else {
+                            waBadge.style.display = 'none';
+                        }
+                    }
+                }
+            } catch (waErr) {}
         }
     } catch (e) {
         // quiet background update
@@ -3178,4 +3198,422 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.loadDirectoriesTab = loadDirectoriesTab;
+
+// ==========================================
+// CENTRAL DE FECHAMENTO WHATSAPP
+// ==========================================
+let currentWaSubtab = 'email_sent';
+let currentWaPage = 1;
+let waSearchTimer = null;
+let waSegmentsLoaded = false;
+
+window.switchWaSubtab = function(subtab) {
+    currentWaSubtab = subtab;
+    currentWaPage = 1;
+    
+    // Update button states
+    ['email_sent', 'no_email', 'contacted'].forEach(s => {
+        const btn = document.getElementById(`wa-tab-btn-${s}`);
+        if (btn) {
+            if (s === subtab) {
+                btn.classList.add('active');
+                btn.style.backgroundColor = s === 'email_sent' ? '#38bdf8' : (s === 'no_email' ? '#25D366' : '#a855f7');
+                btn.style.color = s === 'email_sent' ? '#000' : (s === 'no_email' ? '#000' : '#fff');
+            } else {
+                btn.classList.remove('active');
+                btn.style.backgroundColor = '';
+                btn.style.color = '';
+            }
+        }
+    });
+    
+    // Update description banner
+    const descEl = document.getElementById('wa-context-desc');
+    if (descEl) {
+        if (subtab === 'email_sent') {
+            descEl.textContent = 'Exibindo empresas que já receberam a proposta técnica por e-mail e agora estão no momento ideal para contato no WhatsApp.';
+        } else if (subtab === 'no_email') {
+            descEl.textContent = 'Exibindo empresas locais e de diretórios sem presença de e-mail identificada, onde o WhatsApp é a única porta de entrada.';
+        } else {
+            descEl.textContent = 'Exibindo empresas que já foram abordadas via WhatsApp.';
+        }
+    }
+    
+    loadWhatsappOpportunities();
+};
+
+window.debounceWaSearch = function() {
+    clearTimeout(waSearchTimer);
+    waSearchTimer = setTimeout(() => {
+        currentWaPage = 1;
+        loadWhatsappOpportunities();
+    }, 350);
+};
+
+window.resetWaFilters = function() {
+    const sInput = document.getElementById('wa-filter-search');
+    if (sInput) sInput.value = '';
+    const segInput = document.getElementById('wa-filter-segment');
+    if (segInput) segInput.value = 'all';
+    const scoreInput = document.getElementById('wa-filter-score');
+    if (scoreInput) scoreInput.value = '0';
+    currentWaPage = 1;
+    loadWhatsappOpportunities();
+};
+
+window.loadWhatsappOpportunities = async function() {
+    const container = document.getElementById('wa-opportunities-container');
+    if (!container) return;
+    
+    const searchVal = document.getElementById('wa-filter-search')?.value || '';
+    const segmentVal = document.getElementById('wa-filter-segment')?.value || 'all';
+    const scoreVal = document.getElementById('wa-filter-score')?.value || '0';
+    
+    container.innerHTML = `
+        <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+            <div class="spinner" style="display:inline-block; width:24px; height:24px; border:2px solid var(--border-color); border-top-color:#25D366; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:10px;"></div>
+            <div>Carregando melhores oportunidades no WhatsApp...</div>
+        </div>
+    `;
+    
+    try {
+        const queryParams = new URLSearchParams({
+            subtab: currentWaSubtab,
+            segment: segmentVal,
+            q: searchVal,
+            min_score: scoreVal,
+            page: currentWaPage,
+            limit: 24
+        });
+        
+        const res = await fetch(`/api/whatsapp/opportunities?${queryParams.toString()}`);
+        if (!res.ok) throw new Error('Falha ao consultar API');
+        const data = await res.json();
+        
+        const prospects = data.prospects || [];
+        const stats = data.stats || {};
+        
+        // Update stats counters
+        const emailSentCount = stats.email_sent_count || 0;
+        const noEmailCount = stats.no_email_count || 0;
+        const contactedCount = stats.contacted_count || 0;
+        const totalWaCount = stats.total_wa || 0;
+        
+        const elEmailSent = document.getElementById('wa-stat-email-sent');
+        if (elEmailSent) elEmailSent.textContent = emailSentCount;
+        const elNoEmail = document.getElementById('wa-stat-no-email');
+        if (elNoEmail) elNoEmail.textContent = noEmailCount;
+        const elContacted = document.getElementById('wa-stat-contacted');
+        if (elContacted) elContacted.textContent = contactedCount;
+        const elTotal = document.getElementById('wa-stat-total');
+        if (elTotal) elTotal.textContent = totalWaCount;
+        
+        const bEmailSent = document.getElementById('wa-badge-email_sent');
+        if (bEmailSent) bEmailSent.textContent = emailSentCount;
+        const bNoEmail = document.getElementById('wa-badge-no_email');
+        if (bNoEmail) bNoEmail.textContent = noEmailCount;
+        const bContacted = document.getElementById('wa-badge-contacted');
+        if (bContacted) bContacted.textContent = contactedCount;
+        
+        // Update sidebar badge with total pending to contact
+        const totalPending = emailSentCount + noEmailCount;
+        const sidebarBadge = document.getElementById('sidebar-wa-count');
+        if (sidebarBadge) {
+            if (totalPending > 0) {
+                sidebarBadge.textContent = totalPending;
+                sidebarBadge.style.display = 'inline-block';
+            } else {
+                sidebarBadge.style.display = 'none';
+            }
+        }
+        
+        // Populate segments select dropdown once
+        if (!waSegmentsLoaded && stats.segments && stats.segments.length > 0) {
+            const segSelect = document.getElementById('wa-filter-segment');
+            if (segSelect) {
+                segSelect.innerHTML = '<option value="all">Todos os Segmentos</option>';
+                stats.segments.forEach(seg => {
+                    const opt = document.createElement('option');
+                    opt.value = seg;
+                    opt.textContent = seg.charAt(0).toUpperCase() + seg.slice(1);
+                    segSelect.appendChild(opt);
+                });
+                waSegmentsLoaded = true;
+            }
+        }
+        
+        if (prospects.length === 0) {
+            container.innerHTML = `
+                <div class="card" style="text-align: center; padding: 3rem; background: rgba(17, 22, 39, 0.4); border: 1px dashed var(--border-color);">
+                    <div style="font-size: 2.5rem; margin-bottom: 10px;">💬</div>
+                    <h3 style="margin-bottom: 6px; color: var(--text-primary);">Nenhuma oportunidade encontrada nesta categoria</h3>
+                    <p style="color: var(--text-secondary); max-width: 450px; margin: 0 auto; font-size: 0.9rem;">
+                        ${currentWaSubtab === 'email_sent' 
+                            ? 'Ainda não há leads com WhatsApp cujo e-mail tenha sido enviado. Quando os e-mails forem disparados pelo robô ou fila, eles aparecerão aqui ordenados por prioridade.' 
+                            : (currentWaSubtab === 'no_email' 
+                                ? 'Não encontramos leads sem e-mail pendentes de WhatsApp no momento. Experimente rodar uma busca em Diretórios Locais ou Google Maps!' 
+                                : 'Nenhum lead marcado como contatado ainda.')}
+                    </p>
+                </div>
+            `;
+            renderWaPagination(0, 1, 24);
+            return;
+        }
+        
+        // Render cards
+        const senderName = systemSettings?.sender_name || 'Matheus Paviani';
+        
+        container.innerHTML = prospects.map(lead => {
+            const phone = lead.contact_whatsapp || lead.contact_phone || '';
+            const rawDigits = phone.replace(/\D/g, '');
+            const score = lead.opportunity_score || (lead.is_directory ? 95 : 75);
+            
+            // Format phone for wa.me (ensure 55 country code)
+            let waDigits = rawDigits;
+            if (waDigits.length === 10 || waDigits.length === 11) {
+                waDigits = '55' + waDigits;
+            }
+            
+            // Origin badge
+            let originBadge = '';
+            if (lead.is_directory) {
+                const src = lead.directory_source || 'Diretório';
+                originBadge = `<span class="badge" style="background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); font-size: 0.72rem;">📖 ${escapeHtml(src.toUpperCase())}</span>`;
+            } else if (lead.is_surgical || lead.surgical_type === 'maps_only') {
+                originBadge = `<span class="badge" style="background: rgba(14,165,233,0.15); color: #38bdf8; border: 1px solid rgba(14,165,233,0.3); font-size: 0.72rem;">🗺️ Google Maps</span>`;
+            } else {
+                originBadge = `<span class="badge" style="background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); font-size: 0.72rem;">🌐 Web Orgânica</span>`;
+            }
+            
+            // Score badge color
+            let scoreColor = '#10b981';
+            let scoreBg = 'rgba(16,185,129,0.15)';
+            if (score >= 90) {
+                scoreColor = '#fbbf24';
+                scoreBg = 'rgba(251,191,36,0.15)';
+            } else if (score < 75) {
+                scoreColor = '#94a3b8';
+                scoreBg = 'rgba(148,163,184,0.15)';
+            }
+            
+            // Generate tailored message based on context
+            let defaultMessage = '';
+            if (lead.whatsapp_custom_draft) {
+                defaultMessage = lead.whatsapp_custom_draft;
+            } else if (currentWaSubtab === 'email_sent' || lead.status === 'sent') {
+                defaultMessage = `Olá! Tudo bem? Aqui é o ${senderName}. Enviei mais cedo um e-mail para a equipe da ${lead.company_name} com uma análise do site de vocês e uma proposta visual. Passando por aqui apenas para confirmar se conseguiram dar uma olhada! Abraço!`;
+            } else {
+                // No email / cold whatsapp
+                const regionName = lead.region ? lead.region.replace(/\s*\(\+?\d+km\)/g, '') : 'sua região';
+                const segName = lead.segment || 'seu segmento';
+                defaultMessage = `Olá, tudo bem? Falo com o responsável pela ${lead.company_name}? Vi a ficha de vocês aqui em ${regionName} e notei que vocês ainda não possuem um site oficial próprio para captar clientes da região. Desenvolvemos páginas de alta conversão para o setor de ${segName}. Podemos bater um papo rápido de 5 minutos?`;
+            }
+            
+            // Status pill
+            let statusPill = '';
+            if (lead.whatsapp_contacted) {
+                statusPill = `<span style="font-size: 0.75rem; color: #c084fc; background: rgba(168,85,247,0.1); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(168,85,247,0.25);">✅ Contatado via WhatsApp ${lead.whatsapp_contacted_at ? 'em ' + lead.whatsapp_contacted_at : ''}</span>`;
+            } else if (lead.status === 'sent') {
+                statusPill = `<span style="font-size: 0.75rem; color: #38bdf8; background: rgba(56,189,248,0.1); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(56,189,248,0.25);">✉️ E-mail enviado ${lead.sent_at ? 'em ' + lead.sent_at : ''}</span>`;
+            } else {
+                statusPill = `<span style="font-size: 0.75rem; color: #25D366; background: rgba(37,211,102,0.1); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(37,211,102,0.25);">📞 Sem e-mail (Oportunidade WhatsApp direta)</span>`;
+            }
+            
+            // Website indicator
+            const websiteHtml = (lead.website && !lead.website.includes('maps/search')) 
+                ? `<a href="${escapeHtml(lead.website)}" target="_blank" style="color: var(--secondary); text-decoration: none; font-size: 0.8rem; word-break: break-all;">🔗 ${escapeHtml(lead.website)}</a>` 
+                : `<span style="color: var(--text-muted); font-size: 0.8rem;">❌ Sem website próprio indexado</span>`;
+            
+            return `
+                <div class="card" style="padding: 1.25rem; transition: var(--transition); border: 1px solid var(--border-color); background: rgba(17, 22, 39, 0.75);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
+                                <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0;">${escapeHtml(lead.company_name)}</h3>
+                                <span class="badge" style="background: ${scoreBg}; color: ${scoreColor}; font-weight: 700; font-size: 0.75rem; border: 1px solid ${scoreColor}40;">
+                                    🔥 Score: ${score} pts
+                                </span>
+                                ${originBadge}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.82rem; color: var(--text-secondary);">
+                                <span>📍 ${escapeHtml(lead.region || 'Brasil')}</span>
+                                <span>🏷️ ${escapeHtml(lead.segment || 'Geral')}</span>
+                                <span>${websiteHtml}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            ${statusPill}
+                        </div>
+                    </div>
+
+                    <!-- Contact & Message Customizer Box -->
+                    <div style="background: rgba(8, 10, 16, 0.6); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.82rem;">
+                            <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #25D366;">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                </svg>
+                                WhatsApp: <strong>${escapeHtml(phone)}</strong>
+                            </span>
+                            <span style="font-size: 0.72rem; color: var(--text-muted);">
+                                Mensagem editável antes do envio
+                            </span>
+                        </div>
+
+                        <textarea id="wa-draft-${lead.id}" rows="3" style="width: 100%; box-sizing: border-box; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem; line-height: 1.4; padding: 8px 10px; resize: vertical;" onblur="saveWaDraft(${lead.id})">${escapeHtml(defaultMessage)}</textarea>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn btn-success" onclick="openWaChat(${lead.id}, '${waDigits}')" style="background: #25D366; color: #000; font-weight: 700; border: none; padding: 8px 16px; font-size: 0.85rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                    <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.41a8.17 8.17 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.188 8.188 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24zm4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.15.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.35-.77-1.85-.2-.49-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.78 2.72 4.31 3.81.6.26 1.07.42 1.44.53.61.2 1.16.17 1.6-.01.48-.2 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.12-.22-.19-.47-.32z"/>
+                                </svg>
+                                Chamar no WhatsApp
+                            </button>
+                            <button class="btn btn-secondary" onclick="copyWaDraft(${lead.id})" style="font-size: 0.85rem; padding: 8px 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
+                                📋 Copiar Mensagem
+                            </button>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            ${lead.whatsapp_contacted 
+                                ? `<button class="btn btn-secondary" onclick="unmarkWaContacted(${lead.id})" style="font-size: 0.8rem; padding: 7px 12px; color: var(--text-muted);" title="Mover de volta para pendentes">↩️ Desmarcar</button>`
+                                : `<button class="btn btn-secondary" onclick="markWaContacted(${lead.id})" style="font-size: 0.8rem; padding: 7px 12px; color: #10b981; border-color: rgba(16,185,129,0.3);" title="Marcar como abordado">✅ Marcar Contatado</button>`
+                            }
+                            <button class="btn btn-secondary" onclick="openEditModal(${lead.id})" style="font-size: 0.8rem; padding: 7px 12px;" title="Ver detalhes completos do lead">
+                                ✏️ Ver Lead
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        renderWaPagination(data.total || 0, data.page || 1, data.limit || 24);
+        
+    } catch (err) {
+        console.error('Erro ao carregar oportunidades de WhatsApp:', err);
+        container.innerHTML = `
+            <div class="card" style="text-align: center; padding: 2rem; color: var(--danger);">
+                Erro ao carregar oportunidades do WhatsApp. Verifique sua conexão e tente novamente.
+            </div>
+        `;
+    }
+};
+
+window.renderWaPagination = function(total, page, limit) {
+    const info = document.getElementById('wa-pagination-info');
+    const buttons = document.getElementById('wa-pagination-buttons');
+    if (!info || !buttons) return;
+    
+    const totalPages = Math.ceil(total / limit) || 1;
+    info.innerHTML = `Exibindo página <strong>${page}</strong> de <strong>${totalPages}</strong> (${total} oportunidades encontradas)`;
+    
+    if (totalPages <= 1) {
+        buttons.innerHTML = '';
+        return;
+    }
+    
+    let btnHtml = '';
+    if (page > 1) {
+        btnHtml += `<button class="btn btn-secondary" onclick="changeWaPage(${page - 1})" style="padding: 4px 10px; font-size: 0.8rem;">◀ Anterior</button>`;
+    }
+    
+    const startPage = Math.max(1, page - 2);
+    const endPage = Math.min(totalPages, page + 2);
+    for (let i = startPage; i <= endPage; i++) {
+        const activeStyle = (i === page) ? 'background-color: #25D366; color: #000; font-weight: 700;' : '';
+        btnHtml += `<button class="btn btn-secondary" onclick="changeWaPage(${i})" style="padding: 4px 10px; font-size: 0.8rem; ${activeStyle}">${i}</button>`;
+    }
+    
+    if (page < totalPages) {
+        btnHtml += `<button class="btn btn-secondary" onclick="changeWaPage(${page + 1})" style="padding: 4px 10px; font-size: 0.8rem;">Próxima ▶</button>`;
+    }
+    
+    buttons.innerHTML = btnHtml;
+};
+
+window.changeWaPage = function(page) {
+    currentWaPage = page;
+    loadWhatsappOpportunities();
+    document.getElementById('wa-opportunities-container')?.scrollIntoView({ behavior: 'smooth' });
+};
+
+window.openWaChat = async function(leadId, cleanPhone) {
+    if (!cleanPhone) {
+        showToast('Telefone não encontrado para este lead.', 'error');
+        return;
+    }
+    
+    const draftEl = document.getElementById(`wa-draft-${leadId}`);
+    const text = draftEl ? draftEl.value : '';
+    const encodedText = encodeURIComponent(text);
+    
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodedText}`;
+    window.open(waUrl, '_blank');
+    
+    // Automatically mark as contacted after clicking
+    try {
+        await fetch(`/api/whatsapp/mark-contacted/${leadId}`, { method: 'POST' });
+        showToast('Conversa aberta no WhatsApp e lead marcado como contatado!', 'success');
+        setTimeout(() => {
+            loadWhatsappOpportunities();
+        }, 1200);
+    } catch (e) {
+        console.error('Erro ao marcar como contatado:', e);
+    }
+};
+
+window.copyWaDraft = function(leadId) {
+    const draftEl = document.getElementById(`wa-draft-${leadId}`);
+    if (!draftEl) return;
+    
+    navigator.clipboard.writeText(draftEl.value).then(() => {
+        showToast('Mensagem copiada para a área de transferência!', 'success');
+    }).catch(() => {
+        draftEl.select();
+        document.execCommand('copy');
+        showToast('Mensagem copiada!', 'success');
+    });
+};
+
+window.saveWaDraft = async function(leadId) {
+    const draftEl = document.getElementById(`wa-draft-${leadId}`);
+    if (!draftEl) return;
+    try {
+        await fetch(`/api/whatsapp/save-draft/${leadId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ draft: draftEl.value })
+        });
+    } catch (e) {
+        console.warn('Erro ao salvar rascunho:', e);
+    }
+};
+
+window.markWaContacted = async function(leadId) {
+    try {
+        const res = await fetch(`/api/whatsapp/mark-contacted/${leadId}`, { method: 'POST' });
+        if (res.ok) {
+            showToast('Lead marcado como contatado via WhatsApp!', 'success');
+            loadWhatsappOpportunities();
+        }
+    } catch (e) {
+        showToast('Erro ao atualizar lead.', 'error');
+    }
+};
+
+window.unmarkWaContacted = async function(leadId) {
+    try {
+        const res = await fetch(`/api/whatsapp/unmark-contacted/${leadId}`, { method: 'POST' });
+        if (res.ok) {
+            showToast('Lead retornado para a fila de WhatsApp.', 'success');
+            loadWhatsappOpportunities();
+        }
+    } catch (e) {
+        showToast('Erro ao atualizar lead.', 'error');
+    }
+};
+
 

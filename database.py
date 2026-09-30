@@ -107,6 +107,12 @@ def init_db():
         cursor.execute("ALTER TABLE prospects ADD COLUMN is_directory INTEGER DEFAULT 0")
     if 'directory_source' not in columns:
         cursor.execute("ALTER TABLE prospects ADD COLUMN directory_source TEXT")
+    if 'whatsapp_contacted' not in columns:
+        cursor.execute("ALTER TABLE prospects ADD COLUMN whatsapp_contacted INTEGER DEFAULT 0")
+    if 'whatsapp_contacted_at' not in columns:
+        cursor.execute("ALTER TABLE prospects ADD COLUMN whatsapp_contacted_at DATETIME")
+    if 'whatsapp_custom_draft' not in columns:
+        cursor.execute("ALTER TABLE prospects ADD COLUMN whatsapp_custom_draft TEXT")
     
     
     # Seed default settings if they don't exist
@@ -563,3 +569,129 @@ def get_sent_count_today():
     row = cursor.fetchone()
     conn.close()
     return row['count'] if row else 0
+
+def get_whatsapp_opportunities(subtab='email_sent', segment=None, search_query=None, min_score=None, page=1, limit=24):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Must have a phone or whatsapp number
+    clauses = [
+        "((contact_whatsapp IS NOT NULL AND contact_whatsapp != '') OR (contact_phone IS NOT NULL AND contact_phone != ''))"
+    ]
+    params = []
+    
+    if subtab == 'email_sent':
+        # Email has been sent, now follow-up via WhatsApp
+        clauses.append("status = 'sent'")
+        clauses.append("(whatsapp_contacted = 0 OR whatsapp_contacted IS NULL)")
+    elif subtab == 'no_email':
+        # No email address found, WhatsApp is the primary cold outreach channel
+        clauses.append("(contact_email IS NULL OR contact_email = '')")
+        clauses.append("status != 'sent'")
+        clauses.append("(whatsapp_contacted = 0 OR whatsapp_contacted IS NULL)")
+    elif subtab == 'contacted':
+        # Already contacted via WhatsApp
+        clauses.append("whatsapp_contacted = 1")
+    elif subtab == 'all_pending':
+        # All with WhatsApp not contacted yet
+        clauses.append("(whatsapp_contacted = 0 OR whatsapp_contacted IS NULL)")
+        
+    if segment and segment != 'all':
+        clauses.append("segment = ?")
+        params.append(segment)
+        
+    if min_score is not None and str(min_score).isdigit() and int(min_score) > 0:
+        clauses.append("opportunity_score >= ?")
+        params.append(int(min_score))
+        
+    if search_query:
+        sq = f"%{search_query.strip()}%"
+        clauses.append("(company_name LIKE ? OR region LIKE ? OR contact_phone LIKE ? OR contact_whatsapp LIKE ?)")
+        params.extend([sq, sq, sq, sq])
+        
+    where_sql = ' WHERE ' + ' AND '.join(clauses)
+    
+    count_query = 'SELECT COUNT(*) as count FROM prospects' + where_sql
+    cursor.execute(count_query, params)
+    total_filtered = cursor.fetchone()['count']
+    
+    # Priority sorting: highest opportunity score first!
+    query = 'SELECT * FROM prospects' + where_sql + ' ORDER BY opportunity_score DESC, id DESC'
+    if limit is not None and limit > 0:
+        offset = (max(1, page) - 1) * limit
+        query += ' LIMIT ? OFFSET ?'
+        params.extend([limit, offset])
+        
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    prospects = []
+    for row in rows:
+        res = dict(row)
+        res['detected_issues'] = json.loads(res['detected_issues']) if res['detected_issues'] else []
+        prospects.append(res)
+        
+    return {
+        "prospects": prospects,
+        "total": total_filtered,
+        "page": page,
+        "limit": limit or total_filtered,
+        "total_pages": math.ceil(total_filtered / limit) if (limit and limit > 0) else 1
+    }
+
+def get_whatsapp_stats():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    wa_filter = "((contact_whatsapp IS NOT NULL AND contact_whatsapp != '') OR (contact_phone IS NOT NULL AND contact_phone != ''))"
+    
+    # 1. Total with WhatsApp
+    cursor.execute(f"SELECT COUNT(*) as count FROM prospects WHERE {wa_filter}")
+    total_wa = cursor.fetchone()['count']
+    
+    # 2. Email sent & pending WhatsApp follow-up
+    cursor.execute(f"SELECT COUNT(*) as count FROM prospects WHERE {wa_filter} AND status = 'sent' AND (whatsapp_contacted = 0 OR whatsapp_contacted IS NULL)")
+    email_sent_count = cursor.fetchone()['count']
+    
+    # 3. No email & pending WhatsApp initial contact
+    cursor.execute(f"SELECT COUNT(*) as count FROM prospects WHERE {wa_filter} AND (contact_email IS NULL OR contact_email = '') AND status != 'sent' AND (whatsapp_contacted = 0 OR whatsapp_contacted IS NULL)")
+    no_email_count = cursor.fetchone()['count']
+    
+    # 4. Already contacted via WhatsApp
+    cursor.execute(f"SELECT COUNT(*) as count FROM prospects WHERE {wa_filter} AND whatsapp_contacted = 1")
+    contacted_count = cursor.fetchone()['count']
+    
+    # 5. Distinct segments that have WhatsApp leads
+    cursor.execute(f"SELECT DISTINCT segment FROM prospects WHERE {wa_filter} AND segment IS NOT NULL AND segment != '' ORDER BY segment")
+    segments = [r['segment'] for r in cursor.fetchall()]
+    
+    conn.close()
+    
+    return {
+        "total_wa": total_wa,
+        "email_sent_count": email_sent_count,
+        "no_email_count": no_email_count,
+        "contacted_count": contacted_count,
+        "segments": segments
+    }
+
+def mark_whatsapp_contacted(prospect_id, contacted=True):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    if contacted:
+        now_str = get_now_str()
+        cursor.execute("UPDATE prospects SET whatsapp_contacted = 1, whatsapp_contacted_at = ?, updated_at = ? WHERE id = ?", (now_str, now_str, prospect_id))
+    else:
+        cursor.execute("UPDATE prospects SET whatsapp_contacted = 0, whatsapp_contacted_at = NULL, updated_at = ? WHERE id = ?", (get_now_str(), prospect_id))
+    conn.commit()
+    conn.close()
+    return True
+
+def update_whatsapp_custom_draft(prospect_id, draft_text):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE prospects SET whatsapp_custom_draft = ?, updated_at = ? WHERE id = ?", (draft_text, get_now_str(), prospect_id))
+    conn.commit()
+    conn.close()
+    return True

@@ -1220,6 +1220,45 @@ def api_get_queue_status():
         "status": queue_status
     })
 
+# WhatsApp Opportunities & Closing Center Endpoints
+@app.route('/api/whatsapp/opportunities', methods=['GET'])
+def api_whatsapp_opportunities():
+    subtab = request.args.get('subtab', 'email_sent')
+    segment = request.args.get('segment')
+    search_query = request.args.get('q') or request.args.get('search')
+    min_score = request.args.get('min_score')
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 24, type=int)
+    
+    data = database.get_whatsapp_opportunities(
+        subtab=subtab,
+        segment=segment,
+        search_query=search_query,
+        min_score=min_score,
+        page=page,
+        limit=limit
+    )
+    stats = database.get_whatsapp_stats()
+    data['stats'] = stats
+    return jsonify(data)
+
+@app.route('/api/whatsapp/mark-contacted/<int:prospect_id>', methods=['POST'])
+def api_whatsapp_mark_contacted(prospect_id):
+    database.mark_whatsapp_contacted(prospect_id, True)
+    return jsonify({"success": True, "message": "Lead marcado como contatado via WhatsApp!"})
+
+@app.route('/api/whatsapp/unmark-contacted/<int:prospect_id>', methods=['POST'])
+def api_whatsapp_unmark_contacted(prospect_id):
+    database.mark_whatsapp_contacted(prospect_id, False)
+    return jsonify({"success": True, "message": "Lead retornado para a fila de WhatsApp!"})
+
+@app.route('/api/whatsapp/save-draft/<int:prospect_id>', methods=['POST'])
+def api_whatsapp_save_draft(prospect_id):
+    body = request.json or {}
+    draft = body.get('draft', '')
+    database.update_whatsapp_custom_draft(prospect_id, draft)
+    return jsonify({"success": True, "message": "Mensagem personalizada salva!"})
+
 # Start Autopilot thread for production/Gunicorn
 try:
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug or os.environ.get('DATA_DIR'):

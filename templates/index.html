@@ -73,6 +73,15 @@
                 </a>
             </li>
             <li>
+                <a class="nav-item" data-tab="tab-whatsapp" style="position: relative;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #25D366;">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                    </svg>
+                    Central WhatsApp
+                    <span id="sidebar-wa-count" class="badge" style="display: none; margin-left: auto; background-color: #25D366; color: #000; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 999px;">0</span>
+                </a>
+            </li>
+            <li>
                 <a class="nav-item" data-tab="tab-queue">
                     <svg viewBox="0 0 24 24">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -895,6 +904,127 @@
                 </div>
                 <div id="pagination-buttons" style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
                     <!-- Dynamic pagination buttons -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- TAB WHATSAPP: CENTRAL DE FECHAMENTO WHATSAPP -->
+        <div id="tab-whatsapp" class="tab-pane">
+            <div class="header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h1 style="display: flex; align-items: center; gap: 10px;">
+                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background: rgba(37, 211, 102, 0.15); color: #25D366;">
+                            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                            </svg>
+                        </span>
+                        Central de Fechamento WhatsApp
+                    </h1>
+                    <p>Contate diretamente no WhatsApp as melhores oportunidades ranqueadas por Opportunity Score, com mensagens prontas para cada momento comercial.</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary" onclick="loadWhatsappOpportunities()" style="display: inline-flex; align-items: center; gap: 6px;">
+                        🔄 Atualizar Lista
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats KPI Cards -->
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 1.5rem;">
+                <div class="stat-card" style="border-left: 4px solid #38bdf8; cursor: pointer;" onclick="switchWaSubtab('email_sent')">
+                    <div>
+                        <div class="stat-label">✉️ Follow-up (E-mail Enviado)</div>
+                        <div class="stat-value" id="wa-stat-email-sent" style="color: #38bdf8;">0</div>
+                    </div>
+                    <div class="stat-meta">E-mail já enviado • Momento ideal para cobrança/follow-up</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #25D366; cursor: pointer;" onclick="switchWaSubtab('no_email')">
+                    <div>
+                        <div class="stat-label">📞 1º Contato (Sem E-mail)</div>
+                        <div class="stat-value" id="wa-stat-no-email" style="color: #25D366;">0</div>
+                    </div>
+                    <div class="stat-meta">Diretórios & Maps sem site/e-mail • Abordagem direta</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #a855f7; cursor: pointer;" onclick="switchWaSubtab('contacted')">
+                    <div>
+                        <div class="stat-label">✅ Já Contatados</div>
+                        <div class="stat-value" id="wa-stat-contacted" style="color: #c084fc;">0</div>
+                    </div>
+                    <div class="stat-meta">Leads já abordados no WhatsApp</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #f59e0b;">
+                    <div>
+                        <div class="stat-label">🔥 Total com WhatsApp</div>
+                        <div class="stat-value" id="wa-stat-total" style="color: #fbbf24;">0</div>
+                    </div>
+                    <div class="stat-meta">Oportunidades com telefone móvel/WhatsApp</div>
+                </div>
+            </div>
+
+            <!-- Main Segmentation Switcher & Controls -->
+            <div class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1rem;">
+                    <!-- Segments Subtabs -->
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button id="wa-tab-btn-email_sent" class="btn btn-secondary active" onclick="switchWaSubtab('email_sent')" style="font-weight: 600; font-size: 0.85rem; padding: 8px 16px; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
+                            ✉️ E-mail Já Enviado (Follow-up)
+                            <span id="wa-badge-email_sent" class="badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.75rem;">0</span>
+                        </button>
+                        <button id="wa-tab-btn-no_email" class="btn btn-secondary" onclick="switchWaSubtab('no_email')" style="font-weight: 600; font-size: 0.85rem; padding: 8px 16px; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
+                            📞 Sem E-mail (Primeiro Contato)
+                            <span id="wa-badge-no_email" class="badge" style="background: rgba(37, 211, 102, 0.2); color: #25D366; font-size: 0.75rem;">0</span>
+                        </button>
+                        <button id="wa-tab-btn-contacted" class="btn btn-secondary" onclick="switchWaSubtab('contacted')" style="font-weight: 600; font-size: 0.85rem; padding: 8px 16px; border-radius: 8px; display: inline-flex; align-items: center; gap: 8px;">
+                            ✅ Já Contatados
+                            <span id="wa-badge-contacted" class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; font-size: 0.75rem;">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Informative context banner -->
+                    <div id="wa-context-desc" style="font-size: 0.82rem; color: var(--text-secondary);">
+                        Exibindo empresas que já receberam a proposta técnica por e-mail e agora estão no momento ideal para contato no WhatsApp.
+                    </div>
+                </div>
+
+                <!-- Secondary Filters: Search, Segment, Score -->
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: center;">
+                    <div>
+                        <input type="text" id="wa-filter-search" class="form-control" placeholder="🔍 Buscar por empresa, telefone, cidade..." oninput="debounceWaSearch()" style="width: 100%; font-size: 0.85rem; padding: 8px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                    </div>
+                    <div>
+                        <select id="wa-filter-segment" class="form-control" onchange="loadWhatsappOpportunities()" style="width: 100%; font-size: 0.85rem; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                            <option value="all">Todos os Segmentos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="wa-filter-score" class="form-control" onchange="loadWhatsappOpportunities()" style="width: 100%; font-size: 0.85rem; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                            <option value="0">Qualquer Score</option>
+                            <option value="80" selected>🔥 Alta Prioridade (Score 80+)</option>
+                            <option value="90">💎 Ouro (Score 90+)</option>
+                            <option value="60">Média Prioridade (Score 60+)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary" onclick="resetWaFilters()" title="Limpar filtros" style="padding: 8px 12px; font-size: 0.85rem;">
+                            Limpar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Opportunities Cards List -->
+            <div id="wa-opportunities-container" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                    Carregando oportunidades no WhatsApp...
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div id="wa-pagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; background: rgba(15,23,42,0.6); padding: 12px 18px; border-radius: 10px; border: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;">
+                <div id="wa-pagination-info" style="font-size: 0.85rem; color: var(--text-secondary);">
+                    Exibindo oportunidades...
+                </div>
+                <div id="wa-pagination-buttons" style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
                 </div>
             </div>
         </div>
