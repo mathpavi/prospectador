@@ -2144,6 +2144,7 @@ def generate_prospect_email(prospect):
             api_key, [prompt, img] if img else prompt, {"response_mime_type": "application/json"}, add_log)
 
         data = json.loads(response.text.strip())
+        add_log(f"E-mail personalizado pela IA ({model_name}) para '{prospect.get('company_name', '?')}'.")
         return data.get('subject', ''), data.get('body', ''), data.get('whatsapp', '')
         
     except Exception as e:
