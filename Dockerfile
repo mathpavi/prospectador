@@ -21,6 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Chromium para capturas de tela (miniaturas dos esbocos de site e screenshots dos prospects)
+RUN playwright install --with-deps chromium
+
 # Copy application source
 COPY . .
 

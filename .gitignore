@@ -14,3 +14,5 @@ autopilot_history.jsonl
 *.log
 static/screenshots/
 .user_uploaded/
+mockups/_work/
+mockups/_data/

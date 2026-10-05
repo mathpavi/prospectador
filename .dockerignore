@@ -9,3 +9,5 @@ __pycache__/
 search_debug.jsonl
 autopilot_history.jsonl
 tests/
+mockups/_work/
+mockups/_data/

@@ -2052,9 +2052,10 @@ def generate_prospect_email(prospect):
                 add_log(f"Aviso: Não foi possível abrir o screenshot para enviar ao Gemini: {ex}")
 
     # Call Gemini API
+    model_name = database.get_setting('gemini_model', '') or 'gemini-2.5-flash-lite'
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel(model_name)
         
         issues_list = ", ".join(prospect['detected_issues'])
         
@@ -2155,7 +2156,11 @@ def generate_prospect_email(prospect):
         return data.get('subject', ''), data.get('body', ''), data.get('whatsapp', '')
         
     except Exception as e:
-        add_log(f"Erro ao gerar e-mail com a API do Gemini: {e}. Usando template padrão.")
+        msg = (f"!!! FALHA NO GEMINI (modelo '{model_name}') para '{prospect.get('company_name', '?')}': "
+               f"{type(e).__name__}: {e}. USANDO TEMPLATE ESTÁTICO - o e-mail NÃO foi personalizado pela IA. "
+               f"Verifique a chave/modelo (configuração 'gemini_model').")
+        logger.error(msg)
+        add_log(msg)
         return generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sender_pitch, sender_portfolio)
 
 def generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sender_pitch, sender_portfolio='https://paviani.net/portfolio/'):

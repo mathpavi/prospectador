@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>{{ s.brand_name }} · proposta visual</title>
+{% if og %}<meta property="og:type" content="website"><meta property="og:title" content="{{ og.title }}"><meta property="og:image" content="{{ og.image }}"><meta property="og:url" content="{{ og.url }}">{% endif %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent: {{ s.accent or '#b2923a' }};
+  --on-accent: {{ on_accent or '#0d0f11' }};
+  --bg:#0d0f11; --panel:#14171a; --raise:#1a1e22;
+  --line:rgba(233,230,223,.12); --text:#ebe8e1; --muted:#9b9b95;
+  --display:'Barlow Condensed','Arial Narrow',Impact,sans-serif;
+  --body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --gutter:clamp(20px,5vw,72px);
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font:400 1.0625rem/1.65 var(--body);-webkit-font-smoothing:antialiased;padding-bottom:64px}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+.wrap{padding-inline:var(--gutter);max-width:1480px;margin-inline:auto}
+
+/* reveal discreto: so ativa com JS, respeita reduced-motion */
+.js .rv{opacity:0;transform:translateY(14px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.js .rv.in,.rv-off .rv{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.js .rv{opacity:1;transform:none;transition:none}}
+
+/* header */
+.top{position:absolute;inset:0 0 auto 0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:22px var(--gutter)}
+.logo img{height:clamp(30px,4vw,44px);width:auto}
+.logo img.inv{filter:brightness(0) invert(1)}
+.logo img.plate{background:#fff;padding:5px 10px;border-radius:2px}
+.logo span{font:700 1.5rem/1 var(--display);letter-spacing:.06em;text-transform:uppercase}
+.nav{display:flex;align-items:center;gap:clamp(18px,3vw,40px);font-size:.9375rem}
+.top::before{content:"";position:absolute;inset:0 0 -28px 0;z-index:-1;background:linear-gradient(180deg,rgba(13,15,17,.78),rgba(13,15,17,0))}
+.nav a:not(.btn){color:rgba(235,232,225,.82);transition:color .25s}
+.nav a:not(.btn):hover{color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:.6em;padding:.95em 1.5em;background:var(--accent);color:var(--on-accent);font:600 .9375rem/1 var(--body);letter-spacing:.02em;border-radius:2px;transition:transform .25s var(--ease),filter .25s}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.06)}
+.btn.ghost{background:transparent;color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+.btn.ghost:hover{box-shadow:inset 0 0 0 1px var(--accent);filter:none}
+
+/* hero: tipografia grande + foto sangrando na borda direita com corte diagonal */
+.hero{position:relative;min-height:min(100svh,920px);display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);background:
+  linear-gradient(var(--bg),var(--bg))}
+.hero .copy{align-self:end;padding:clamp(120px,18vh,180px) 0 clamp(48px,8vh,88px) var(--gutter);position:relative;z-index:2}
+.eyebrow{display:flex;align-items:center;gap:14px;font:600 .8125rem/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:28px}
+.eyebrow::before{content:"";width:40px;height:1px;background:var(--accent)}
+h1{font:700 clamp(2.9rem,6.6vw,6.4rem)/.94 var(--display);text-transform:uppercase;letter-spacing:-.005em;max-width:12ch;text-wrap:balance}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{margin-top:28px;max-width:46ch;color:#c9c6bf;font-size:clamp(1.0625rem,1.5vw,1.25rem);line-height:1.6}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:36px}
+.hero .photo{position:relative;min-height:420px;overflow:hidden;clip-path:polygon(14% 0,100% 0,100% 100%,0 100%)}
+.hero .photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 62%;filter:saturate(.92) contrast(1.04)}
+.hero .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(13,15,17,.55),transparent 38%),linear-gradient(0deg,rgba(13,15,17,.45),transparent 30%)}
+.blueprint{position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:48px 48px}
+.specbar{position:absolute;left:var(--gutter);right:var(--gutter);bottom:0;display:flex;gap:clamp(16px,3vw,44px);flex-wrap:wrap;padding:18px 0;border-top:1px solid var(--line);font-size:.8125rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);z-index:3}
+.specbar b{color:var(--text);font-weight:500}
+
+/* secoes */
+section{padding-block:clamp(72px,11vw,150px)}
+.label{font:600 .8125rem/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+h2{font:700 clamp(2rem,4.2vw,3.6rem)/1 var(--display);text-transform:uppercase;text-wrap:balance}
+
+/* processo */
+.process{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-block:0}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);list-style:none}
+.steps li{padding:30px 24px 30px 0;position:relative}
+.steps li+li{padding-left:24px;border-left:1px solid var(--line)}
+.steps small{font:600 .75rem/1 var(--body);letter-spacing:.16em;color:var(--accent)}
+.steps strong{display:block;margin-top:10px;font:600 clamp(1.3rem,2.2vw,1.8rem)/1.1 var(--display);text-transform:uppercase;letter-spacing:.02em}
+
+/* servicos: indice editorial, nao cards */
+.services .grid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:clamp(32px,6vw,96px)}
+.services .intro{position:sticky;top:48px;align-self:start}
+.services .intro p{margin-top:22px;color:var(--muted);max-width:34ch}
+.idx{list-style:none;border-top:1px solid var(--line)}
+.idx li{display:grid;grid-template-columns:56px 1fr auto;align-items:baseline;gap:8px;padding:clamp(18px,2.4vw,30px) 0;border-bottom:1px solid var(--line);transition:padding-left .35s var(--ease),border-color .35s}
+.idx li:hover{padding-left:12px;border-color:var(--accent)}
+.idx .n{font:600 .875rem/1 var(--body);color:var(--accent);letter-spacing:.12em}
+.idx .t{font:600 clamp(1.5rem,3vw,2.5rem)/1.05 var(--display);text-transform:uppercase;letter-spacing:.01em}
+.idx .d{grid-column:2;color:var(--muted);font-size:.9375rem;max-width:52ch}
+.idx .go{color:var(--muted);transition:color .3s,transform .3s var(--ease)}
+.idx li:hover .go{color:var(--accent);transform:translateX(4px)}
+
+/* sobre: composicao assimetrica */
+.about{background:var(--panel)}
+.about .grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:clamp(32px,7vw,110px);align-items:center}
+.about .fig{position:relative;margin-right:clamp(0px,3vw,40px)}
+.about .fig img{width:100%;aspect-ratio:4/4.4;object-fit:cover;position:relative;z-index:1}
+.about .fig::before{content:"";position:absolute;inset:-14px 14px 14px -14px;border:1px solid var(--accent);opacity:.55}
+.about p{color:#c9c6bf;margin-top:22px;max-width:52ch}
+.about .fine{margin-top:34px;padding-top:22px;border-top:1px solid var(--line);display:flex;gap:36px;flex-wrap:wrap}
+.about .fine div{font-size:.8125rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.about .fine b{display:block;font:600 1.5rem/1.2 var(--display);color:var(--text);letter-spacing:.02em;margin-top:4px}
+
+/* contato */
+.contact .grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:clamp(32px,6vw,96px);align-items:end}
+.contact h2{font-size:clamp(2.4rem,6vw,5.4rem);max-width:11ch}
+.contact .ph a{display:block;font:600 clamp(1.8rem,3.4vw,2.8rem)/1.2 var(--display);letter-spacing:.02em;transition:color .25s}
+.contact .ph a:hover{color:var(--accent)}
+.contact address{font-style:normal;color:var(--muted);margin-top:22px;max-width:36ch}
+.contact .cta{margin-top:28px}
+
+footer{border-top:1px solid var(--line);padding:28px var(--gutter);color:var(--muted);font-size:.875rem;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+/* faixa da proposta (nao faz parte do site) */
+.proposal{position:fixed;inset:auto 0 0 0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px var(--gutter);background:#f4f1ea;color:#16181a;font-size:.875rem;box-shadow:0 -1px 0 rgba(0,0,0,.08)}
+.rv-off .proposal{position:static}
+.proposal b{font-weight:600}
+.proposal a{background:#16181a;color:#f4f1ea;padding:.7em 1.1em;border-radius:2px;font-weight:600;white-space:nowrap}
+
+@media (max-width:900px){
+  .nav a:not(.btn){display:none}
+  .hero{grid-template-columns:1fr;min-height:0}
+  .hero .photo{order:-1;min-height:46svh;clip-path:polygon(0 0,100% 0,100% 100%,0 92%)}
+  .hero .copy{padding:36px var(--gutter) 96px}
+  .top{position:absolute}
+  .specbar{position:static;padding:16px var(--gutter);margin-top:0;border-top:1px solid var(--line);gap:10px 22px}
+  .hero .copy{padding-bottom:40px}
+  .steps{grid-template-columns:1fr 1fr}
+  .steps li:nth-child(3){border-left:0;padding-left:0}
+  .steps li:nth-child(n+3){border-top:1px solid var(--line)}
+  .services .grid,.about .grid,.contact .grid{grid-template-columns:1fr}
+  .services .intro{position:static}
+  .about .fig{margin-right:14px}
+  .proposal span.long{display:none}
+}
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js')</script>
+
+<header class="top">
+  <a class="logo" href="#" aria-label="{{ s.brand_name }}">
+    {% if logo_file %}<img class="{{ logo_cls }}" src="img/{{ logo_file }}" alt="{{ s.brand_name }}">{% else %}<span>{{ s.brand_name }}</span>{% endif %}
+  </a>
+  <nav class="nav">
+    <a href="#servicos">Serviços</a><a href="#empresa">Empresa</a>
+    <a class="btn" href="#contato">Solicitar orçamento</a>
+  </nav>
+</header>
+
+<main>
+<div class="hero">
+  <div class="copy">
+    <div class="eyebrow rv">{{ s.eyebrow }}</div>
+    <h1 class="rv">{{ s.hero_title_html | safe }}</h1>
+    <p class="lede rv">{{ s.hero_sub }}</p>
+    <div class="cta rv">
+      <a class="btn" href="#contato">Solicitar orçamento</a>
+      <a class="btn ghost" href="#servicos">Ver o que fazemos</a>
+    </div>
+  </div>
+  <div class="photo">
+    {% if images and images|length > 0 %}<img src="img/{{ images[0] }}" alt="{{ s.hero_alt or '' }}">{% else %}<div class="blueprint"></div>{% endif %}
+  </div>
+  <div class="specbar">
+    {% for it in s.specbar %}<span><b>{{ it }}</b></span>{% endfor %}
+  </div>
+</div>
+
+{% if s.process %}
+<section class="process wrap" aria-label="Como trabalhamos" style="padding-block:0">
+  <ol class="steps">
+    {% for st in s.process %}<li class="rv"><small>{{ '%02d' % loop.index }}</small><strong>{{ st }}</strong></li>{% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+<section class="services wrap" id="servicos">
+  <div class="grid">
+    <div class="intro rv">
+      <div class="label">O que fazemos</div>
+      <h2>{{ s.services_title }}</h2>
+      {% if s.services_intro %}<p>{{ s.services_intro }}</p>{% endif %}
+    </div>
+    <ul class="idx">
+      {% for sv in s.services %}
+      <li class="rv"><span class="n">{{ '%02d' % loop.index }}</span><span class="t">{{ sv.name }}</span><span class="go" aria-hidden="true">→</span>{% if sv.desc %}<span class="d">{{ sv.desc }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+
+<section class="about" id="empresa">
+  <div class="wrap grid">
+    <div class="fig rv">
+      {% if images and images|length > 1 %}<img src="img/{{ images[1] }}" alt="">{% else %}<div class="blueprint" style="aspect-ratio:4/4.4"></div>{% endif %}
+    </div>
+    <div class="rv">
+      <div class="label">A empresa</div>
+      <h2>{{ s.about_title }}</h2>
+      {% for para in s.about %}<p>{{ para }}</p>{% endfor %}
+      <div class="fine">
+        {% for f in s.facts %}<div>{{ f.k }}<b>{{ f.v }}</b></div>{% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="contact wrap" id="contato">
+  <div class="grid">
+    <div class="rv">
+      <div class="label">Contato</div>
+      <h2>{{ s.contact_title }}</h2>
+    </div>
+    <div class="rv">
+      <div class="ph">{% for p in s.phones %}<a href="#contato">{{ p }}</a>{% endfor %}</div>
+      {% if s.address %}<address>{{ s.address }}</address>{% endif %}
+      <div class="cta"><a class="btn" href="#contato">Falar com a equipe</a></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><span>© {{ s.brand_name }}</span><span>{{ s.city_uf }}</span></footer>
+
+<div class="proposal" role="note">
+  <span><b>Proposta visual</b> <span class="long">preparada por {{ proposal.author }} · não é o site oficial de {{ s.short_name }}</span></span>
+  <a href="{{ proposal.cta_url }}">{{ proposal.cta_label }}</a>
+</div>
+
+<script>
+(function(){
+  var els=[].slice.call(document.querySelectorAll('.rv'));
+  if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('in')});return}
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{rootMargin:'0px 0px -8% 0px',threshold:.05});
+  els.forEach(function(e,i){e.style.transitionDelay=(i%4)*60+'ms';io.observe(e)});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>{{ s.brand_name }} · proposta visual</title>
+{% if og %}<meta property="og:type" content="website"><meta property="og:title" content="{{ og.title }}"><meta property="og:image" content="{{ og.image }}"><meta property="og:url" content="{{ og.url }}">{% endif %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent: {{ s.accent or '#8a5a2b' }};
+  --on-accent: {{ on_accent or '#ffffff' }};
+  --accent-alt: {{ accent_alt or '#e0a96d' }};
+  --on-accent-alt: {{ on_accent_alt or '#1b1a18' }};
+  --cream:#f7f3ec; --cream-2:#efe9de; --ink:#1b1a18; --muted:#6a655d;
+  --line:rgba(27,26,24,.16);
+  --serif:'Fraunces','Georgia','Times New Roman',serif;
+  --sans:'DM Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --gutter:clamp(20px,5vw,72px);
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--cream);color:var(--ink);font:400 1.0625rem/1.65 var(--sans);-webkit-font-smoothing:antialiased;padding-bottom:64px}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+.wrap{padding-inline:var(--gutter);max-width:1480px;margin-inline:auto}
+
+.js .rv{opacity:0;transform:translateY(14px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.js .rv.in,.rv-off .rv{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.js .rv{opacity:1;transform:none;transition:none}}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:22px var(--gutter)}
+.logo img{height:clamp(30px,4vw,46px);width:auto}
+.logo img.ink{filter:brightness(0)}
+.logo img.plate{background:#fff;padding:5px 10px;border-radius:2px;box-shadow:0 0 0 1px var(--line)}
+.logo span{font:600 1.5rem/1 var(--serif);letter-spacing:-.01em}
+.nav{display:flex;align-items:center;gap:clamp(18px,3vw,40px);font-size:.9375rem}
+.nav a:not(.btn){color:var(--muted);transition:color .25s}
+.nav a:not(.btn):hover{color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:.6em;padding:.95em 1.55em;background:var(--accent);color:var(--on-accent);font:600 .9375rem/1 var(--sans);border-radius:999px;transition:transform .25s var(--ease),filter .25s}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.07)}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.btn.ghost:hover{background:var(--ink);color:var(--cream);filter:none}
+
+/* hero editorial: titulo grande + coluna de texto deslocada + foto larga */
+.hero{padding-top:clamp(28px,5vw,64px)}
+.hero .head{display:grid;grid-template-columns:minmax(0,9fr) minmax(0,3fr);gap:clamp(24px,4vw,64px);align-items:end}
+.kicker{font:500 .8125rem/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:22px}
+h1{font:400 clamp(2.8rem,7.4vw,7rem)/.96 var(--serif);letter-spacing:-.03em;text-wrap:balance;font-variation-settings:'opsz' 144}
+h1 em{font-style:italic;color:var(--accent)}
+.side{padding-bottom:10px}
+.side p{color:#47433c;font-size:1.0625rem}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.hero .shot{margin-top:clamp(32px,5vw,64px);position:relative}
+.hero .shot img{width:100%;aspect-ratio:16/8;object-fit:cover;object-position:50% 55%}
+.hero .shot .ph{width:100%;aspect-ratio:16/8;background:var(--cream-2)}
+.hero .tag{position:absolute;left:clamp(12px,2vw,28px);bottom:clamp(12px,2vw,28px);background:var(--cream);padding:10px 16px;font-size:.8125rem;letter-spacing:.08em;text-transform:uppercase;display:flex;gap:10px;align-items:center}
+.hero .tag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+
+section{padding-block:clamp(72px,11vw,150px)}
+.label{font:500 .8125rem/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+h2{font:400 clamp(2rem,4.4vw,3.8rem)/1.02 var(--serif);letter-spacing:-.025em;text-wrap:balance;font-variation-settings:'opsz' 144}
+h2 em{font-style:italic}
+
+/* linha de produtos: lista tipografica em duas colunas */
+.line .top2{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(32px,6vw,96px);align-items:start}
+.line .top2 p{margin-top:20px;color:var(--muted);max-width:34ch}
+.plist{list-style:none;border-top:1px solid var(--ink);counter-reset:p}
+.plist li{display:flex;align-items:baseline;gap:20px;padding:clamp(14px,1.8vw,22px) 0;border-bottom:1px solid var(--line);transition:padding-left .35s var(--ease),color .3s}
+.plist li::before{counter-increment:p;content:counter(p,decimal-leading-zero);font:italic 400 .95rem/1 var(--serif);color:var(--accent);min-width:28px}
+.plist li:hover{padding-left:10px;color:var(--accent)}
+.plist .t{font:400 clamp(1.4rem,2.6vw,2.2rem)/1.1 var(--serif);letter-spacing:-.015em}
+.plist .d{margin-left:auto;color:var(--muted);font-size:.9375rem;max-width:30ch;text-align:right}
+
+/* galeria em mosaico */
+.gallery{padding-top:0}
+.mosaic{display:grid;grid-template-columns:repeat(12,1fr);gap:clamp(10px,1.4vw,20px)}
+.mosaic figure{overflow:hidden;background:var(--cream-2)}
+.mosaic img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--ease)}
+.mosaic figure:hover img{transform:scale(1.03)}
+.mosaic .m1{grid-column:1/8;aspect-ratio:4/3.1}
+.mosaic .m2{grid-column:8/13;aspect-ratio:4/4.6;margin-top:clamp(24px,5vw,80px)}
+.mosaic .m3{grid-column:3/9;aspect-ratio:16/9}
+.mosaic.two .m1{grid-column:1/8}
+
+/* faixa na cor da marca */
+.band{background:var(--accent);color:var(--on-accent)}
+.band .grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,4fr);gap:clamp(32px,6vw,96px);align-items:end}
+.band .label{color:inherit;opacity:.75}
+.band .quote{font:400 clamp(1.7rem,3.4vw,3rem)/1.14 var(--serif);letter-spacing:-.02em;text-wrap:balance}
+.band .rest{opacity:.92}
+.band .rest p+p{margin-top:12px}
+.facts{margin-top:28px;display:grid;gap:18px}
+.facts dt{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;opacity:.7}
+.facts dd{font:400 1.7rem/1.15 var(--serif);letter-spacing:-.01em}
+
+/* contato */
+.contact .grid{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:clamp(32px,6vw,96px);align-items:end}
+.contact h2{font-size:clamp(2.3rem,5.4vw,5rem);max-width:12ch}
+.contact .ph a{display:block;font:400 clamp(1.8rem,3.4vw,2.8rem)/1.2 var(--serif);letter-spacing:-.015em;transition:color .25s}
+.contact .ph a:hover{color:var(--accent)}
+.contact address{font-style:normal;color:var(--muted);margin-top:20px;max-width:36ch}
+.contact .btn{margin-top:26px}
+
+footer{padding:24px var(--gutter);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:.875rem;border-top:1px solid var(--line)}
+
+.proposal{position:fixed;inset:auto 0 0 0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px var(--gutter);background:#1b1a18;color:#f1ece3;font-size:.875rem}
+.rv-off .proposal{position:static}
+.proposal b{font-weight:600}
+.proposal a{background:#f1ece3;color:#1b1a18;padding:.7em 1.1em;border-radius:999px;font-weight:600;white-space:nowrap}
+
+@media (max-width:900px){
+  .nav a:not(.btn){display:none}
+  .hero .head,.line .top2,.band .grid,.contact .grid{grid-template-columns:1fr}
+  .hero .shot img,.hero .shot .ph{aspect-ratio:4/3.4}
+  .mosaic .m1,.mosaic .m2,.mosaic .m3{grid-column:1/-1;margin-top:0}
+  .mosaic .m1{aspect-ratio:4/3}.mosaic .m2{aspect-ratio:4/3}.mosaic .m3{aspect-ratio:4/3}
+  .plist .d{display:none}
+  .proposal span.long{display:none}
+}
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js')</script>
+
+<header class="top">
+  <a class="logo" href="#" aria-label="{{ s.brand_name }}">
+    {% if logo_file %}<img class="{{ logo_cls }}" src="img/{{ logo_file }}" alt="{{ s.brand_name }}">{% else %}<span>{{ s.brand_name }}</span>{% endif %}
+  </a>
+  <nav class="nav">
+    <a href="#linha">Produtos</a><a href="#empresa">Empresa</a>
+    <a class="btn" href="#contato">Pedir orçamento</a>
+  </nav>
+</header>
+
+<main>
+<section class="hero wrap" style="padding-bottom:0">
+  <div class="head">
+    <div>
+      <div class="kicker rv">{{ s.eyebrow }}</div>
+      <h1 class="rv">{{ s.hero_title_html | safe }}</h1>
+    </div>
+    <div class="side rv">
+      <p>{{ s.hero_sub }}</p>
+      <div class="cta">
+        <a class="btn" href="#contato">Pedir orçamento</a>
+        <a class="btn ghost" href="#linha">Ver produtos</a>
+      </div>
+    </div>
+  </div>
+  <div class="shot rv">
+    {% if images and images|length > 0 %}<img src="img/{{ images[0] }}" alt="{{ s.hero_alt or '' }}">{% else %}<div class="ph"></div>{% endif %}
+    <div class="tag">{{ s.city_uf or s.brand_name }}</div>
+  </div>
+</section>
+
+<section class="line wrap" id="linha">
+  <div class="top2">
+    <div class="rv">
+      <div class="label">O que fazemos</div>
+      <h2>{{ s.services_title }}</h2>
+      {% if s.services_intro %}<p>{{ s.services_intro }}</p>{% endif %}
+    </div>
+    <ul class="plist">
+      {% for sv in s.services %}
+      <li class="rv"><span class="t">{{ sv.name }}</span>{% if sv.desc %}<span class="d">{{ sv.desc }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+
+{% if images and images|length > 1 %}
+<section class="gallery wrap" aria-label="Galeria">
+  <div class="mosaic{% if images|length < 3 %} two{% endif %}">
+    <figure class="m1 rv"><img src="img/{{ images[1] }}" alt=""></figure>
+    {% if images|length > 2 %}<figure class="m2 rv"><img src="img/{{ images[2] }}" alt=""></figure>{% endif %}
+    {% if images|length > 3 %}<figure class="m3 rv"><img src="img/{{ images[3] }}" alt=""></figure>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+<section class="band" id="empresa">
+  <div class="wrap grid">
+    <div class="rv">
+      <div class="label">A empresa</div>
+      <p class="quote">{{ s.about[0] if s.about else s.about_title }}</p>
+    </div>
+    <div class="rv rest">
+      {% for para in s.about[1:] %}<p>{{ para }}</p>{% endfor %}
+      {% if s.facts %}<dl class="facts">
+        {% for f in s.facts %}<div><dt>{{ f.k }}</dt><dd>{{ f.v }}</dd></div>{% endfor %}
+      </dl>{% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="contact wrap" id="contato">
+  <div class="grid">
+    <div class="rv"><div class="label">Contato</div><h2>{{ s.contact_title }}</h2></div>
+    <div class="rv">
+      <div class="ph">{% for p in s.phones %}<a href="#contato">{{ p }}</a>{% endfor %}</div>
+      {% if s.address %}<address>{{ s.address }}</address>{% endif %}
+      <a class="btn" href="#contato">Falar com a equipe</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><span>© {{ s.brand_name }}</span><span>{{ s.city_uf }}</span></footer>
+
+<div class="proposal" role="note">
+  <span><b>Proposta visual</b> <span class="long">preparada por {{ proposal.author }} · não é o site oficial de {{ s.short_name }}</span></span>
+  <a href="{{ proposal.cta_url }}">{{ proposal.cta_label }}</a>
+</div>
+
+<script>
+(function(){
+  var els=[].slice.call(document.querySelectorAll('.rv'));
+  if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('in')});return}
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{rootMargin:'0px 0px -8% 0px',threshold:.05});
+  els.forEach(function(e,i){e.style.transitionDelay=(i%4)*60+'ms';io.observe(e)});
+})();
+</script>
+</body>
+</html>

@@ -10,8 +10,11 @@ import os
 from datetime import datetime
 import json
 
+from mockups.blueprint import bp as mockups_bp, preview_gate
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'super-prospector-paviani-secret-key-2026')
+app.register_blueprint(mockups_bp)   # rota publica /p/<token>/ dos esbocos de site
 
 # Initialize DB on startup
 database.init_db()
@@ -31,6 +34,13 @@ def is_diag_authorized():
 
 @app.before_request
 def require_auth():
+    # Esbocos de site (preview.paviani.net): /p/... e publico; no host de preview so existe /p/...
+    _gate = preview_gate(request)
+    if _gate == "public":
+        return None
+    if _gate is not None:
+        return _gate
+
     # Allow programmatic diagnostics & monitoring with secure token
     if is_diag_authorized():
         return None

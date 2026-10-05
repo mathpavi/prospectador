@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>{{ s.brand_name }} · proposta visual</title>
+{% if og %}<meta property="og:type" content="website"><meta property="og:title" content="{{ og.title }}"><meta property="og:image" content="{{ og.image }}"><meta property="og:url" content="{{ og.url }}">{% endif %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent: {{ s.accent or '#5a4a7a' }};
+  --on-accent: {{ on_accent or '#ffffff' }};
+  --paper:#fbfaf7; --white:#ffffff; --ink:#17202b; --muted:#5d6672;
+  --tint: color-mix(in srgb, var(--accent) 9%, var(--paper));
+  --line:rgba(23,32,43,.14);
+  --serif:'Instrument Serif','Georgia','Times New Roman',serif;
+  --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --gutter:clamp(20px,5vw,72px);
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font:400 1.0625rem/1.7 var(--sans);-webkit-font-smoothing:antialiased;padding-bottom:64px}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+.wrap{padding-inline:var(--gutter);max-width:1400px;margin-inline:auto}
+
+.js .rv{opacity:0;transform:translateY(12px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.js .rv.in,.rv-off .rv{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.js .rv{opacity:1;transform:none;transition:none}}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:22px var(--gutter)}
+.logo img{height:clamp(30px,4vw,44px);width:auto}
+.logo img.ink{filter:brightness(0)}
+.logo img.plate{background:#fff;padding:5px 10px;border-radius:4px;box-shadow:0 0 0 1px var(--line)}
+.logo span{font:400 1.7rem/1 var(--serif);letter-spacing:-.01em}
+.nav{display:flex;align-items:center;gap:clamp(18px,3vw,40px);font-size:.9375rem}
+.nav a:not(.btn){color:var(--muted);transition:color .25s}
+.nav a:not(.btn):hover{color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:.6em;padding:.95em 1.5em;background:var(--accent);color:var(--on-accent);font:500 .9375rem/1 var(--sans);border-radius:999px;transition:transform .25s var(--ease),filter .25s}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.btn.ghost:hover{box-shadow:inset 0 0 0 1px var(--ink);filter:none}
+
+/* hero: texto sereno + foto em arco */
+.hero .wrap{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:clamp(32px,6vw,100px);align-items:center;padding-block:clamp(36px,6vw,90px) clamp(56px,8vw,120px)}
+.eyebrow{display:flex;align-items:center;gap:14px;font:500 .8125rem/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:26px}
+.eyebrow::before{content:"";width:34px;height:1px;background:var(--accent)}
+h1{font:400 clamp(2.7rem,5.6vw,5.4rem)/1.02 var(--serif);letter-spacing:-.02em;text-wrap:balance}
+h1 em{font-style:italic;color:var(--accent)}
+.lede{margin-top:26px;max-width:46ch;color:#434d59;font-size:clamp(1.0625rem,1.4vw,1.2rem)}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:34px}
+.trust{margin-top:40px;display:flex;flex-wrap:wrap;gap:10px 28px;padding-top:22px;border-top:1px solid var(--line);font-size:.9rem;color:var(--muted)}
+.trust b{color:var(--ink);font-weight:500}
+.arch{position:relative;justify-self:center;width:min(100%,460px)}
+.arch::before{content:"";position:absolute;inset:6% -9% -5% 9%;background:var(--tint);border-radius:999px 999px 10px 10px;z-index:0}
+.arch .img{position:relative;z-index:1;aspect-ratio:4/5;border-radius:999px 999px 10px 10px;overflow:hidden;background:var(--tint)}
+.arch img{width:100%;height:100%;object-fit:cover;object-position:50% 40%}
+.arch .card{position:absolute;z-index:2;left:-8%;bottom:7%;background:var(--white);border-radius:10px;padding:16px 20px;box-shadow:0 10px 30px -12px rgba(23,32,43,.28);font-size:.875rem;line-height:1.45;max-width:220px}
+.arch .card small{display:block;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-size:.6875rem;margin-bottom:4px}
+.arch .card b{font:400 1.4rem/1.15 var(--serif)}
+
+section{padding-block:clamp(64px,10vw,130px)}
+.label{font:500 .8125rem/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+h2{font:400 clamp(2rem,4vw,3.4rem)/1.06 var(--serif);letter-spacing:-.02em;text-wrap:balance}
+h2 em{font-style:italic;color:var(--accent)}
+
+/* areas de atuacao */
+.areas .grid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:clamp(32px,6vw,100px)}
+.areas .intro p{margin-top:18px;color:var(--muted);max-width:34ch}
+.alist{list-style:none;display:grid;grid-template-columns:1fr 1fr;column-gap:clamp(24px,4vw,64px);counter-reset:a}
+.alist li{border-top:1px solid var(--line);padding:22px 0 26px;counter-increment:a}
+.alist li::before{content:counter(a,decimal-leading-zero);display:block;font:italic 400 .95rem/1 var(--serif);color:var(--accent);margin-bottom:12px}
+.alist .t{font:400 clamp(1.5rem,2.4vw,2rem)/1.12 var(--serif);letter-spacing:-.01em}
+.alist .d{display:block;margin-top:8px;color:var(--muted);font-size:.9375rem;max-width:34ch}
+
+/* como funciona */
+.flow{background:var(--paper)}
+.flow ol{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(16px,3vw,40px);counter-reset:f}
+.flow li{counter-increment:f;border-top:1px solid var(--ink);padding-top:18px}
+.flow li::before{content:counter(f,decimal-leading-zero);display:block;font:italic 400 2.4rem/1 var(--serif);color:var(--accent);margin-bottom:14px}
+.flow strong{font:400 1.45rem/1.15 var(--serif)}
+
+/* sobre */
+.about{background:var(--tint)}
+.about .grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:clamp(32px,7vw,110px);align-items:center}
+.about .grid.solo{grid-template-columns:minmax(0,820px);justify-content:center}
+.about figure img{width:100%;aspect-ratio:4/4.6;object-fit:cover;border-radius:10px}
+.about .quote{font:400 clamp(1.6rem,3vw,2.6rem)/1.16 var(--serif);letter-spacing:-.015em;text-wrap:balance}
+.about p.rest{margin-top:20px;color:#434d59;max-width:52ch}
+.pills{margin-top:28px;display:flex;flex-wrap:wrap;gap:10px}
+.pills span{border:1px solid var(--line);background:var(--white);border-radius:999px;padding:.55em 1.1em;font-size:.875rem}
+.pills b{font-weight:600;margin-left:.3em}
+
+/* contato */
+.contact .card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:clamp(28px,5vw,72px);display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:clamp(28px,5vw,80px);align-items:end}
+.contact h2{max-width:12ch;font-size:clamp(2.2rem,4.8vw,4.2rem)}
+.contact .ph a{display:block;font:400 clamp(1.8rem,3.2vw,2.6rem)/1.25 var(--serif);letter-spacing:-.01em;transition:color .25s}
+.contact .ph a:hover{color:var(--accent)}
+.contact address{font-style:normal;color:var(--muted);margin-top:18px;max-width:36ch}
+.contact .btn{margin-top:24px}
+
+footer{padding:24px var(--gutter);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:.875rem;border-top:1px solid var(--line)}
+
+.proposal{position:fixed;inset:auto 0 0 0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px var(--gutter);background:#17202b;color:#f2efe9;font-size:.875rem}
+.rv-off .proposal{position:static}
+.proposal b{font-weight:600}
+.proposal a{background:#f2efe9;color:#17202b;padding:.7em 1.1em;border-radius:999px;font-weight:600;white-space:nowrap}
+
+.top .btn{white-space:nowrap}
+@media (max-width:900px){
+  .nav a:not(.btn){display:none}
+  .top .btn{padding:.8em 1.1em;font-size:.8125rem}
+  .hero .wrap,.areas .grid,.about .grid,.contact .card{grid-template-columns:1fr}
+  .arch{order:-1;width:min(86%,360px)}
+  .arch .card{left:-4%;bottom:5%}
+  .alist{grid-template-columns:1fr}
+  .flow ol{grid-template-columns:1fr 1fr;row-gap:28px}
+  .proposal span.long{display:none}
+}
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js')</script>
+
+<header class="top">
+  <a class="logo" href="#" aria-label="{{ s.brand_name }}">
+    {% if logo_file %}<img class="{{ logo_cls }}" src="img/{{ logo_file }}" alt="{{ s.brand_name }}">{% else %}<span>{{ s.brand_name }}</span>{% endif %}
+  </a>
+  <nav class="nav">
+    <a href="#areas">Áreas de atuação</a><a href="#sobre">Sobre</a>
+    <a class="btn" href="#contato">Agendar atendimento</a>
+  </nav>
+</header>
+
+<main>
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow rv">{{ s.eyebrow }}</div>
+      <h1 class="rv">{{ s.hero_title_html | safe }}</h1>
+      <p class="lede rv">{{ s.hero_sub }}</p>
+      <div class="cta rv">
+        <a class="btn" href="#contato">Agendar atendimento</a>
+        <a class="btn ghost" href="#areas">Conhecer as áreas</a>
+      </div>
+      {% if s.specbar %}<div class="trust rv">{% for it in s.specbar %}<span><b>{{ it }}</b></span>{% endfor %}</div>{% endif %}
+    </div>
+    <div class="arch rv">
+      <div class="img">{% if images and images|length > 0 %}<img src="img/{{ images[0] }}" alt="{{ s.hero_alt or '' }}">{% endif %}</div>
+      {% if s.phones %}<div class="card"><small>Atendimento</small><b>{{ s.phones[0] }}</b>{% if s.city_uf %}<br>{{ s.city_uf }}{% endif %}</div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<section class="areas wrap" id="areas">
+  <div class="grid">
+    <div class="intro rv">
+      <div class="label">Áreas de atuação</div>
+      <h2>{{ s.services_title }}</h2>
+      {% if s.services_intro %}<p>{{ s.services_intro }}</p>{% endif %}
+    </div>
+    <ul class="alist">
+      {% for sv in s.services %}
+      <li class="rv"><span class="t">{{ sv.name }}</span>{% if sv.desc %}<span class="d">{{ sv.desc }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+
+{% if s.process %}
+<section class="flow wrap" style="padding-top:0">
+  <div class="label rv">Como funciona</div>
+  <ol>{% for st in s.process %}<li class="rv"><strong>{{ st }}</strong></li>{% endfor %}</ol>
+</section>
+{% endif %}
+
+<section class="about" id="sobre">
+  <div class="wrap grid{% if not (images and images|length > 1) %} solo{% endif %}">
+    {% if images and images|length > 1 %}<figure class="rv"><img src="img/{{ images[1] }}" alt=""></figure>{% endif %}
+    <div class="rv">
+      <div class="label">Sobre</div>
+      <p class="quote">{{ s.about[0] if s.about else s.about_title }}</p>
+      {% for para in s.about[1:] %}<p class="rest">{{ para }}</p>{% endfor %}
+      {% if s.facts %}<div class="pills">{% for f in s.facts %}<span>{{ f.k }}<b>{{ f.v }}</b></span>{% endfor %}</div>{% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="contact wrap" id="contato">
+  <div class="card rv">
+    <div><div class="label">Contato</div><h2>{{ s.contact_title }}</h2></div>
+    <div>
+      <div class="ph">{% for p in s.phones %}<a href="#contato">{{ p }}</a>{% endfor %}</div>
+      {% if s.address %}<address>{{ s.address }}</address>{% endif %}
+      <a class="btn" href="#contato">Agendar atendimento</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><span>© {{ s.brand_name }}</span><span>{{ s.city_uf }}</span></footer>
+
+<div class="proposal" role="note">
+  <span><b>Proposta visual</b> <span class="long">preparada por {{ proposal.author }} · não é o site oficial de {{ s.short_name }}</span></span>
+  <a href="{{ proposal.cta_url }}">{{ proposal.cta_label }}</a>
+</div>
+
+<script>
+(function(){
+  var els=[].slice.call(document.querySelectorAll('.rv'));
+  if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('in')});return}
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{rootMargin:'0px 0px -8% 0px',threshold:.05});
+  els.forEach(function(e,i){e.style.transitionDelay=(i%4)*60+'ms';io.observe(e)});
+})();
+</script>
+</body>
+</html>

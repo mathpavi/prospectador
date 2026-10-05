@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>{{ s.brand_name }} · proposta visual</title>
+{% if og %}<meta property="og:type" content="website"><meta property="og:title" content="{{ og.title }}"><meta property="og:image" content="{{ og.image }}"><meta property="og:url" content="{{ og.url }}">{% endif %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent: {{ s.accent or '#8a6d1f' }};
+  --on-accent: {{ on_accent or '#ffffff' }};
+  --accent-alt: {{ accent_alt or '#d6b45a' }};
+  --on-accent-alt: {{ on_accent_alt or '#12171c' }};
+  --paper:#f3f1ec; --paper-2:#eae7e0; --ink:#12171c; --muted:#5b6269;
+  --line:rgba(18,23,28,.18); --grid:rgba(18,23,28,.055);
+  --display:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --gutter:clamp(20px,5vw,72px);
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font:400 1.0625rem/1.65 var(--display);-webkit-font-smoothing:antialiased;padding-bottom:64px}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+.wrap{padding-inline:var(--gutter);max-width:1480px;margin-inline:auto}
+.mono{font-family:var(--mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase}
+
+.js .rv{opacity:0;transform:translateY(12px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.js .rv.in,.rv-off .rv{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.js .rv{opacity:1;transform:none;transition:none}}
+
+/* barra superior */
+.top{display:flex;align-items:center;justify-content:space-between;padding:18px var(--gutter);border-bottom:1px solid var(--line);background:var(--paper);position:relative;z-index:5}
+.logo img{height:clamp(30px,4vw,44px);width:auto}
+.logo img.ink{filter:brightness(0)}
+.logo img.plate{background:#fff;padding:5px 10px;border-radius:2px;box-shadow:0 0 0 1px var(--line)}
+.logo span{font:800 1.4rem/1 var(--display);letter-spacing:-.01em}
+.nav{display:flex;align-items:center;gap:clamp(18px,3vw,38px);font-size:.9375rem}
+.nav a:not(.btn){color:var(--muted);transition:color .25s}
+.nav a:not(.btn):hover{color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:.6em;padding:.95em 1.5em;background:var(--accent);color:var(--on-accent);font:600 .9375rem/1 var(--display);border-radius:2px;transition:transform .25s var(--ease),filter .25s}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.06)}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.btn.ghost:hover{background:var(--ink);color:var(--paper);filter:none}
+
+/* hero: papel milimetrado + prancha com a foto */
+.hero{background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:44px 44px;background-position:-1px -1px;border-bottom:1px solid var(--line)}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(32px,6vw,96px);padding-block:clamp(48px,8vw,110px);align-items:center}
+.eyebrow{color:var(--accent);margin-bottom:26px;display:flex;gap:12px;align-items:center}
+.eyebrow::before{content:"";width:10px;height:10px;background:var(--accent)}
+h1{font:800 clamp(2.5rem,5.2vw,5rem)/.98 var(--display);letter-spacing:-.025em;text-wrap:balance}
+h1 em{font-style:normal;box-shadow:inset 0 -.18em 0 color-mix(in srgb,var(--accent) 38%,transparent)}
+.lede{margin-top:26px;max-width:44ch;color:#3b434a;font-size:clamp(1.0625rem,1.4vw,1.2rem)}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
+.sheet{margin-top:44px;border-top:1px solid var(--ink)}
+.sheet div{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:.9375rem}
+.sheet dt{color:var(--muted)}
+.sheet dd{font-weight:500}
+.plate{position:relative;margin:0}
+.plate .frame{position:relative;border:1px solid var(--ink);background:var(--paper-2);padding:12px}
+.plate .frame::before,.plate .frame::after{content:"";position:absolute;width:18px;height:18px;border:2px solid var(--accent)}
+.plate .frame::before{top:-7px;left:-7px;border-right:0;border-bottom:0}
+.plate .frame::after{bottom:-7px;right:-7px;border-left:0;border-top:0}
+.plate img{width:100%;aspect-ratio:4/3.7;object-fit:cover;object-position:50% 60%}
+.plate .ph{width:100%;aspect-ratio:4/3.7;background:var(--paper-2)}
+.plate figcaption{display:flex;justify-content:space-between;gap:16px;margin-top:14px;color:var(--muted)}
+.inset{position:absolute;left:-7%;bottom:48px;width:34%;border:1px solid var(--ink);background:var(--paper);padding:6px}
+.inset img{aspect-ratio:1/1;object-fit:cover;width:100%}
+
+section{padding-block:clamp(64px,10vw,140px)}
+.label{color:var(--accent);margin-bottom:18px;display:flex;gap:12px;align-items:center}
+.label::before{content:"";width:10px;height:10px;background:var(--accent)}
+h2{font:800 clamp(1.9rem,3.8vw,3.2rem)/1.02 var(--display);letter-spacing:-.02em;text-wrap:balance;max-width:16ch}
+
+/* processo: linha de etapas */
+.process{border-bottom:1px solid var(--line);padding-block:clamp(40px,6vw,72px)}
+.steps{list-style:none;display:grid;grid-template-columns:repeat(4,1fr);position:relative}
+.steps::before{content:"";position:absolute;left:0;right:0;top:15px;height:1px;background:var(--ink)}
+.steps li{position:relative;padding-top:48px;padding-right:20px}
+.steps li::before{content:attr(data-n);position:absolute;top:0;left:0;width:31px;height:31px;display:grid;place-items:center;background:var(--paper);border:1px solid var(--ink);font:500 .75rem/1 var(--mono)}
+.steps strong{display:block;font:700 clamp(1.15rem,2vw,1.5rem)/1.15 var(--display);letter-spacing:-.01em}
+
+/* servicos: folha de dados */
+.services .head{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-bottom:clamp(28px,4vw,48px)}
+.services .head p{max-width:40ch;color:var(--muted)}
+.data{width:100%;border-top:2px solid var(--ink);list-style:none}
+.data .row{display:grid;grid-template-columns:84px minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:baseline;padding:clamp(16px,2vw,24px) 12px;border-bottom:1px solid var(--line);transition:background .3s}
+.data .row:hover{background:var(--paper-2)}
+.data .cod{color:var(--accent)}
+.data .t{font:700 clamp(1.3rem,2.4vw,2rem)/1.1 var(--display);letter-spacing:-.015em}
+.data .d{color:var(--muted);font-size:.9375rem}
+.data .th{padding:10px 12px;color:var(--muted);border-bottom:1px solid var(--ink)}
+
+/* sobre */
+.about{background:var(--paper-2);border-block:1px solid var(--line)}
+.about .grid{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:clamp(32px,7vw,110px);align-items:start}
+.about .quote{font:600 clamp(1.5rem,2.8vw,2.4rem)/1.2 var(--display);letter-spacing:-.015em;margin-top:6px;text-wrap:balance}
+.about .rest p{color:#3b434a;max-width:48ch}
+.about .rest p+p{margin-top:14px}
+.about figure{margin-top:clamp(28px,4vw,44px)}
+.about figure img{width:100%;aspect-ratio:16/10;object-fit:cover;border:1px solid var(--ink)}
+.about figcaption{margin-top:10px;color:var(--muted)}
+.facts{margin-top:28px;border-top:1px solid var(--ink)}
+.facts div{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)}
+.facts dt{color:var(--muted);font-size:.9375rem}
+.facts dd{font-weight:600;text-align:right}
+
+/* contato: bloco escuro para fechar */
+.contact{background:var(--ink);color:#efece5}
+.contact .label,.contact .eyebrow{color:var(--accent-alt)}
+.contact .label::before{background:var(--accent-alt)}
+.contact h2{max-width:12ch;font-size:clamp(2.2rem,5vw,4.4rem);color:#fff}
+.contact .grid{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:clamp(32px,6vw,96px);align-items:end}
+.contact .ph a{display:block;font:700 clamp(1.7rem,3.2vw,2.6rem)/1.25 var(--display);letter-spacing:-.01em;transition:color .25s}
+.contact .ph a:hover{color:var(--accent-alt)}
+.contact address{font-style:normal;color:#a7aeb4;margin-top:20px;max-width:36ch}
+.contact .btn{background:var(--accent-alt);color:var(--on-accent-alt);margin-top:26px}
+
+footer{padding:24px var(--gutter);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:.875rem;border-top:1px solid var(--line)}
+
+.proposal{position:fixed;inset:auto 0 0 0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px var(--gutter);background:#12171c;color:#efece5;font-size:.875rem}
+.rv-off .proposal{position:static}
+.proposal b{font-weight:600}
+.proposal a{background:#efece5;color:#12171c;padding:.7em 1.1em;border-radius:2px;font-weight:600;white-space:nowrap}
+
+@media (max-width:900px){
+  .nav a:not(.btn){display:none}
+  .hero .wrap{grid-template-columns:1fr}
+  .plate{order:-1}
+  .inset{left:12px;bottom:40px;width:30%}
+  .steps{grid-template-columns:1fr 1fr;row-gap:8px}
+  .steps::before{display:none}
+  .steps li{padding-top:44px}
+  .data .row{grid-template-columns:56px 1fr}
+  .data .d{grid-column:2}
+  .data .th{display:none}
+  .about .grid,.contact .grid{grid-template-columns:1fr}
+  .sheet div{grid-template-columns:90px 1fr}
+  .proposal span.long{display:none}
+}
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js')</script>
+
+<header class="top">
+  <a class="logo" href="#" aria-label="{{ s.brand_name }}">
+    {% if logo_file %}<img class="{{ logo_cls }}" src="img/{{ logo_file }}" alt="{{ s.brand_name }}">{% else %}<span>{{ s.brand_name }}</span>{% endif %}
+  </a>
+  <nav class="nav">
+    <a href="#servicos">Serviços</a><a href="#empresa">Empresa</a>
+    <a class="btn" href="#contato">Solicitar orçamento</a>
+  </nav>
+</header>
+
+<main>
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow mono rv">{{ s.eyebrow }}</div>
+      <h1 class="rv">{{ s.hero_title_html | safe }}</h1>
+      <p class="lede rv">{{ s.hero_sub }}</p>
+      <div class="cta rv">
+        <a class="btn" href="#contato">Solicitar orçamento</a>
+        <a class="btn ghost" href="#servicos">Ver serviços</a>
+      </div>
+      {% if s.facts or s.phones %}
+      <dl class="sheet rv">
+        {% for f in s.facts[:2] %}<div><dt class="mono">{{ f.k }}</dt><dd>{{ f.v }}</dd></div>{% endfor %}
+        {% if s.phones %}<div><dt class="mono">Contato</dt><dd>{{ s.phones[0] }}</dd></div>{% endif %}
+      </dl>
+      {% endif %}
+    </div>
+    <figure class="plate rv">
+      <div class="frame">
+        {% if images and images|length > 0 %}<img src="img/{{ images[0] }}" alt="{{ s.hero_alt or '' }}">{% else %}<div class="ph"></div>{% endif %}
+      </div>
+      {% if images and images|length > 2 %}<div class="inset"><img src="img/{{ images[2] }}" alt=""></div>{% endif %}
+      <figcaption class="mono"><span>Fig. 01</span><span>{{ s.hero_alt or s.brand_name }}</span></figcaption>
+    </figure>
+  </div>
+</div>
+
+{% if s.process %}
+<section class="process wrap" aria-label="Como trabalhamos" style="padding-block:clamp(40px,6vw,72px)">
+  <ol class="steps">
+    {% for st in s.process %}<li class="rv" data-n="{{ '%02d' % loop.index }}"><strong>{{ st }}</strong></li>{% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+<section class="services wrap" id="servicos">
+  <div class="head">
+    <div class="rv"><div class="label mono">Serviços</div><h2>{{ s.services_title }}</h2></div>
+    {% if s.services_intro %}<p class="rv">{{ s.services_intro }}</p>{% endif %}
+  </div>
+  <div class="data">
+    <div class="row th mono" style="padding:10px 12px"><span>Cód.</span><span>Serviço</span><span>Observação</span></div>
+    {% for sv in s.services %}
+    <div class="row rv"><span class="cod mono">S-{{ '%02d' % loop.index }}</span><span class="t">{{ sv.name }}</span><span class="d">{{ sv.desc or '' }}</span></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="about" id="empresa">
+  <div class="wrap grid">
+    <div class="rv">
+      <div class="label mono">A empresa</div>
+      <p class="quote">{{ s.about[0] if s.about else s.about_title }}</p>
+      {% if images and images|length > 1 %}
+      <figure><img src="img/{{ images[1] }}" alt=""><figcaption class="mono">Fig. 02 · {{ s.brand_name }}</figcaption></figure>
+      {% endif %}
+    </div>
+    <div class="rest rv">
+      <h2 style="font-size:clamp(1.5rem,2.4vw,2rem);max-width:none;margin-bottom:18px">{{ s.about_title }}</h2>
+      {% for para in s.about[1:] %}<p>{{ para }}</p>{% endfor %}
+      {% if s.facts[2:] %}<dl class="facts">
+        {% for f in s.facts[2:] %}<div><dt>{{ f.k }}</dt><dd>{{ f.v }}</dd></div>{% endfor %}
+      </dl>{% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="contact" id="contato">
+  <div class="wrap grid">
+    <div class="rv"><div class="label mono">Contato</div><h2>{{ s.contact_title }}</h2></div>
+    <div class="rv">
+      <div class="ph">{% for p in s.phones %}<a href="#contato">{{ p }}</a>{% endfor %}</div>
+      {% if s.address %}<address>{{ s.address }}</address>{% endif %}
+      <a class="btn" href="#contato">Falar com a equipe</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><span>© {{ s.brand_name }}</span><span>{{ s.city_uf }}</span></footer>
+
+<div class="proposal" role="note">
+  <span><b>Proposta visual</b> <span class="long">preparada por {{ proposal.author }} · não é o site oficial de {{ s.short_name }}</span></span>
+  <a href="{{ proposal.cta_url }}">{{ proposal.cta_label }}</a>
+</div>
+
+<script>
+(function(){
+  var els=[].slice.call(document.querySelectorAll('.rv'));
+  if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('in')});return}
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{rootMargin:'0px 0px -8% 0px',threshold:.05});
+  els.forEach(function(e,i){e.style.transitionDelay=(i%4)*60+'ms';io.observe(e)});
+})();
+</script>
+</body>
+</html>

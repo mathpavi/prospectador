@@ -121,6 +121,7 @@ def init_db():
         'sender_whatsapp': '(51) 99766-1506',
         'sender_pitch': 'Criação e modernização de sites modernos, responsivos e de alta conversão para indústrias, com foco em apresentar a qualidade e robustez dos seus serviços.',
         'gemini_api_key': '',
+        'gemini_model': 'gemini-2.5-flash-lite',
         'kipflow_api_key': '27faee9a-15f3-4dfb-a1d0-383ac5fef117',
         'serper_api_key': '',
         'brave_api_key': '',
