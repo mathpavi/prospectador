@@ -98,6 +98,10 @@ def make(prospect, provider=None, slots_file=None, days=21, forced_template=None
             res = fill_mod.fill(prospect, ex, provider)
             slots, usage = res["slots"], res["usage"]
             reasons += res["fatal"]
+            if not slots:        # resposta da IA inutilizavel: nao ha o que renderizar
+                store.create(token, prospect["id"], prospect["company_name"], "-", "review", "; ".join(reasons), score, days)
+                print(f"custo da IA: US$ {usage.get('usd', 0)} ({usage.get('model')})")
+                return token, "review", reasons
             if res["problems"]:
                 print("avisos:", res["problems"])
 
@@ -107,7 +111,7 @@ def make(prospect, provider=None, slots_file=None, days=21, forced_template=None
         idx = render_mod.render(template, slots, work, out_dir, og=og)
         render_mod.screenshot(idx, os.path.join(out_dir, "thumb.png"), 1200, 630, full=False)
         store.create(token, prospect["id"], prospect["company_name"], template, status, "; ".join(reasons), score, days)
-        print(f"custo da IA: US$ {usage.get('usd', 0)} ({usage.get('provider')})")
+        print(f"custo da IA: US$ {usage.get('usd', 0)} ({usage.get('model') or usage.get('provider')})")
         return token, status, reasons
     finally:
         shutil.rmtree(work, ignore_errors=True)

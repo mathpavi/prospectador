@@ -18,6 +18,14 @@ MODELS = {
     "anthropic": {"id": "claude-haiku-4-5-20251001", "in": 1.00, "out": 5.00},     # US$/MTok (tabela oficial)
     "gemini": {"id": "gemini-2.5-flash-lite", "in": 0.10, "out": 0.40},
 }
+# US$/MTok (tabela oficial do Google). Se a chave nao tem acesso a um modelo (404), tenta o proximo da lista.
+GEMINI_PRICES = {
+    "gemini-3.1-flash-lite": (0.25, 1.50),
+    "gemini-3.5-flash-lite": (0.30, 2.50),
+    "gemini-2.5-flash-lite": (0.10, 0.40),
+    "gemini-2.5-flash": (0.30, 2.50),
+}
+GEMINI_CHAIN = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
 
 BANNED = [r"transforme (o )?seu neg[oó]cio", r"revolucion", r"solu[cç][aã]o completa", r"l[ií]der de mercado",
           r"refer[eê]ncia (no|em) (mercado|setor)", r"de ponta", r"inova[cç][aã]o disruptiva"]
@@ -57,7 +65,7 @@ def call_anthropic(user):
               "messages": [{"role": "user", "content": user}]})
     r.raise_for_status()
     j = r.json()
-    return j["content"][0]["text"], j["usage"]["input_tokens"], j["usage"]["output_tokens"]
+    return j["content"][0]["text"], j["usage"]["input_tokens"], j["usage"]["output_tokens"], MODELS["anthropic"]["id"]
 
 
 def _db_setting(key):
@@ -78,17 +86,28 @@ def call_gemini(user):
     api_key = os.environ.get("GEMINI_API_KEY") or _db_setting("gemini_api_key")
     if not api_key:
         sys.exit("Sem chave do Gemini: defina GEMINI_API_KEY ou salve a chave nas configuracoes do app.")
-    # modelo trocavel sem mexer no codigo (ex.: se a chave for recusada no 2.5, usar gemini-3.5-flash-lite)
-    model_id = os.environ.get("FILL_GEMINI_MODEL") or _db_setting("gemini_model") or MODELS["gemini"]["id"]
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent"
-    r = requests.post(url, timeout=60, headers={"x-goog-api-key": api_key, "content-type": "application/json"},
-                      json={"systemInstruction": {"parts": [{"text": SYSTEM}]},
-                            "contents": [{"role": "user", "parts": [{"text": user}]}],
-                            "generationConfig": {"temperature": 0.4, "responseMimeType": "application/json", "maxOutputTokens": 1500}})
-    r.raise_for_status()
-    j = r.json()
-    u = j.get("usageMetadata", {})
-    return j["candidates"][0]["content"]["parts"][0]["text"], u.get("promptTokenCount", 0), u.get("candidatesTokenCount", 0)
+    # ordem de tentativa: modelo escolhido (env/config do app) e depois a lista padrao; pula os que a chave nao acessa (404)
+    chosen = os.environ.get("FILL_GEMINI_MODEL") or _db_setting("gemini_model")
+    chain = list(dict.fromkeys(([chosen] if chosen else []) + GEMINI_CHAIN))
+    last = ""
+    for model_id in chain:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent"
+        r = requests.post(url, timeout=90, headers={"x-goog-api-key": api_key, "content-type": "application/json"},
+                          json={"systemInstruction": {"parts": [{"text": SYSTEM}]},
+                                "contents": [{"role": "user", "parts": [{"text": user}]}],
+                                "generationConfig": {"temperature": 0.4, "responseMimeType": "application/json", "maxOutputTokens": 4000}})
+        if r.status_code in (404, 403):
+            last = f"{model_id}: HTTP {r.status_code}"
+            print(f"modelo {model_id} indisponivel para esta chave (HTTP {r.status_code}); tentando o proximo...")
+            continue
+        if r.status_code != 200:
+            sys.exit(f"Gemini respondeu HTTP {r.status_code} no modelo {model_id}: {r.text[:300]}")
+        j = r.json()
+        u = j.get("usageMetadata", {})
+        print(f"modelo usado: {model_id}")
+        return (j["candidates"][0]["content"]["parts"][0]["text"], u.get("promptTokenCount", 0),
+                u.get("candidatesTokenCount", 0), model_id)
+    sys.exit(f"Nenhum modelo Gemini acessivel com esta chave (ultimo erro: {last}). Confira a chave no AI Studio.")
 
 
 def parse_json(txt):
@@ -158,13 +177,18 @@ def assemble(copy, ex, prospect):
 
 def fill(prospect, ex, provider="anthropic"):
     user = build_user(prospect, ex)
-    txt, tin, tout = (call_anthropic if provider == "anthropic" else call_gemini)(user)
-    m = MODELS[provider]
-    cost = tin * m["in"] / 1e6 + tout * m["out"] / 1e6
-    copy = parse_json(txt)
+    txt, tin, tout, model_id = (call_anthropic if provider == "anthropic" else call_gemini)(user)
+    p_in, p_out = GEMINI_PRICES.get(model_id, (MODELS[provider]["in"], MODELS[provider]["out"])) if provider == "gemini" \
+        else (MODELS[provider]["in"], MODELS[provider]["out"])
+    cost = tin * p_in / 1e6 + tout * p_out / 1e6
+    usage = {"provider": provider, "model": model_id, "in": tin, "out": tout, "usd": round(cost, 6)}
+    try:
+        copy = parse_json(txt)
+    except ValueError:   # resposta fora do formato JSON: nao quebra o fluxo, manda para revisao
+        return {"slots": {}, "problems": [], "fatal": ["a IA devolveu uma resposta fora do formato esperado"], "usage": usage,
+                "raw": txt[:300]}
     copy, problems, fatal = validate(copy, ex, prospect)
-    return {"slots": assemble(copy, ex, prospect), "problems": problems, "fatal": fatal,
-            "usage": {"provider": provider, "model": m["id"], "in": tin, "out": tout, "usd": round(cost, 6)}}
+    return {"slots": assemble(copy, ex, prospect), "problems": problems, "fatal": fatal, "usage": usage}
 
 
 if __name__ == "__main__":
