@@ -114,6 +114,22 @@ def find_logo(soup, base, tokens):
     return best if best_score >= 5 else None
 
 
+UFS = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split()
+
+
+def clean_address(raw):
+    """Corta o endereco onde ele termina: depois do CEP ou da UF, e antes de rotulos de formulario/horario."""
+    s = clean(raw)
+    s = re.split(r"\s(?:E-?mail|Tel|Telefone|Fone|Seg|Segunda|WhatsApp|CNPJ|Nome|Mensagem|Assunto|Enviar|Hor[aá]rio)\b|\s\*|\s{2,}", s, maxsplit=1)[0]
+    m = re.search(r"CEP:?\s*\d{5}-?\d{3}", s)
+    if m:
+        return s[:m.end()].strip(" ,-–")
+    for m in re.finditer(r"(?:/|\s[–-]\s)\s?(" + "|".join(UFS) + r")\b", s):
+        if m.start() > 12:
+            return s[:m.end()].strip(" ,-–")
+    return s[:140].strip(" ,-–")
+
+
 def _photo_like(raw):
     """True se a imagem parece foto/conteudo (nao banner largo, tira estreita ou miniatura)."""
     try:
@@ -123,6 +139,11 @@ def _photo_like(raw):
         w, h = im.size
         if not (min(w, h) >= 240 and 0.45 <= w / h <= 2.3):
             return False
+        # emblema/logo/arte: PNG ou WebP com areas transparentes (foto de verdade quase nunca tem transparencia)
+        if im.mode in ("RGBA", "LA", "PA") or (im.mode == "P" and "transparency" in im.info):
+            alpha = list(im.convert("RGBA").resize((64, 64)).getchannel("A").getdata())
+            if sum(1 for v in alpha if v < 128) / len(alpha) > 0.08:
+                return False
         # logo de parceiro / arte grafica: fundo branco dominante + regioes chapadas.
         # (calibrado em amostras reais; pode recusar foto de produto em fundo branco: prefere-se ter menos imagens)
         s = im.convert("RGB").resize((96, 96))
@@ -264,7 +285,7 @@ def extract(url, screenshot_path=None, save_dir=None, brand=None):
     phones = norm_phones(tel + PHONE_RE.findall(text) + wa_num)[:4]
     emails = [e for e in dict.fromkeys(EMAIL_RE.findall(text)) if not e.lower().endswith(("png", "jpg", "webp"))][:3]
     addr = ADDR_RE.search(text)
-    address = re.split(r"\s(?:E-?mail|Tel|Fone|Seg|Segunda|WhatsApp|CNPJ)\b|\s{2,}", clean(addr.group(0)), maxsplit=1)[0] if addr else ""
+    address = clean_address(addr.group(0)) if addr else ""
     year = YEAR_RE.search(text)
 
     if save_dir:

@@ -161,6 +161,13 @@ def assemble(copy, ex, prospect):
     c = ex["contacts"]
     uf = (prospect.get("region") or "").split()[-1] if prospect.get("region") else ""
     slots = dict(copy)
+    # cidade/UF: ultima parte do 'eyebrow' (separado por · – — ou " - "); sem isso, a regiao do cadastro
+    parts = [p for p in re.split(r"\s*[·–—]\s*|\s+-\s+", slots.get("eyebrow", "")) if p.strip()]
+    city_uf = parts[-1].strip() if len(parts) > 1 else (prospect.get("region") or "")
+    if len(parts) > 1 and re.fullmatch(r"[A-Z]{2}", city_uf):      # "Metalurgica em Caxias do Sul - RS" -> "Caxias do Sul / RS"
+        city_uf = f"{parts[-2].split(' em ')[-1].strip()} / {city_uf}"
+    # a IA nao enxerga as imagens: o texto alternativo vem do proprio site, ou e so o nome da empresa (sem inventar descricao)
+    first_alt = next((i.get("alt") for i in ex.get("images", []) if i.get("file") and i.get("alt")), "")
     slots.update({
         "brand_name": prospect.get("company_name") or ex.get("site_name"),
         "short_name": prospect.get("company_name") or ex.get("site_name"),
@@ -168,7 +175,8 @@ def assemble(copy, ex, prospect):
         "specbar": [x for x in [uf and slots.get("eyebrow", "").split("·")[-1].strip(), (c.get("phones") or [None])[0]] if x],
         "phones": c.get("phones", [])[:2],
         "address": c.get("address", ""),
-        "city_uf": slots.get("eyebrow", "").split("·")[-1].strip(),
+        "city_uf": city_uf,
+        "hero_alt": first_alt or (prospect.get("company_name") or ex.get("site_name") or ""),
         "images": [i["file"] for i in ex.get("images", []) if i.get("file")][:3],
         "logo_file": ex.get("logo"),
     })
