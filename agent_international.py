@@ -12,6 +12,7 @@ from duckduckgo_search import DDGS
 import google.generativeai as genai
 import database
 import gemini_util
+import validators
 from agent import IGNORED_DOMAINS, FORBIDDEN_DOMAIN_KEYWORDS, extract_base_domain
 
 GOSOM_TERMINAL_STATUSES = {"ok", "failed"}
@@ -151,7 +152,7 @@ def extract_contacts_from_html(html, text, url, ddi):
                 if formatted and formatted not in phones:
                     phones.append(formatted)
                     
-    primary_email = emails[0] if emails else ''
+    primary_email = validators.pick_valid_email(emails)
     primary_phone = phones[0] if phones else ''
     
     return primary_email, primary_phone, emails, phones

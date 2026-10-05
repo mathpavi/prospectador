@@ -113,7 +113,12 @@ def init_db():
         cursor.execute("ALTER TABLE prospects ADD COLUMN whatsapp_contacted_at DATETIME")
     if 'whatsapp_custom_draft' not in columns:
         cursor.execute("ALTER TABLE prospects ADD COLUMN whatsapp_custom_draft TEXT")
-    
+    # PLANO_PROSPECTADOR T1/Q2: estagio do funil, resultado comercial e qualificacao
+    for col, ddl in (('stage', 'TEXT'), ('deal_value', 'REAL'), ('closed_at', 'DATETIME'),
+                     ('win_source', 'TEXT'), ('qualification', 'TEXT')):
+        if col not in columns:
+            cursor.execute(f"ALTER TABLE prospects ADD COLUMN {col} {ddl}")
+
     
     # Seed default settings if they don't exist
     default_settings = {
@@ -122,7 +127,7 @@ def init_db():
         'sender_pitch': 'Criação e modernização de sites modernos, responsivos e de alta conversão para indústrias, com foco em apresentar a qualidade e robustez dos seus serviços.',
         'gemini_api_key': '',
         'gemini_model': 'gemini-2.5-flash-lite',
-        'kipflow_api_key': '27faee9a-15f3-4dfb-a1d0-383ac5fef117',
+        'kipflow_api_key': '',   # NUNCA colocar chaves no codigo; cadastre na tela de configuracoes
         'serper_api_key': '',
         'brave_api_key': '',
         'cloro_api_key': '',
@@ -147,7 +152,13 @@ def init_db():
         'autopilot_auto_approve': '1',
         'autopilot_last_email_sent_at': '',
         'autopilot_last_search_run_at': '',
-        'sender_portfolio': 'https://paviani.net/portfolio/'
+        'sender_portfolio': 'https://paviani.net/portfolio/',
+        # PLANO_PROSPECTADOR E1/Q2: identificacao no rodape do e-mail e verificacao antes do envio
+        'sender_company': '',
+        'sender_address': '',
+        'sender_cnpj': '',
+        'public_base_url': '',
+        'qualify_before_send': '1'
     }
     
     for key, val in default_settings.items():
@@ -166,9 +177,53 @@ def init_db():
     ]
     for pattern in junk_patterns:
         cursor.execute("DELETE FROM prospects WHERE website LIKE ? OR company_name LIKE ?", (pattern, pattern.replace('%', '')))
-        
+
+    # PLANO_PROSPECTADOR T1/E1: eventos do funil e lista de bloqueio (descadastros, rejeicoes definitivas)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            prospect_id INTEGER,
+            type TEXT NOT NULL,
+            detail TEXT,
+            meta TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_events_prospect ON events(prospect_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_events_type_date ON events(type, created_at)')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS suppressions (
+            value TEXT PRIMARY KEY,
+            kind TEXT DEFAULT 'email',
+            reason TEXT,
+            prospect_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    _backfill_events(cursor)
+
     conn.commit()
     conn.close()
+
+def _backfill_events(cursor):
+    """Uma unica vez: cria eventos para o que ja aconteceu (envios, falhas, follow-ups), para o historico nao comecar zerado."""
+    cursor.execute("SELECT value FROM settings WHERE key = 'events_backfilled'")
+    if cursor.fetchone():
+        return
+    cursor.execute("SELECT id, status, sent_at, error_message, updated_at, followup_status, followup_sent_at, "
+                   "whatsapp_contacted, whatsapp_contacted_at FROM prospects")
+    for r in cursor.fetchall():
+        if r['status'] == 'sent' and r['sent_at']:
+            cursor.execute("INSERT INTO events (prospect_id, type, created_at) VALUES (?, 'email_sent', ?)", (r['id'], r['sent_at']))
+        elif r['status'] == 'failed':
+            cursor.execute("INSERT INTO events (prospect_id, type, detail, created_at) VALUES (?, 'email_failed', ?, ?)",
+                           (r['id'], (r['error_message'] or '')[:200], r['updated_at']))
+        if r['followup_status'] == 'done' and r['followup_sent_at']:
+            cursor.execute("INSERT INTO events (prospect_id, type, created_at) VALUES (?, 'followup_done', ?)", (r['id'], r['followup_sent_at']))
+        if r['whatsapp_contacted']:
+            cursor.execute("INSERT INTO events (prospect_id, type, created_at) VALUES (?, 'whatsapp_contacted', ?)",
+                           (r['id'], r['whatsapp_contacted_at'] or r['updated_at']))
+    cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('events_backfilled', ?)", (get_now_str(),))
 
 def get_setting(key, default=None):
     conn = get_db_connection()
@@ -327,6 +382,18 @@ def add_prospect(prospect_dict):
     
     status = prospect_dict.get('status', 'pending')
     email = prospect_dict.get('contact_email', '')
+    notes_value = prospect_dict.get('notes')
+
+    # Q1: e-mail sem sintaxe valida (lixo de CSS/JS/arquivo) nunca entra como contato
+    if email:
+        import validators
+        e_status, e_why, e_norm = validators.check_email(email, check_dns=False)
+        if e_status == 'valid':
+            email = e_norm
+        else:
+            notes_value = ((notes_value or '') + f"\n[sistema] e-mail descartado ({e_why}): {email}").strip()
+            email = ''
+
     if status == 'pending' and email:
         try:
             auto_approve = get_setting('autopilot_auto_approve', '0') == '1'
@@ -334,7 +401,14 @@ def add_prospect(prospect_dict):
                 status = 'approved'
         except:
             pass
-            
+
+    # Q3: aprovacao so passa pelas portas (e-mail valido, nao bloqueado, site proprio). Falhou: fica pendente com motivo.
+    if status == 'approved':
+        gate_ok, gate_why = approval_gate(dict(prospect_dict, contact_email=email))
+        if not gate_ok:
+            status = 'pending'
+            notes_value = ((notes_value or '') + f"\n[sistema] aprovacao automatica bloqueada: {gate_why}").strip()
+
     cursor.execute('''
         INSERT INTO prospects (
             company_name, website, segment, region, status, 
@@ -353,13 +427,13 @@ def add_prospect(prospect_dict):
         prospect_dict.get('region'),
         status,
         json.dumps(prospect_dict.get('detected_issues', [])),
-        prospect_dict.get('contact_email'),
+        email,
         prospect_dict.get('contact_whatsapp'),
         prospect_dict.get('contact_phone'),
         prospect_dict.get('email_subject'),
         prospect_dict.get('email_body'),
         prospect_dict.get('whatsapp_draft'),
-        prospect_dict.get('notes'),
+        notes_value,
         prospect_dict.get('screenshot'),
         prospect_dict.get('is_surgical', 0),
         prospect_dict.get('surgical_type'),
@@ -383,10 +457,108 @@ def add_prospect(prospect_dict):
     new_id = cursor.lastrowid
     conn.commit()
     conn.close()
+    add_event(new_id, 'prospect_created', status)
     return new_id
 
 # Alias for compatibility
 insert_prospect = add_prospect
+
+
+# ---------------------------------------------------------------------------------------------
+# PLANO_PROSPECTADOR: eventos (T1), lista de bloqueio (E1), estagios e porta de aprovacao (Q3)
+# ---------------------------------------------------------------------------------------------
+STAGES = ('novo', 'contatado', 'respondeu', 'interessado', 'reuniao', 'proposta', 'ganho', 'perdido', 'descadastrou', 'invalido')
+_NOT_A_SITE = ('telelistas', 'guiamais', 'solutudo', 'apontador', 'econodata', 'cnpj.biz', 'casadosdados', 'cnpja', 'facebook',
+               'instagram', 'linkedin', 'youtube', 'linktr.ee', 'wa.me', 'tiktok', 'twitter')
+
+
+def add_event(prospect_id, event_type, detail=None, meta=None, created_at=None):
+    """Registra um evento do funil. Medir NUNCA pode derrubar o fluxo: qualquer erro e engolido."""
+    try:
+        conn = get_db_connection()
+        conn.execute('INSERT INTO events (prospect_id, type, detail, meta, created_at) VALUES (?, ?, ?, ?, ?)',
+                     (prospect_id, event_type, detail, json.dumps(meta, ensure_ascii=False) if meta is not None else None,
+                      created_at or get_now_str()))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+def get_events(prospect_id):
+    conn = get_db_connection()
+    rows = conn.execute('SELECT id, type, detail, meta, created_at FROM events WHERE prospect_id = ? ORDER BY id', (prospect_id,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def add_suppression(value, reason='', prospect_id=None, kind=None):
+    """Bloqueia um e-mail (ou dominio) para sempre. Respeitada em todo envio."""
+    value = (value or '').strip().lower()
+    if not value:
+        return False
+    kind = kind or ('email' if '@' in value else 'domain')
+    conn = get_db_connection()
+    conn.execute('INSERT OR REPLACE INTO suppressions (value, kind, reason, prospect_id, created_at) VALUES (?, ?, ?, ?, ?)',
+                 (value, kind, reason, prospect_id, get_now_str()))
+    conn.commit()
+    conn.close()
+    return True
+
+
+def is_suppressed(email):
+    email = (email or '').strip().lower()
+    if not email:
+        return False
+    domain = email.rsplit('@', 1)[1] if '@' in email else email
+    conn = get_db_connection()
+    row = conn.execute('SELECT 1 FROM suppressions WHERE value IN (?, ?) LIMIT 1', (email, domain)).fetchone()
+    conn.close()
+    return bool(row)
+
+
+def set_stage(prospect_id, stage, deal_value=None, note=None, source=None):
+    """Muda o estagio do funil (ex.: ganho/perdido) e registra o evento. 'descadastrou' tambem bloqueia o e-mail."""
+    if stage not in STAGES:
+        raise ValueError(f"estagio invalido '{stage}'. Use um de: {', '.join(STAGES)}")
+    prospect = get_prospect(prospect_id)
+    if not prospect:
+        raise ValueError(f"prospect {prospect_id} nao encontrado")
+    now = get_now_str()
+    sets, params = ['stage = ?', 'updated_at = ?'], [stage, now]
+    if stage in ('ganho', 'perdido'):
+        sets.append('closed_at = ?'); params.append(now)
+    if deal_value is not None:
+        sets.append('deal_value = ?'); params.append(float(deal_value))
+    if source:
+        sets.append('win_source = ?'); params.append(source)
+    params.append(prospect_id)
+    conn = get_db_connection()
+    conn.execute(f"UPDATE prospects SET {', '.join(sets)} WHERE id = ?", params)
+    conn.commit()
+    conn.close()
+    add_event(prospect_id, f'stage:{stage}', note, {'deal_value': deal_value, 'source': source})
+    if stage == 'descadastrou' and prospect.get('contact_email'):
+        add_suppression(prospect['contact_email'], 'descadastro (estagio)', prospect_id)
+    return True
+
+
+def approval_gate(prospect_dict):
+    """Q3: portas para aprovar sem olhar. Devolve (ok, motivo). Rapida e sem rede (o DNS/IA ficam na hora do envio)."""
+    import validators
+    from urllib.parse import urlparse
+    email = (prospect_dict.get('contact_email') or '').strip()
+    if not email:
+        return False, 'sem e-mail de contato'
+    st, why = validators.check_syntax(email)
+    if st != 'valid':
+        return False, f'e-mail invalido ({why})'
+    if is_suppressed(email):
+        return False, 'e-mail na lista de bloqueio'
+    site_host = urlparse(prospect_dict.get('website') or '').netloc.lower()
+    if any(d in site_host for d in _NOT_A_SITE) and not prospect_dict.get('is_directory'):
+        return False, 'o site cadastrado e diretorio/rede social, nao o site da empresa'
+    return True, ''
 
 def get_prospect(prospect_id):
     conn = get_db_connection()

@@ -16,6 +16,7 @@ except ImportError:
     from duckduckgo_search import DDGS
 import database
 import gemini_util
+import validators
 
 try:
     from scrapling import Fetcher, StealthyFetcher
@@ -1850,7 +1851,7 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
     # 9. Contact Info Extraction
     emails = list(set(re.findall(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', html_content)))
     emails = [e for e in emails if not any(x in e.lower() for x in ['example.com', 'dominio.com', 'seusite.com', 'wixpress', 'sentry.io', 'bootstrap', 'npm'])]
-    contact_email = emails[0] if emails else ""
+    contact_email = validators.pick_valid_email(emails)   # Q1: primeiro e-mail VALIDO (ignora lixo de CSS/JS/arquivo)
     
     contact_phone = ""
     if phones_found:
@@ -1888,7 +1889,7 @@ def analyze_website(url, segment, region, state_uf=None, allowed_cities=None):
                 
                 sub_emails = find_emails_in_text(sub_resp.text)
                 if sub_emails:
-                    contact_email = sub_emails[0]
+                    contact_email = validators.pick_valid_email(sub_emails) or contact_email
             except Exception as e:
                 add_log(f'Erro ao ler página de contato {contact_subpage_url}: {e}')
 
@@ -2774,7 +2775,7 @@ def run_surgical_job(segment, region, max_results, state_uf=None, city_name=None
                 if not p_web:
                     maps_search_url = f"https://www.google.com/maps/search/?api=1&query={requests.utils.quote(p_name + ' ' + p_addr)}"
                     p_emails, extra_phones = search_contacts_for_company(p_name, db_region)
-                    email_contact = p_emails[0] if p_emails else ""
+                    email_contact = validators.pick_valid_email(p_emails)
                     phone_contact = clean_p_phone or (extra_phones[0] if extra_phones else "")
                     
                     if not email_contact and not phone_contact:
@@ -2809,7 +2810,7 @@ def run_surgical_job(segment, region, max_results, state_uf=None, city_name=None
                             audit_res = analyze_website(p_web, segment=segment, region=db_region)
                             if audit_res.get('status') == 'success':
                                 audit_emails = audit_res.get('contact_emails', [])
-                                email_contact = audit_emails[0] if audit_emails else ""
+                                email_contact = validators.pick_valid_email(audit_emails)
                                 phone_contact = clean_p_phone or (audit_res.get('contact_phones', [''])[0])
                                 
                                 p_data = {
@@ -2869,7 +2870,7 @@ def run_surgical_job(segment, region, max_results, state_uf=None, city_name=None
                 add_log(f"Ignorando perfil social {url} pois indica possuir site próprio.")
                 continue
             
-            email_contact = emails[0] if emails else ""
+            email_contact = validators.pick_valid_email(emails)
             phone_contact = phones[0] if phones else ""
             whatsapp_contact = ""
             
@@ -3093,7 +3094,7 @@ def import_and_verify_leads(items, auto_approve=False, progress_callback=None):
                                 'region': "Importado",
                                 'status': 'approved' if auto_approve else 'pending',
                                 'detected_issues': ["Site inacessível (contatos extraídos da busca)"],
-                                'contact_email': emails[0] if emails else '',
+                                'contact_email': validators.pick_valid_email(emails),
                                 'contact_whatsapp': phones[0] if phones else '',
                                 'contact_phone': phones[0] if phones else '',
                                 'notes': f"Contatos extraídos do snippet do DuckDuckGo: {r.get('body', '')}"

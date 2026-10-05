@@ -24,9 +24,10 @@ def preview_gate(req):
     - Response  -> 404: no host de preview so existe /p/... (o painel nunca fica exposto por la)
     Este teste vem ANTES de qualquer outra regra, inclusive do token de diagnostico."""
     host = (req.host or "").split(":")[0].lower()
-    if host == PREVIEW_HOST and not req.path.startswith("/p/"):
+    public = req.path.startswith("/p/") or req.path.startswith("/u/")      # esbocos (/p/) e descadastro (/u/)
+    if host == PREVIEW_HOST and not public:
         return Response("Not Found", status=404, mimetype="text/plain")
-    if req.path.startswith("/p/"):
+    if public:
         return "public"
     return None
 

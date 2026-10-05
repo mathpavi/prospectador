@@ -10,11 +10,20 @@ import os
 from datetime import datetime
 import json
 
+import security
 from mockups.blueprint import bp as mockups_bp, preview_gate
+from public_routes import bp as public_bp
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'super-prospector-paviani-secret-key-2026')
+# F1: chave de sessao vem do ambiente ou e gerada e guardada em DATA_DIR (nunca um valor fixo no codigo)
+app.secret_key = security.get_secret_key()
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=os.environ.get('COOKIE_SECURE', '0') == '1',   # defina COOKIE_SECURE=1 na VPS (HTTPS)
+)
 app.register_blueprint(mockups_bp)   # rota publica /p/<token>/ dos esbocos de site
+app.register_blueprint(public_bp)    # rota publica /u/<token> de descadastro
 
 # Initialize DB on startup
 database.init_db()
@@ -26,15 +35,13 @@ def get_admin_password():
         return env_pass
     return database.get_setting('admin_password', '')
 
-DIAG_TOKEN = os.environ.get('DIAGNOSTICS_TOKEN', 'paviani-diag-token-2026')
-
 def is_diag_authorized():
-    token = request.headers.get('X-Diag-Key') or request.args.get('diag_key')
-    return bool(token and token.strip() == DIAG_TOKEN)
+    # F1: so existe com DIAGNOSTICS_TOKEN definido no ambiente, enviado no cabecalho X-Diag-Key
+    return security.diag_authorized(request)
 
 @app.before_request
 def require_auth():
-    # Esbocos de site (preview.paviani.net): /p/... e publico; no host de preview so existe /p/...
+    # Esbocos (/p/) e descadastro (/u/) sao publicos; no host de preview so existem essas rotas
     _gate = preview_gate(request)
     if _gate == "public":
         return None
@@ -46,10 +53,12 @@ def require_auth():
         return None
 
     admin_pass = get_admin_password()
-    # If no password configured, access is open
+    # F1: sem senha de admin o painel so abre em localhost; na internet fica bloqueado
+    if security.open_access_blocked(request, admin_pass):
+        return ("Acesso bloqueado: defina a senha de administrador (variavel ADMIN_PASSWORD) para usar o painel.", 503)
     if not admin_pass:
         return None
-        
+
     # Allow static files and login endpoints
     if request.path.startswith('/static') or request.path == '/login' or request.path == '/favicon.ico':
         return None
@@ -67,19 +76,38 @@ def login():
         
     error = None
     if request.method == 'POST':
+        ip = security.client_ip(request)
+        if security.login_blocked(ip):
+            return render_template('login.html', error="Muitas tentativas. Aguarde alguns minutos e tente de novo."), 429
         password = request.form.get('password', '')
-        if password == admin_pass:
+        if security.safe_equal(password, admin_pass):
+            security.clear_login_failures(ip)
             session['authenticated'] = True
             return redirect('/')
         else:
+            security.register_login_failure(ip)
             error = "Senha incorreta. Tente novamente."
-            
+
     return render_template('login.html', error=error)
 
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
     session.pop('authenticated', None)
     return redirect('/login')
+
+# --- Funil (T1 do PLANO_PROSPECTADOR): estagio/resultado de cada prospect e historico de eventos ---
+@app.route('/api/prospects/<int:prospect_id>/stage', methods=['POST'])
+def api_set_prospect_stage(prospect_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        database.set_stage(prospect_id, data.get('stage', ''), data.get('deal_value'), data.get('note'), data.get('source'))
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+    return jsonify({"success": True})
+
+@app.route('/api/prospects/<int:prospect_id>/events')
+def api_prospect_events(prospect_id):
+    return jsonify(database.get_events(prospect_id))
 
 # Global states for background tasks
 search_lock = threading.Lock()
@@ -378,7 +406,7 @@ def autopilot_send_next_email(force=False):
         log_autopilot_activity("Disparo de E-mail", f"Falha no envio para {target_lead['company_name']}: {error_msg}", "error")
         
         # Apply sending cooldown backoff only for network/SMTP/mailer limits, not for validation errors
-        is_validation_error = "não possui e-mail" in error_msg or "vazio" in error_msg
+        is_validation_error = "não possui e-mail" in error_msg or "vazio" in error_msg or mailer.REJECT_PREFIX in error_msg
         if not is_validation_error:
             now_str = database.get_now_str()
             database.save_settings({'autopilot_last_email_sent_at': now_str})

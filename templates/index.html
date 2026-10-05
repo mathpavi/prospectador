@@ -1274,7 +1274,33 @@
                             Link do seu portfólio oficial que será incluído na assinatura e nas propostas dos e-mails enviados.
                         </div>
                     </div>
-                    
+
+                    <!-- PLANO_PROSPECTADOR E1/Q2: identificação no rodapé e verificação antes do envio -->
+                    <div class="form-group row">
+                        <div>
+                            <label for="sender_company">Razão social ou nome da empresa (rodapé dos e-mails)</label>
+                            <input type="text" id="sender_company" name="sender_company" placeholder="Ex.: Paviani Digital Media">
+                        </div>
+                        <div>
+                            <label for="sender_cnpj">CNPJ (opcional)</label>
+                            <input type="text" id="sender_cnpj" name="sender_cnpj" placeholder="00.000.000/0000-00">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="sender_address">Endereço ou cidade/UF (rodapé dos e-mails)</label>
+                        <input type="text" id="sender_address" name="sender_address" placeholder="Ex.: Rua Exemplo, 100, Porto Alegre/RS">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            Todo e-mail sai com este rodapé e com um link de descadastro. Quem se descadastra nunca mais recebe. Para enviar aos EUA, a lei (CAN-SPAM) exige endereço postal.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="qualify_before_send">Verificar com IA se a empresa é do segmento antes de enviar</label>
+                        <select id="qualify_before_send" name="qualify_before_send">
+                            <option value="1">Sim (recomendado): barra RH, diretórios, grandes empresas etc.</option>
+                            <option value="0">Não verificar</option>
+                        </select>
+                    </div>
+
                     <!-- Section C: SMTP Server -->
                     <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 30px;">
                         📧 Servidor SMTP (Envio de E-mails)
