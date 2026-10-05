@@ -51,3 +51,20 @@ def record_view(token):
 def list_all():
     with _conn() as c:
         return [dict(r) for r in c.execute("select * from mockups order by created_at desc")]
+
+
+def ready_tokens(prospect_ids):
+    """{prospect_id: token} dos esbocos PRONTOS e dentro da validade (o mais recente de cada prospect)."""
+    ids = [int(i) for i in prospect_ids if i is not None]
+    if not ids:
+        return {}
+    now = int(time.time())
+    out = {}
+    with _conn() as c:
+        for i in range(0, len(ids), 500):                      # limite de variaveis do SQLite
+            chunk = ids[i:i + 500]
+            q = ",".join("?" * len(chunk))
+            for r in c.execute(f"select prospect_id, token from mockups where status='ready' and expires_at>? and prospect_id in ({q}) "
+                               "order by created_at asc", [now] + chunk):
+                out[r["prospect_id"]] = r["token"]               # o mais recente sobrescreve
+    return out

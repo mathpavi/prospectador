@@ -158,7 +158,8 @@ def init_db():
         'sender_address': '',
         'sender_cnpj': '',
         'public_base_url': '',
-        'qualify_before_send': '1'
+        'qualify_before_send': '1',
+        'whatsapp_daily_goal': '15'
     }
     
     for key, val in default_settings.items():
@@ -868,3 +869,66 @@ def update_whatsapp_custom_draft(prospect_id, draft_text):
     conn.commit()
     conn.close()
     return True
+
+
+# ---------------------------------------------------------------------------------------------
+# PLANO_PROSPECTADOR C9: Central WhatsApp (candidatos sem paginar, contagem do dia, telefones bloqueados)
+# ---------------------------------------------------------------------------------------------
+def get_whatsapp_candidates(subtab='email_sent', segment=None, search_query=None):
+    """Todos os prospects da fila indicada (a paginacao e a ordem por prioridade ficam com quem chama).
+    Exclui telefone invalido, quem pediu para parar e telefones na lista de bloqueio."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    clauses = ["((contact_whatsapp IS NOT NULL AND contact_whatsapp != '') OR (contact_phone IS NOT NULL AND contact_phone != ''))",
+               "(stage IS NULL OR stage NOT IN ('invalido', 'descadastrou'))"]
+    params = []
+    if subtab == 'email_sent':
+        clauses += ["status = 'sent'", "(whatsapp_contacted = 0 OR whatsapp_contacted IS NULL)"]
+    elif subtab == 'no_email':
+        clauses += ["(contact_email IS NULL OR contact_email = '')", "status != 'sent'", "(whatsapp_contacted = 0 OR whatsapp_contacted IS NULL)"]
+    elif subtab == 'contacted':
+        clauses.append("whatsapp_contacted = 1")
+    elif subtab == 'all_pending':
+        clauses.append("(whatsapp_contacted = 0 OR whatsapp_contacted IS NULL)")
+    if segment and segment != 'all':
+        clauses.append("segment = ?")
+        params.append(segment)
+    if search_query:
+        sq = f"%{search_query.strip()}%"
+        clauses.append("(company_name LIKE ? OR region LIKE ? OR contact_phone LIKE ? OR contact_whatsapp LIKE ?)")
+        params.extend([sq, sq, sq, sq])
+    cursor.execute('SELECT * FROM prospects WHERE ' + ' AND '.join(clauses), params)
+    rows = cursor.fetchall()
+    blocked = {r['value'] for r in cursor.execute("SELECT value FROM suppressions WHERE kind = 'phone'").fetchall()}
+    conn.close()
+    out = []
+    for row in rows:
+        res = dict(row)
+        digits = ''.join(ch for ch in (res.get('contact_whatsapp') or res.get('contact_phone') or '') if ch.isdigit())
+        if digits and (digits in blocked or ('55' + digits) in blocked or (digits[2:] in blocked if digits.startswith('55') else False)):
+            continue
+        res['detected_issues'] = json.loads(res['detected_issues']) if res['detected_issues'] else []
+        out.append(res)
+    return out
+
+
+def whatsapp_today_counts():
+    """Quantos contatos de WhatsApp foram marcados hoje, no total e por conta (business/personal)."""
+    conn = get_db_connection()
+    rows = conn.execute("SELECT meta FROM events WHERE type = 'whatsapp_contacted' AND created_at >= ?", (get_today_start_str(),)).fetchall()
+    conn.close()
+    by_account = {}
+    for r in rows:
+        try:
+            acc = (json.loads(r['meta']) or {}).get('account') or 'sem_conta'
+        except Exception:
+            acc = 'sem_conta'
+        by_account[acc] = by_account.get(acc, 0) + 1
+    return {"total": len(rows), "by_account": by_account}
+
+
+def whatsapp_last_contact_at():
+    conn = get_db_connection()
+    row = conn.execute("SELECT created_at FROM events WHERE type = 'whatsapp_contacted' ORDER BY id DESC LIMIT 1").fetchone()
+    conn.close()
+    return row['created_at'] if row else None

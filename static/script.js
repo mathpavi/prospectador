@@ -3292,7 +3292,8 @@ window.loadWhatsappOpportunities = async function() {
         
         const prospects = data.prospects || [];
         const stats = data.stats || {};
-        
+        if (typeof updateWaDailyBar === 'function') updateWaDailyBar(stats);
+
         // Update stats counters
         const emailSentCount = stats.email_sent_count || 0;
         const noEmailCount = stats.no_email_count || 0;
@@ -3366,12 +3367,24 @@ window.loadWhatsappOpportunities = async function() {
         container.innerHTML = prospects.map(lead => {
             const phone = lead.contact_whatsapp || lead.contact_phone || '';
             const rawDigits = phone.replace(/\D/g, '');
-            const score = lead.opportunity_score || (lead.is_directory ? 95 : 75);
-            
-            // Format phone for wa.me (ensure 55 country code)
-            let waDigits = rawDigits;
-            if (waDigits.length === 10 || waDigits.length === 11) {
+            // C9: prioridade calculada no servidor (celular, esboço pronto, segmento, momento do follow-up)
+            const score = (lead.wa_priority !== undefined) ? lead.wa_priority : (lead.opportunity_score || (lead.is_directory ? 95 : 75));
+
+            // Format phone for wa.me (ensure 55 country code); o servidor já normaliza em wa_digits
+            let waDigits = lead.wa_digits || rawDigits;
+            if (!lead.wa_digits && (waDigits.length === 10 || waDigits.length === 11)) {
                 waDigits = '55' + waDigits;
+            }
+            const cardGroup = (lead.status === 'sent') ? 'email_sent' : 'no_email';
+            let waBadges = '';
+            if (lead.mockup_url) {
+                waBadges += `<span class="badge" style="background: rgba(37,211,102,0.15); color: #25D366; border: 1px solid rgba(37,211,102,0.35); font-size: 0.72rem;" title="O link do esboço já está na mensagem">🖼️ Esboço pronto</span>`;
+            }
+            if (lead.wa_mobile === false) {
+                waBadges += `<span class="badge" style="background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.35); font-size: 0.72rem;" title="${escapeHtml(lead.wa_phone_note || 'Pode não ter WhatsApp')}">⚠️ Pode não ter WhatsApp</span>`;
+            }
+            if ((lead.wa_flags || []).includes('nome_do_socio')) {
+                waBadges += `<span class="badge" style="background: rgba(148,163,184,0.15); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.3); font-size: 0.72rem;" title="Saudação com o nome do sócio (CNPJ)">👤 Nome do sócio</span>`;
             }
             
             // Origin badge
@@ -3400,6 +3413,8 @@ window.loadWhatsappOpportunities = async function() {
             let defaultMessage = '';
             if (lead.whatsapp_custom_draft) {
                 defaultMessage = lead.whatsapp_custom_draft;
+            } else if (lead.suggested_message) {
+                defaultMessage = lead.suggested_message;      // C9: mensagem curta, honesta e com o link do esboço quando existir
             } else if (currentWaSubtab === 'email_sent' || lead.status === 'sent') {
                 defaultMessage = `Olá! Tudo bem? Aqui é o ${senderName}. Enviei mais cedo um e-mail para a equipe da ${lead.company_name} com uma análise do site de vocês e uma proposta visual. Passando por aqui apenas para confirmar se conseguiram dar uma olhada! Abraço!`;
             } else {
@@ -3424,16 +3439,36 @@ window.loadWhatsappOpportunities = async function() {
                 ? `<a href="${escapeHtml(lead.website)}" target="_blank" style="color: var(--secondary); text-decoration: none; font-size: 0.8rem; word-break: break-all;">🔗 ${escapeHtml(lead.website)}</a>` 
                 : `<span style="color: var(--text-muted); font-size: 0.8rem;">❌ Sem website próprio indexado</span>`;
             
+            // C9: depois de abrir o WhatsApp, o lead só vira "contatado" quando você confirma que ENVIOU;
+            // depois do contato, botões de resultado alimentam o funil (respondeu, interessado...).
+            const confirmRow = `
+                    <div id="wa-confirm-${lead.id}" style="display: none; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; padding: 10px 12px; background: rgba(37,211,102,0.08); border: 1px solid rgba(37,211,102,0.3); border-radius: 8px; font-size: 0.85rem;">
+                        <span>Você enviou a mensagem?</span>
+                        <button class="btn btn-success" onclick="confirmWaSent(${lead.id})" style="background:#25D366;color:#000;font-weight:700;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;">✅ Enviei</button>
+                        <button class="btn btn-secondary" onclick="cancelWaSent(${lead.id})" style="padding:6px 12px;border-radius:8px;">Não enviei</button>
+                    </div>`;
+            const outcomeRow = lead.whatsapp_contacted ? `
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-color); font-size: 0.8rem;">
+                        <span style="color: var(--text-muted);">Como foi?</span>
+                        <button class="btn btn-secondary" onclick="setWaOutcome(${lead.id}, 'respondeu')" style="padding:4px 10px;font-size:0.78rem;">💬 Respondeu</button>
+                        <button class="btn btn-secondary" onclick="setWaOutcome(${lead.id}, 'interessado')" style="padding:4px 10px;font-size:0.78rem;color:#10b981;">🔥 Interessado</button>
+                        <button class="btn btn-secondary" onclick="setWaOutcome(${lead.id}, 'reuniao')" style="padding:4px 10px;font-size:0.78rem;">📅 Marcou conversa</button>
+                        <button class="btn btn-secondary" onclick="setWaOutcome(${lead.id}, 'sem_interesse')" style="padding:4px 10px;font-size:0.78rem;">👎 Sem interesse</button>
+                        <button class="btn btn-secondary" onclick="setWaOutcome(${lead.id}, 'pediu_parar')" style="padding:4px 10px;font-size:0.78rem;color:#f87171;" title="Nunca mais será contatado">🚫 Pediu para parar</button>
+                        <button class="btn btn-secondary" onclick="setWaOutcome(${lead.id}, 'numero_invalido')" style="padding:4px 10px;font-size:0.78rem;">❌ Número inválido</button>
+                    </div>` : '';
+
             return `
-                <div class="card" style="padding: 1.25rem; transition: var(--transition); border: 1px solid var(--border-color); background: rgba(17, 22, 39, 0.75);">
+                <div class="card" id="wa-card-${lead.id}" data-mockup="${lead.mockup_url ? 1 : 0}" data-group="${cardGroup}" style="padding: 1.25rem; transition: var(--transition); border: 1px solid var(--border-color); background: rgba(17, 22, 39, 0.75);">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.85rem;">
                         <div>
                             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
                                 <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0;">${escapeHtml(lead.company_name)}</h3>
-                                <span class="badge" style="background: ${scoreBg}; color: ${scoreColor}; font-weight: 700; font-size: 0.75rem; border: 1px solid ${scoreColor}40;">
-                                    🔥 Score: ${score} pts
+                                <span class="badge" style="background: ${scoreBg}; color: ${scoreColor}; font-weight: 700; font-size: 0.75rem; border: 1px solid ${scoreColor}40;" title="Prioridade: celular, esboço pronto, segmento e momento do follow-up">
+                                    🔥 Prioridade: ${score}
                                 </span>
                                 ${originBadge}
+                                ${waBadges}
                             </div>
                             <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.82rem; color: var(--text-secondary);">
                                 <span>📍 ${escapeHtml(lead.region || 'Brasil')}</span>
@@ -3486,6 +3521,8 @@ window.loadWhatsappOpportunities = async function() {
                             </button>
                         </div>
                     </div>
+                    ${confirmRow}
+                    ${outcomeRow}
                 </div>
             `;
         }).join('');
@@ -3552,16 +3589,115 @@ window.openWaChat = async function(leadId, cleanPhone) {
     
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodedText}`;
     window.open(waUrl, '_blank');
-    
-    // Automatically mark as contacted after clicking
+
+    // C9: NÃO marca como contatado ao abrir (você pode desistir). Pede a confirmação de envio no próprio card.
+    const confirmEl = document.getElementById(`wa-confirm-${leadId}`);
+    if (confirmEl) confirmEl.style.display = 'flex';
+};
+
+// ---- C9: conta em uso, envio confirmado, resultado e ritmo ----
+window.getWaAccount = function() {
+    try { return localStorage.getItem('wa_account') || 'business'; } catch (e) { return 'business'; }
+};
+window.setWaAccount = function(value) {
+    try { localStorage.setItem('wa_account', value); } catch (e) { /* sem armazenamento: usa o padrão */ }
+};
+
+window.updateWaDailyBar = function(stats) {
+    const goal = stats.daily_goal || 15;
+    const today = stats.today_total || 0;
+    const by = stats.today_by_account || {};
+    const countEl = document.getElementById('wa-today-count');
+    const goalEl = document.getElementById('wa-goal');
+    const barEl = document.getElementById('wa-today-bar');
+    const msgEl = document.getElementById('wa-goal-msg');
+    const accEl = document.getElementById('wa-account');
+    const splitEl = document.getElementById('wa-today-split');
+    if (countEl) countEl.textContent = today;
+    if (goalEl) goalEl.textContent = goal;
+    if (barEl) {
+        barEl.style.width = Math.min(100, Math.round(100 * today / goal)) + '%';
+        barEl.style.background = today >= goal ? '#f59e0b' : '#25D366';
+    }
+    if (splitEl) {
+        const parts = [];
+        if (by.business) parts.push(`Business ${by.business}`);
+        if (by.personal) parts.push(`Pessoal ${by.personal}`);
+        splitEl.textContent = parts.length ? '(' + parts.join(' · ') + ')' : '';
+    }
+    if (msgEl) {
+        msgEl.textContent = today >= goal
+            ? 'Meta do dia atingida. Passar disso aumenta o risco de bloqueio do número.'
+            : `Faltam ${goal - today} para a meta de hoje.`;
+        msgEl.style.color = today >= goal ? '#f59e0b' : 'var(--text-secondary)';
+    }
+    if (accEl) accEl.value = getWaAccount();
+};
+
+let waCooldownTimer = null;
+window.startWaCooldown = function() {
+    const hint = document.getElementById('wa-pace-hint');
+    if (!hint) return;
+    clearInterval(waCooldownTimer);
+    let left = 45 + Math.floor(Math.random() * 46);          // 45 a 90 s: ritmo humano, não rajada
+    hint.textContent = `⏳ Respire ${left}s antes da próxima mensagem (ritmo humano reduz o risco de bloqueio).`;
+    waCooldownTimer = setInterval(() => {
+        left -= 1;
+        if (left <= 0) {
+            clearInterval(waCooldownTimer);
+            hint.textContent = '✅ Pode seguir para a próxima.';
+            setTimeout(() => { if (hint.textContent.startsWith('✅')) hint.textContent = ''; }, 6000);
+        } else {
+            hint.textContent = `⏳ Respire ${left}s antes da próxima mensagem (ritmo humano reduz o risco de bloqueio).`;
+        }
+    }, 1000);
+};
+
+window.confirmWaSent = async function(leadId) {
+    const card = document.getElementById(`wa-card-${leadId}`);
     try {
-        await fetch(`/api/whatsapp/mark-contacted/${leadId}`, { method: 'POST' });
-        showToast('Conversa aberta no WhatsApp e lead marcado como contatado!', 'success');
-        setTimeout(() => {
+        const res = await fetch(`/api/whatsapp/mark-contacted/${leadId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                account: getWaAccount(),
+                mockup: card ? card.dataset.mockup === '1' : false,
+                group: card ? card.dataset.group : null
+            })
+        });
+        if (res.ok) {
+            showToast('Contato registrado!', 'success');
+            startWaCooldown();
             loadWhatsappOpportunities();
-        }, 1200);
+        } else {
+            showToast('Não foi possível registrar o contato.', 'error');
+        }
     } catch (e) {
-        console.error('Erro ao marcar como contatado:', e);
+        showToast('Erro ao registrar o contato.', 'error');
+    }
+};
+
+window.cancelWaSent = function(leadId) {
+    const confirmEl = document.getElementById(`wa-confirm-${leadId}`);
+    if (confirmEl) confirmEl.style.display = 'none';
+};
+
+window.setWaOutcome = async function(leadId, outcome) {
+    if (outcome === 'pediu_parar' && !confirm('Marcar que pediu para parar? Esse número nunca mais aparecerá nas listas.')) return;
+    try {
+        const res = await fetch(`/api/whatsapp/outcome/${leadId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ outcome, account: getWaAccount() })
+        });
+        if (res.ok) {
+            showToast('Resultado registrado no funil.', 'success');
+            loadWhatsappOpportunities();
+        } else {
+            showToast('Não foi possível registrar o resultado.', 'error');
+        }
+    } catch (e) {
+        showToast('Erro ao registrar o resultado.', 'error');
     }
 };
 
@@ -3593,15 +3729,8 @@ window.saveWaDraft = async function(leadId) {
 };
 
 window.markWaContacted = async function(leadId) {
-    try {
-        const res = await fetch(`/api/whatsapp/mark-contacted/${leadId}`, { method: 'POST' });
-        if (res.ok) {
-            showToast('Lead marcado como contatado via WhatsApp!', 'success');
-            loadWhatsappOpportunities();
-        }
-    } catch (e) {
-        showToast('Erro ao atualizar lead.', 'error');
-    }
+    // marcação manual (por exemplo, se você falou por outro meio): mesmo registro da confirmação de envio
+    await confirmWaSent(leadId);
 };
 
 window.unmarkWaContacted = async function(leadId) {

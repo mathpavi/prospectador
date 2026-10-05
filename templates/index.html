@@ -929,6 +929,31 @@
                 </div>
             </div>
 
+            <!-- C9: meta do dia, conta em uso e ritmo (contato SEMPRE manual) -->
+            <div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; border-left: 4px solid #25D366;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div style="min-width: 260px; flex: 1;">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">
+                            Hoje: <strong id="wa-today-count" style="color: #25D366; font-size: 1.1rem;">0</strong> de <strong id="wa-goal">15</strong> contatos
+                            <span id="wa-today-split" style="color: var(--text-muted);"></span>
+                        </div>
+                        <div style="height: 8px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden;">
+                            <div id="wa-today-bar" style="height: 100%; width: 0%; background: #25D366; transition: width .4s;"></div>
+                        </div>
+                        <div id="wa-goal-msg" style="font-size: 0.78rem; margin-top: 6px; color: var(--text-secondary);"></div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label for="wa-account" style="font-size: 0.78rem; color: var(--text-muted);">Número que você está usando agora</label>
+                        <select id="wa-account" onchange="setWaAccount(this.value)" class="form-control" style="font-size: 0.85rem; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                            <option value="business">WhatsApp Business</option>
+                            <option value="personal">WhatsApp pessoal</option>
+                        </select>
+                        <span style="font-size: 0.72rem; color: var(--text-muted);">Serve para medir qual número responde mais e protege o outro.</span>
+                    </div>
+                </div>
+                <div id="wa-pace-hint" style="font-size: 0.82rem; margin-top: 8px; color: #fbbf24;"></div>
+            </div>
+
             <!-- Stats KPI Cards -->
             <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 1.5rem;">
                 <div class="stat-card" style="border-left: 4px solid #38bdf8; cursor: pointer;" onclick="switchWaSubtab('email_sent')">
@@ -998,10 +1023,10 @@
                     </div>
                     <div>
                         <select id="wa-filter-score" class="form-control" onchange="loadWhatsappOpportunities()" style="width: 100%; font-size: 0.85rem; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
-                            <option value="0">Qualquer Score</option>
-                            <option value="80" selected>🔥 Alta Prioridade (Score 80+)</option>
-                            <option value="90">💎 Ouro (Score 90+)</option>
-                            <option value="60">Média Prioridade (Score 60+)</option>
+                            <option value="0" selected>Qualquer prioridade</option>
+                            <option value="60">Média (60+)</option>
+                            <option value="80">🔥 Alta (80+): celular + esboço pronto</option>
+                            <option value="90">💎 Ouro (90+)</option>
                         </select>
                     </div>
                     <div>
@@ -1291,6 +1316,13 @@
                         <input type="text" id="sender_address" name="sender_address" placeholder="Ex.: Rua Exemplo, 100, Porto Alegre/RS">
                         <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
                             Todo e-mail sai com este rodapé e com um link de descadastro. Quem se descadastra nunca mais recebe. Para enviar aos EUA, a lei (CAN-SPAM) exige endereço postal.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="whatsapp_daily_goal">Meta diária de contatos manuais no WhatsApp</label>
+                        <input type="number" id="whatsapp_daily_goal" name="whatsapp_daily_goal" min="1" max="60" value="15">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            Comece com 10 a 15 por dia. Volume alto para quem não te conhece aumenta o risco de bloqueio do número.
                         </div>
                     </div>
                     <div class="form-group">

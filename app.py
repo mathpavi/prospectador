@@ -13,6 +13,7 @@ import json
 import security
 from mockups.blueprint import bp as mockups_bp, preview_gate
 from public_routes import bp as public_bp
+from whatsapp_routes import bp as whatsapp_bp
 
 app = Flask(__name__)
 # F1: chave de sessao vem do ambiente ou e gerada e guardada em DATA_DIR (nunca um valor fixo no codigo)
@@ -24,6 +25,7 @@ app.config.update(
 )
 app.register_blueprint(mockups_bp)   # rota publica /p/<token>/ dos esbocos de site
 app.register_blueprint(public_bp)    # rota publica /u/<token> de descadastro
+app.register_blueprint(whatsapp_bp)  # Central WhatsApp: oportunidades priorizadas, contatado, resultado
 
 # Initialize DB on startup
 database.init_db()
@@ -1259,32 +1261,7 @@ def api_get_queue_status():
     })
 
 # WhatsApp Opportunities & Closing Center Endpoints
-@app.route('/api/whatsapp/opportunities', methods=['GET'])
-def api_whatsapp_opportunities():
-    subtab = request.args.get('subtab', 'email_sent')
-    segment = request.args.get('segment')
-    search_query = request.args.get('q') or request.args.get('search')
-    min_score = request.args.get('min_score')
-    page = request.args.get('page', 1, type=int)
-    limit = request.args.get('limit', 24, type=int)
-    
-    data = database.get_whatsapp_opportunities(
-        subtab=subtab,
-        segment=segment,
-        search_query=search_query,
-        min_score=min_score,
-        page=page,
-        limit=limit
-    )
-    stats = database.get_whatsapp_stats()
-    data['stats'] = stats
-    return jsonify(data)
-
-@app.route('/api/whatsapp/mark-contacted/<int:prospect_id>', methods=['POST'])
-def api_whatsapp_mark_contacted(prospect_id):
-    database.mark_whatsapp_contacted(prospect_id, True)
-    return jsonify({"success": True, "message": "Lead marcado como contatado via WhatsApp!"})
-
+# (listagem priorizada, mark-contacted e outcome vivem em whatsapp_routes.py: C9 do PLANO_PROSPECTADOR)
 @app.route('/api/whatsapp/unmark-contacted/<int:prospect_id>', methods=['POST'])
 def api_whatsapp_unmark_contacted(prospect_id):
     database.mark_whatsapp_contacted(prospect_id, False)
