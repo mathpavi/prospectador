@@ -29,12 +29,21 @@ import store  # noqa: E402
 MIN_SCORE = 7          # de 11: abaixo disso nao ha conteudo real para uma hero especifica
 BASE_URL = os.environ.get("MOCKUP_BASE_URL", "http://localhost:5055")
 
+# "sites" que na verdade sao diretorios, redes sociais ou agregadores: nao ha site proprio para extrair
+DIRECTORY_RE = re.compile(r"telelistas|guiamais|solutudo|apontador|econodata|cnpj\.biz|casadosdados|cnpja|facebook|instagram|"
+                          r"linkedin|google\.|youtube|linktr\.ee|wa\.me|olx\.|mercadolivre|tiktok|twitter|(^|\.)x\.com", re.I)
+
+
+def is_directory_url(url):
+    from urllib.parse import urlparse
+    return bool(DIRECTORY_RE.search(urlparse(url or "").netloc))
+
 
 def pick_template(segment, prospect_id=0):
     """Mapa segmento -> template. None = ainda sem template adequado (vai para revisao).
     Industriais alternam entre escuro e claro (por id), para vizinhas nao receberem esbocos iguais."""
     s = (segment or "").lower()
-    if re.search(r"metal|usina|caldeir|repux|serralh|a[cç]o|soldag", s):
+    if re.search(r"metal|usina|caldeir|repux|serralh|a[cç]o|soldag|alum[ií]n|esquadri|vidra|marcen", s):
         return "industrial_escuro" if prospect_id % 2 == 0 else "industrial_claro"
     if re.search(r"pl[aá]stic|t[eê]xtil|m[oó]vei|aliment|pap[eé]l|pap[eé]is|embalag|confec|cal[cç]ad", s):
         return "vitrine_produto"
@@ -62,6 +71,10 @@ def make(prospect, provider=None, slots_file=None, days=21, forced_template=None
     work = tempfile.mkdtemp(prefix="mk_")
     reasons, status = [], "ready"
     try:
+        if is_directory_url(prospect.get("website")):
+            why = "o 'site' cadastrado e um diretorio/rede social, nao o site da empresa"
+            store.create(token, prospect["id"], prospect["company_name"], "-", "review", why, 0, days)
+            return token, "review", [why]
         shot = os.path.join(ROOT, "static", "screenshots", prospect.get("screenshot") or "")
         ex = ex_mod.extract(prospect["website"], shot, save_dir=work, brand=prospect["company_name"])
         if not ex.get("ok"):
@@ -120,7 +133,8 @@ if __name__ == "__main__":
         like = f"%{a.find}%"
         rows = con.execute("select id, segment, company_name, website from prospects "
                            "where website like 'http%' and (segment like ? or company_name like ?) "
-                           "order by id desc limit 15", (like, like)).fetchall()
+                           "order by id desc limit 400", (like, like)).fetchall()
+        rows = [r for r in rows if not is_directory_url(r[3])][:15]      # so prospects com site proprio
         for r in rows:
             print(f"{r[0]:5} | {str(r[1])[:22]:22} | {str(r[2])[:34]:34} | {r[3]}")
         print("\nUse: python mockups/make_mockup.py --prospect-id NUMERO --provider gemini")
