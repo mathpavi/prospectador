@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
 import google.generativeai as genai
 import database
+import gemini_util
 from agent import IGNORED_DOMAINS, FORBIDDEN_DOMAIN_KEYWORDS, extract_base_domain
 
 GOSOM_TERMINAL_STATUSES = {"ok", "failed"}
@@ -196,9 +197,6 @@ Portfólio: {sender_portfolio}"""
         return "Nenhum problema técnico crítico identificado (Site simples/Rede social).", email_body, whatsapp_body
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        
         prompt = f"""
         Você é um copywriter de vendas experiente focado em fechar negócios de criação de sites para {sender_name}.
         Sua tarefa é redigir um e-mail de vendas amigável, direto, informal e altamente personalizado para um prestador de serviço brasileiro que atua no exterior, além de uma mensagem curta para WhatsApp.
@@ -234,7 +232,7 @@ Portfólio: {sender_portfolio}"""
             "whatsapp": "mensagem curta para envio no WhatsApp"
         }}
         """
-        response = model.generate_content(prompt)
+        response, _model_used = gemini_util.generate(api_key, prompt, None, add_log)   # lista de modelos, como no e-mail principal
         text = response.text.strip()
         
         # Strip any formatting blocks if the model ignored instructions

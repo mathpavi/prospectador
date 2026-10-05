@@ -15,6 +15,7 @@ try:
 except ImportError:
     from duckduckgo_search import DDGS
 import database
+import gemini_util
 
 try:
     from scrapling import Fetcher, StealthyFetcher
@@ -2052,11 +2053,8 @@ def generate_prospect_email(prospect):
                 add_log(f"Aviso: Não foi possível abrir o screenshot para enviar ao Gemini: {ex}")
 
     # Call Gemini API
-    model_name = database.get_setting('gemini_model', '') or 'gemini-2.5-flash-lite'
+    model_name = database.get_setting('gemini_model', '') or 'gemini-2.5-flash-lite'   # so para a mensagem de erro
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(model_name)
-        
         issues_list = ", ".join(prospect['detected_issues'])
         
         if prospect.get('surgical_type') == 'no_site':
@@ -2141,17 +2139,10 @@ def generate_prospect_email(prospect):
             Retorne estritamente um objeto JSON com três propriedades: "subject" (o assunto do e-mail), "body" (o texto do e-mail) e "whatsapp" (o texto da mensagem curta para WhatsApp). Não adicione nenhuma formatação markdown fora do JSON (como ```json ou ```). Retorne APENAS o JSON puro.
             """
         
-        if img:
-            response = model.generate_content(
-                [prompt, img],
-                generation_config={"response_mime_type": "application/json"}
-            )
-        else:
-            response = model.generate_content(
-                prompt,
-                generation_config={"response_mime_type": "application/json"}
-            )
-        
+        # tenta a lista de modelos (pula os indisponiveis para a chave e memoriza o que funcionou)
+        response, model_name = gemini_util.generate(
+            api_key, [prompt, img] if img else prompt, {"response_mime_type": "application/json"}, add_log)
+
         data = json.loads(response.text.strip())
         return data.get('subject', ''), data.get('body', ''), data.get('whatsapp', '')
         
