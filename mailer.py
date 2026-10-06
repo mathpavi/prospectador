@@ -7,6 +7,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import formatdate, make_msgid
 import database
+import email_msg
+import mockup_runner
 import qualify
 import security
 import validators
@@ -179,6 +181,27 @@ def classify_smtp_error(e):
     return 'other'
 
 
+def _sender_info():
+    return {"name": database.get_setting("sender_name", "Matheus Paviani"),
+            "whatsapp": database.get_setting("sender_whatsapp", ""),
+            "portfolio": database.get_setting("sender_portfolio", "")}
+
+
+def finalize_email(prospect, subject, body):
+    """E4/M1, NO MOMENTO DO ENVIO: (assunto, corpo, url_do_esboco|None, regenerado).
+    1) corpo antigo com promessa falsa ("desenvolvi um estudo visual"...) e regenerado com o modelo honesto;
+    2) o marcador {{ESBOCO}} vira o link do esboco (gerado na hora, se preciso) ou uma oferta honesta se nao houver esboco."""
+    regenerated = False
+    if database.get_setting("email_generation_mode", "template") != "ai" and email_msg.is_legacy_body(body):
+        subject, body = email_msg.build_email(prospect, _sender_info())
+        regenerated = True
+    url = None
+    if email_msg.ESBOCO_TOKEN in body:
+        url = mockup_runner.ensure_mockup(prospect)
+        body = email_msg.finalize(body, email_msg.esboco_paragraph(prospect, url))
+    return subject, body, url, regenerated
+
+
 def _reject(prospect_id, status, reason, event_type, email=None):
     database.update_prospect(prospect_id, {'status': status, 'error_message': reason})
     database.add_event(prospect_id, event_type, reason, {'email': email})
@@ -229,6 +252,9 @@ def send_prospect_email(prospect_id, bypass_limit=False):
     if not q_ok:
         _reject(prospect_id, 'rejected', f"fora do perfil: {q_why}", 'email_not_qualified', email_to)
 
+    # 2b. E4/M1: corpo finalizado (esboco automatico ou oferta honesta; corpo antigo com promessa falsa e regenerado)
+    subject, body, mockup_url, regenerated = finalize_email(prospect, subject, body)
+
     # 3. Corpo com rodape de identificacao/descadastro e cabecalhos de descadastro de um clique
     footer, unsub_url = build_footer(prospect_id, email_to)
     smtp_user = database.get_setting('smtp_user', '')
@@ -246,9 +272,11 @@ def send_prospect_email(prospect_id, bypass_limit=False):
         database.update_prospect(prospect_id, {
             'status': 'sent',
             'sent_at': now_str,
-            'error_message': None
+            'error_message': None,
+            'email_subject': subject,       # guarda o texto FINAL enviado (com o link do esboco, se houve)
+            'email_body': body
         })
-        database.add_event(prospect_id, 'email_sent', subject, {'email': email_to})
+        database.add_event(prospect_id, 'email_sent', subject, {'email': email_to, 'mockup': bool(mockup_url), 'regenerated': regenerated})
         return True, "E-mail enviado!"
     except Exception as e:
         error_msg = str(e)

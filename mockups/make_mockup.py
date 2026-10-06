@@ -23,6 +23,7 @@ sys.path.insert(0, HERE)
 
 import extract as ex_mod  # noqa: E402
 import fill as fill_mod  # noqa: E402
+import judge as judge_mod  # noqa: E402
 import render as render_mod  # noqa: E402
 import store  # noqa: E402
 
@@ -65,11 +66,12 @@ def load_prospect(pid):
     return dict(r)
 
 
-def make(prospect, provider=None, slots_file=None, days=21, forced_template=None):
+def make(prospect, provider=None, slots_file=None, days=21, forced_template=None, judge=None):
     token = secrets.token_urlsafe(12)
     out_dir = os.path.join(store.data_dir(), token)
     work = tempfile.mkdtemp(prefix="mk_")
     reasons, status = [], "ready"
+    judge = judge_mod.enabled() if judge is None else judge
     try:
         if is_directory_url(prospect.get("website")):
             why = "o 'site' cadastrado e um diretorio/rede social, nao o site da empresa"
@@ -91,6 +93,13 @@ def make(prospect, provider=None, slots_file=None, days=21, forced_template=None
             reasons.append(f"sem template para o segmento '{prospect.get('segment')}'")
             template = "industrial_escuro"      # so para ter uma previa local; nao sera servido
 
+        if judge and not reasons:        # etapa 1 (barata): se o site atual ja e muito bom, nem gera
+            skip, nota, why, cost = judge_mod.judge_site_only(prospect, work, saved_shot=shot)
+            if skip:
+                store.create(token, prospect["id"], prospect["company_name"], "-", "review", why, score, days)
+                print(f"custo do juiz: US$ {cost:.4f}")
+                return token, "review", [why]
+
         if slots_file:
             slots = json.load(open(slots_file, encoding="utf-8"))
             usage = {"provider": "arquivo", "usd": 0}
@@ -105,11 +114,16 @@ def make(prospect, provider=None, slots_file=None, days=21, forced_template=None
             if res["problems"]:
                 print("avisos:", res["problems"])
 
-        status = "review" if reasons else "ready"
         og = {"title": f"Proposta visual · {slots.get('brand_name', '')}", "image": f"{BASE_URL}/p/{token}/thumb.png",
               "url": f"{BASE_URL}/p/{token}/"}
         idx = render_mod.render(template, slots, work, out_dir, og=og)
         render_mod.screenshot(idx, os.path.join(out_dir, "thumb.png"), 1200, 630, full=False)
+        if judge and not reasons:        # etapa 2: o esboco precisa ser REALMENTE melhor que o site atual
+            ok, why, ns, nm, cost = judge_mod.judge_mockup(prospect, idx, work, saved_shot=shot)
+            print(f"juiz: {why} (US$ {cost:.4f})")
+            if not ok:
+                reasons.append(why)
+        status = "review" if reasons else "ready"
         store.create(token, prospect["id"], prospect["company_name"], template, status, "; ".join(reasons), score, days)
         print(f"custo da IA: US$ {usage.get('usd', 0)} ({usage.get('model') or usage.get('provider')})")
         return token, status, reasons
@@ -124,6 +138,7 @@ if __name__ == "__main__":
     ap.add_argument("--slots-file")
     ap.add_argument("--days", type=int, default=21)
     ap.add_argument("--template", help="forca um template (ex.: industrial_claro); padrao: escolhido pelo segmento")
+    ap.add_argument("--no-judge", action="store_true", help="nao compara com o site atual (M4); so para testes")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--find", nargs="?", const="", metavar="TEXTO",
                     help="lista prospects (id, segmento, nome, site); TEXTO filtra por segmento ou nome. Ex.: --find metal")
@@ -152,7 +167,7 @@ if __name__ == "__main__":
     elif a.prospect_id:
         if not (a.provider or a.slots_file):
             sys.exit("informe --provider (gemini|anthropic) ou --slots-file")
-        t, st, why = make(load_prospect(a.prospect_id), a.provider, a.slots_file, a.days, a.template)
+        t, st, why = make(load_prospect(a.prospect_id), a.provider, a.slots_file, a.days, a.template, judge=False if a.no_judge else None)
         print("token:", t, "| status:", st)
         for w in why:
             print(" - revisar:", w)

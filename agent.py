@@ -15,6 +15,7 @@ try:
 except ImportError:
     from duckduckgo_search import DDGS
 import database
+import email_msg
 import gemini_util
 import validators
 import whatsapp_msg
@@ -696,11 +697,18 @@ def clean_company_name(title, domain):
         'seguranca eletronica', 'metalúrgica', 'metalurgica', 'usinagem', 'serralheria',
         'vidraçaria', 'vidracaria', 'marcenaria', 'energia solar', 'climatização', 'climatizacao',
         'home', 'início', 'inicio', 'principal', 'site oficial', 'serviços', 'servicos', 'advogado',
-        'consultoria', 'empresa', 'indústria', 'industria', 'site'
+        'consultoria', 'empresa', 'indústria', 'industria', 'site',
+        # Q4 (PLANO_PROSPECTADOR): nomes de menu/rodape que apareciam como nome da empresa ("Sobre", "Página Inicial"...)
+        'sobre', 'sobre nós', 'sobre nos', 'quem somos', 'contato', 'contatos', 'fale conosco', 'página inicial', 'pagina inicial',
+        'institucional', 'produtos', 'portfólio', 'portfolio', 'blog', 'menu', 'untitled', 'a empresa', 'nossa empresa',
+        'galeria', 'orçamento', 'orcamento', 'novidades', 'notícias', 'noticias', 'login', 'cadastro', 'carrinho', 'loja'
     ]
-    if len(name) < 3 or name.lower() in generic_words or re.search(r'\b\d{4}[-.\s]?\d{4}\b', name):
+    import unicodedata as _ud
+    _plain = re.sub(r'\s+', ' ', _ud.normalize('NFKD', name.lower()).encode('ASCII', 'ignore').decode('ASCII')).strip(' -|.,')
+    _plain_generic = {re.sub(r'\s+', ' ', _ud.normalize('NFKD', g).encode('ASCII', 'ignore').decode('ASCII')) for g in generic_words}
+    if len(name) < 3 or name.lower() in generic_words or _plain in _plain_generic or re.search(r'\b\d{4}[-.\s]?\d{4}\b', name):
         name = format_domain_brand(domain)
-        
+
     return name
 
 def is_blog_or_article_url(url):
@@ -2035,7 +2043,13 @@ def generate_prospect_email(prospect):
     sender_pitch = database.get_setting('sender_pitch', 'Criação e modernização de sites...')
     sender_portfolio = database.get_setting('sender_portfolio', 'https://paviani.net/portfolio/')
     email_rules = database.get_setting('email_rules', '')
-    
+
+    # E4 (PLANO_PROSPECTADOR): por padrao o e-mail vem do modelo HONESTO e VARIADO (email_msg). Sem IA, sem custo, sem promessa falsa.
+    # O espaco do esboco ({{ESBOCO}}) e resolvido no envio. 'ai' em "email_generation_mode" mantem a geracao livre antiga.
+    if database.get_setting('email_generation_mode', 'template') != 'ai':
+        subject, body = email_msg.build_email(prospect, {'name': sender_name, 'whatsapp': sender_whatsapp, 'portfolio': sender_portfolio})
+        return subject, body, whatsapp_msg.build_message(prospect, 'no_email', None, sender_name)
+
     # If no API key configured, use standard fallback template
     if not api_key:
         return generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sender_pitch, sender_portfolio)
@@ -2159,6 +2173,9 @@ def generate_prospect_email(prospect):
         return generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sender_pitch, sender_portfolio)
 
 def generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sender_pitch, sender_portfolio='https://paviani.net/portfolio/'):
+    # E4: o reserva tambem usa o modelo honesto (o texto fixo antigo abaixo prometia um "estudo visual" que nao existia)
+    _subject, _body = email_msg.build_email(prospect, {'name': sender_name, 'whatsapp': sender_whatsapp, 'portfolio': sender_portfolio})
+    return _subject, _body, whatsapp_msg.build_message(prospect, 'no_email', None, sender_name)
     if prospect.get('surgical_type') == 'no_site':
         subjects = [
             f"Uma sugestão para a {prospect['company_name']}",

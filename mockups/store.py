@@ -53,6 +53,19 @@ def list_all():
         return [dict(r) for r in c.execute("select * from mockups order by created_at desc")]
 
 
+def recent_attempt(prospect_id, days=7):
+    """True se ja houve tentativa de esboco para este prospect nos ultimos `days` dias (pronta OU em revisao): nao insistir."""
+    since = int(time.time()) - days * 86400
+    with _conn() as c:
+        return bool(c.execute("select 1 from mockups where prospect_id=? and created_at>? limit 1", (prospect_id, since)).fetchone())
+
+
+def created_last_24h():
+    """Quantos esbocos foram gerados nas ultimas 24 h (limite diario de custo e de carga)."""
+    with _conn() as c:
+        return c.execute("select count(*) from mockups where created_at>?", (int(time.time()) - 86400,)).fetchone()[0]
+
+
 def ready_tokens(prospect_ids):
     """{prospect_id: token} dos esbocos PRONTOS e dentro da validade (o mais recente de cada prospect)."""
     ids = [int(i) for i in prospect_ids if i is not None]

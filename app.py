@@ -11,6 +11,7 @@ from datetime import datetime
 import json
 
 import security
+import prioritize
 from mockups.blueprint import bp as mockups_bp, preview_gate
 from public_routes import bp as public_bp
 from whatsapp_routes import bp as whatsapp_bp, apply_generated_drafts
@@ -378,7 +379,8 @@ def autopilot_send_next_email(force=False):
         autopilot_status["sender_status"] = "no_leads"
         return
         
-    approved_leads.sort(key=lambda x: x.get('created_at', ''))
+    # C8: o melhor potencial primeiro (e-mail do dominio da empresa, dono conhecido, segmento do nucleo...), com bonus de espera
+    approved_leads.sort(key=lambda x: (-prioritize.email_priority(x), x.get('created_at', '')))
     target_lead = approved_leads[0]
     
     autopilot_status["sender_status"] = "sending"

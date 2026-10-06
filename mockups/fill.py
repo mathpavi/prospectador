@@ -115,6 +115,37 @@ def parse_json(txt):
     return json.loads(txt)
 
 
+def gemini_json(parts, temperature=0.2, max_tokens=1200):
+    """Chamada generica ao Gemini (texto + IMAGENS) que devolve JSON. Usada pelo juiz do esboco.
+    parts = [{"text": "..."}, {"inline_data": {"mime_type": "image/jpeg", "data": "<base64>"}}, ...]
+    Devolve (dados, custo_usd, modelo). Levanta RuntimeError em qualquer falha (quem chama decide; o juiz falha FECHADO)."""
+    api_key = os.environ.get("GEMINI_API_KEY") or _db_setting("gemini_api_key")
+    if not api_key:
+        raise RuntimeError("sem chave do Gemini")
+    chosen = os.environ.get("FILL_GEMINI_MODEL") or _db_setting("gemini_model")
+    chain = list(dict.fromkeys(([chosen] if chosen else []) + GEMINI_CHAIN))
+    last = ""
+    for model_id in chain:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent"
+        r = requests.post(url, timeout=120, headers={"x-goog-api-key": api_key, "content-type": "application/json"},
+                          json={"contents": [{"role": "user", "parts": parts}],
+                                "generationConfig": {"temperature": temperature, "responseMimeType": "application/json", "maxOutputTokens": max_tokens}})
+        if r.status_code in (404, 403):
+            last = f"{model_id}: HTTP {r.status_code}"
+            continue
+        if r.status_code != 200:
+            raise RuntimeError(f"Gemini HTTP {r.status_code}: {r.text[:200]}")
+        j = r.json()
+        u = j.get("usageMetadata", {})
+        p_in, p_out = GEMINI_PRICES.get(model_id, (0.3, 2.5))
+        cost = u.get("promptTokenCount", 0) * p_in / 1e6 + u.get("candidatesTokenCount", 0) * p_out / 1e6
+        try:
+            return parse_json(j["candidates"][0]["content"]["parts"][0]["text"]), cost, model_id
+        except (ValueError, KeyError, IndexError) as e:
+            raise RuntimeError(f"resposta fora do formato ({type(e).__name__})") from e
+    raise RuntimeError(f"nenhum modelo Gemini acessivel ({last})")
+
+
 def source_blob(ex, prospect):
     parts = [ex.get("text_sample", ""), ex.get("title", ""), ex.get("meta_description", ""), " ".join(ex.get("h1", [])),
              " ".join(ex.get("h2", [])), " ".join(ex.get("nav_items", [])), ex["contacts"].get("address", ""),

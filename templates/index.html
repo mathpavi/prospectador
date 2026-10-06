@@ -1318,6 +1318,29 @@
                             Todo e-mail sai com este rodapé e com um link de descadastro. Quem se descadastra nunca mais recebe. Para enviar aos EUA, a lei (CAN-SPAM) exige endereço postal.
                         </div>
                     </div>
+                    <div class="form-group row">
+                        <div>
+                            <label for="email_generation_mode">Como escrever os e-mails</label>
+                            <select id="email_generation_mode" name="email_generation_mode">
+                                <option value="template">Modelo honesto e variado (recomendado, sem custo de IA)</option>
+                                <option value="ai">IA livre (modo antigo)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="mockup_in_email">Gerar o esboço de site e colocar o link no e-mail</label>
+                            <select id="mockup_in_email" name="mockup_in_email">
+                                <option value="1">Sim (recomendado): gerado na hora do envio</option>
+                                <option value="0">Não: o e-mail só oferece preparar um esboço</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="mockup_daily_limit">Limite de esboços gerados por dia</label>
+                        <input type="number" id="mockup_daily_limit" name="mockup_daily_limit" min="0" max="300" value="40">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            Cada esboço custa centavos de IA e leva de 30 a 60 segundos. Se o esboço não ficar pronto, o e-mail sai sem o link, com uma oferta honesta de preparar um.
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="whatsapp_daily_goal">Meta diária de contatos manuais no WhatsApp</label>
                         <input type="number" id="whatsapp_daily_goal" name="whatsapp_daily_goal" min="1" max="60" value="15">

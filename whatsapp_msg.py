@@ -32,11 +32,38 @@ def phone_info(raw):
 
 
 # --------------------------------------------------------------------------------- nomes ----
+_BRAND_PREFIXES = {"metalurgica": "Metalúrgica", "serralheria": "Serralheria", "usinagem": "Usinagem", "vidracaria": "Vidraçaria",
+                   "esquadrias": "Esquadrias", "marcenaria": "Marcenaria", "caldeiraria": "Caldeiraria", "industria": "Indústria",
+                   "comercio": "Comércio", "distribuidora": "Distribuidora", "ferramentaria": "Ferramentaria", "grupo": "Grupo",
+                   "marmoraria": "Marmoraria", "transportes": "Transportes", "embalagens": "Embalagens", "plasticos": "Plásticos"}
+
+
+def brand_from_domain(website):
+    """'metalurgicabitello.com.br' -> 'Metalúrgica Bitello'. Vazio se nao houver dominio."""
+    host = re.sub(r"^(https?://)?(www\.)?", "", (website or "").lower()).split("/")[0].split(".")[0]
+    if not host or host in ("maps", "google"):
+        return ""
+    base = host.replace("-", " ").replace("_", " ")
+    if " " not in base:
+        for pre in sorted(_BRAND_PREFIXES, key=len, reverse=True):
+            if base.startswith(pre) and len(base) - len(pre) >= 3:
+                return f"{_BRAND_PREFIXES[pre]} {base[len(pre):].title()}"
+    return " ".join(_BRAND_PREFIXES.get(w, w.title()) for w in base.split())
+
+
+def is_junk_name(name):
+    """Nome de menu/rodape ou fragmento ('Sobre', 'Página Inicial', 'e de arroz') que nao e nome de empresa."""
+    n = re.sub(r"\s+", " ", (name or "")).strip(" -–|,.")
+    if len(n) < 3 or n.lower() in JUNK_NAMES:
+        return True
+    words = n.split()
+    return bool(re.match(r"^[a-zà-ú]", n) and len(words) <= 3 and words[0] in {"e", "de", "da", "do", "em", "para", "com", "a", "o"})
+
+
 def clean_company_name(name, website=""):
     n = re.sub(r"\s+", " ", (name or "")).strip(" -–|,.")
-    if n.lower() in JUNK_NAMES or len(n) < 3:
-        host = re.sub(r"^(https?://)?(www\.)?", "", (website or "").lower()).split("/")[0].split(".")[0]
-        n = host.replace("-", " ").title() if host else "sua empresa"
+    if is_junk_name(n):
+        n = brand_from_domain(website) or "sua empresa"
     n = LEGAL_SUFFIX.sub("", n).strip(" -–|,.") or n
     return n
 

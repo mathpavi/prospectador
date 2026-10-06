@@ -159,7 +159,11 @@ def init_db():
         'sender_cnpj': '',
         'public_base_url': '',
         'qualify_before_send': '1',
-        'whatsapp_daily_goal': '15'
+        'whatsapp_daily_goal': '15',
+        # E4/M1: e-mail honesto e variado (template) ou geracao livre antiga (ai); esboco automatico no envio
+        'email_generation_mode': 'template',
+        'mockup_in_email': '1',
+        'mockup_daily_limit': '40'
     }
     
     for key, val in default_settings.items():
@@ -410,6 +414,13 @@ def add_prospect(prospect_dict):
             status = 'pending'
             notes_value = ((notes_value or '') + f"\n[sistema] aprovacao automatica bloqueada: {gate_why}").strip()
 
+    # Q4/Q5: nome de menu/rodape ("Sobre", "Pagina Inicial") vira o nome do dominio; segmento com a mesma grafia ("metalurgica" = "Metalurgica")
+    import whatsapp_msg
+    company_value = prospect_dict.get('company_name')
+    if whatsapp_msg.is_junk_name(company_value):
+        company_value = whatsapp_msg.brand_from_domain(prospect_dict.get('website')) or company_value
+    segment_value = normalize_segment(prospect_dict.get('segment'))
+
     cursor.execute('''
         INSERT INTO prospects (
             company_name, website, segment, region, status, 
@@ -422,9 +433,9 @@ def add_prospect(prospect_dict):
             created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
-        prospect_dict.get('company_name'),
+        company_value,
         prospect_dict.get('website'),
-        prospect_dict.get('segment'),
+        segment_value,
         prospect_dict.get('region'),
         status,
         json.dumps(prospect_dict.get('detected_issues', [])),
@@ -471,6 +482,12 @@ insert_prospect = add_prospect
 STAGES = ('novo', 'contatado', 'respondeu', 'interessado', 'reuniao', 'proposta', 'ganho', 'perdido', 'descadastrou', 'invalido')
 _NOT_A_SITE = ('telelistas', 'guiamais', 'solutudo', 'apontador', 'econodata', 'cnpj.biz', 'casadosdados', 'cnpja', 'facebook',
                'instagram', 'linkedin', 'youtube', 'linktr.ee', 'wa.me', 'tiktok', 'twitter')
+
+
+def normalize_segment(segment):
+    """'metalúrgica' e 'Metalúrgica' (e 'metalúrgica ') passam a ser o mesmo segmento: espacos limpos e 1a letra maiuscula."""
+    s = ' '.join((segment or '').split())
+    return (s[0].upper() + s[1:]) if s else s
 
 
 def add_event(prospect_id, event_type, detail=None, meta=None, created_at=None):
