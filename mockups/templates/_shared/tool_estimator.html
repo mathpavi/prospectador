@@ -1,0 +1,42 @@
+{# Briefing tecnico com medidor de complexidade (industrial_claro). #}
+{% include 'tool_base.html' %}
+<section class="tool" id="ferramenta" data-tool="estimator">
+  <div class="tw">
+    <div class="label rv mono">Briefing técnico</div>
+    <h2 class="rv">Descreva o projeto e veja a ficha montar</h2>
+    <p class="tlead rv">Ajuste os controles: a ficha do pedido se atualiza na hora e vai pronta para a {{ s.short_name }}.</p>
+    <div class="box rv" id="es" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:clamp(20px,4vw,56px)">
+      <div>
+        <div class="q">Serviço</div><div class="chips" id="esS" style="margin-bottom:22px"></div>
+        <div class="q">Material</div><div class="chips" id="esM" style="margin-bottom:22px"></div>
+        <div class="q">Quantidade: <span id="esQv">10</span> un.</div>
+        <input type="range" id="esQ" min="1" max="500" value="10" aria-label="Quantidade"><div class="rl"><span>1</span><span>500+</span></div>
+        <div class="q" style="margin-top:22px">Prazo desejado: <span id="esDv">15</span> dias</div>
+        <input type="range" id="esD" min="2" max="60" value="15" aria-label="Prazo em dias"><div class="rl"><span>urgente</span><span>60 dias</span></div>
+      </div>
+      <div>
+        <div class="sum" id="esR"></div>
+        <div class="q" style="font-size:1rem">Complexidade estimada: <span id="esC">média</span></div>
+        <div style="height:10px;background:var(--t-line);border-radius:99px;overflow:hidden;margin:10px 0 20px"><div id="esB" style="height:100%;width:40%;background:var(--t-accent);transition:width .7s var(--ease)"></div></div>
+        <button type="button" class="btn" id="esSend">Enviar ficha pelo WhatsApp</button>
+        <p class="note">Indicador ilustrativo, sem valores: o orçamento real é feito pela equipe.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<style>@media (max-width:820px){ #es{grid-template-columns:1fr!important}}</style>
+<script>
+(function(){
+var SV={{ s.services|map(attribute='name')|list|tojson }},M=['Aço carbono','Aço inox','Alumínio','Ainda não sei'],$=function(i){return document.getElementById(i)};
+var st={s:SV[0]||'',m:M[0]};
+function chips(el,list,key){list.forEach(function(t,k){var b=document.createElement('button');b.type='button';b.className='chip'+(k==0?' on':'');b.textContent=t;b.onclick=function(){[].forEach.call(el.children,function(c){c.classList.remove('on')});b.classList.add('on');st[key]=t;upd()};el.appendChild(b)})}
+chips($('esS'),SV,'s');chips($('esM'),M,'m');
+function row(k,v){var d=document.createElement('div');d.innerHTML='<span></span><b></b>';d.children[0].textContent=k;d.children[1].textContent=v;return d}
+function upd(){var q=+$('esQ').value,d=+$('esD').value;$('esQv').textContent=q>=500?'500+':q;$('esDv').textContent=d;
+ var sc=(q>100?2:q>20?1:0)+(d<7?2:d<15?1:0)+(st.m=='Aço inox'?1:0)+(st.m=='Ainda não sei'?1:0);var lv=sc<=1?'baixa':sc<=3?'média':'alta';
+ $('esC').textContent=lv;$('esB').style.width=Math.min(100,18+sc*16)+'%';
+ var r=$('esR');r.innerHTML='';[['Serviço',st.s],['Material',st.m],['Quantidade',q>=500?'500+ un.':q+' un.'],['Prazo',d+' dias']].forEach(function(x){r.appendChild(row(x[0],x[1]))})}
+$('esQ').oninput=upd;$('esD').oninput=upd;upd();
+$('esSend').onclick=function(){var q=+$('esQ').value;window.pvSend&&pvSend('Olá! Quero um orçamento na {{ s.short_name }}:\n• Serviço: '+st.s+'\n• Material: '+st.m+'\n• Quantidade: '+(q>=500?'500+':q)+' un.\n• Prazo: '+$('esD').value+' dias')};
+})();
+</script>

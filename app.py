@@ -12,6 +12,9 @@ import json
 
 import security
 import prioritize
+import followup
+import inbox
+import alerts
 from mockups.blueprint import bp as mockups_bp, preview_gate
 from public_routes import bp as public_bp
 from whatsapp_routes import bp as whatsapp_bp, apply_generated_drafts
@@ -374,6 +377,28 @@ def autopilot_send_next_email(force=False):
         autopilot_status["sender_status"] = "limit_reached"
         return
         
+    # C1: follow-up (dias 3, 7 e 14) tem prioridade sobre prospeccao nova: conversa quente primeiro
+    try:
+        fu = followup.next_due()
+    except Exception as e:
+        fu = None
+        autopilot_log(f"⚠️ Falha ao procurar follow-ups: {e}")
+    if fu:
+        fp = fu['prospect']
+        autopilot_status["sender_status"] = "sending"
+        autopilot_log(f"Follow-up {fu['step']}/3 para: {fp['company_name']} ({fp['contact_email']})...")
+        try:
+            followup.send_followup(fp['id'], fu['step'])
+            database.save_settings({'autopilot_last_email_sent_at': database.get_now_str()})
+            autopilot_log(f"✅ Follow-up {fu['step']} enviado para {fp['company_name']}!")
+            log_autopilot_activity("Follow-up", f"Follow-up {fu['step']} enviado para {fp['company_name']}", "success")
+        except Exception as e:
+            autopilot_log(f"❌ Falha no follow-up de {fp['company_name']}: {e}")
+            log_autopilot_activity("Follow-up", f"Falha no follow-up de {fp['company_name']}: {e}", "error")
+            if mailer.REJECT_PREFIX not in str(e):
+                database.save_settings({'autopilot_last_email_sent_at': database.get_now_str()})
+        return
+
     approved_leads = database.get_prospects(status_filter='approved')
     if not approved_leads:
         autopilot_status["sender_status"] = "no_leads"
@@ -543,7 +568,20 @@ def background_autopilot_scheduler():
             autopilot_run_next_search()
         except Exception as e:
             pass
+
+        try:
+            r = inbox.maybe_check()      # T3: respostas e rejeicoes (so se imap_enabled=1; no maximo a cada 10 min)
+            if r and r.get('acoes'):
+                for line in r['acoes'][:10]:
+                    autopilot_log(f"📬 Caixa de entrada: {line}")
+        except Exception as e:
+            pass
             
+        try:
+            alerts.maybe_run()           # T4: alerta de lead quente (imediato) e resumo diario por e-mail
+        except Exception as e:
+            pass
+
         time.sleep(10)
 
 # Settings Autopilot Save

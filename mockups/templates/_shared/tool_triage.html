@@ -1,0 +1,32 @@
+{# Triagem rapida em 3 perguntas (servicos_profissionais). #}
+{% include 'tool_base.html' %}
+<section class="tool" id="ferramenta" data-tool="triage">
+  <div class="tw">
+    <div class="label rv">Primeiro contato</div>
+    <h2 class="rv">Conte seu caso em 3 perguntas</h2>
+    <p class="tlead rv">Um resumo organizado faz o primeiro atendimento da {{ s.short_name }} ser mais objetivo. Nada é enviado sem o seu clique.</p>
+    <div class="box rv" id="tr">
+      <div class="pane act" data-p="0"><div class="q">Sobre qual assunto você precisa de orientação?</div><div class="chips" id="trA" style="margin-top:12px"></div></div>
+      <div class="pane" data-p="1"><div class="q">Em que ponto você está?</div><div class="chips" id="trB" style="margin-top:12px"></div></div>
+      <div class="pane" data-p="2"><div class="q">Qual a urgência?</div><div class="chips" id="trC" style="margin-top:12px"></div><input type="text" id="trN" placeholder="Seu nome (opcional)" aria-label="Seu nome"></div>
+      <div class="pane" data-p="3"><div class="ok"><svg viewBox="0 0 54 54"><circle cx="27" cy="27" r="24"/><path d="M16 28l8 8 15-17"/></svg><div class="q" style="margin:0">Resumo pronto</div></div><div class="sum" id="trR"></div>
+        <div class="q" style="font-size:1.05rem;margin-top:8px">Vale já separar</div><ul id="trL" style="margin:8px 0 22px 1.2em;color:var(--t-muted);display:grid;gap:4px"></ul>
+        <button type="button" class="btn" id="trSend">Enviar resumo pelo WhatsApp</button> <button type="button" class="btn ghost" id="trAgain">Refazer</button></div>
+      <div class="nav2" id="trNav"><div class="dots"><i class="on"></i><i></i><i></i></div><div><button type="button" class="btn ghost" id="trBack" style="display:none">Voltar</button> <button type="button" class="btn" id="trNext" disabled>Continuar</button></div></div>
+    </div>
+  </div>
+</section>
+<script>
+(function(){
+var SV={{ s.services|map(attribute='name')|list|tojson }},$=function(i){return document.getElementById(i)},st={a:'',b:'',c:'',i:0},K=['a','b','c'];
+function chips(el,list,key){list.forEach(function(t){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=t;b.onclick=function(){[].forEach.call(el.children,function(c){c.classList.remove('on')});b.classList.add('on');st[key]=t;$('trNext').disabled=false};el.appendChild(b)})}
+chips($('trA'),SV.slice(0,6),'a');chips($('trB'),['Estou começando a entender o assunto','Já tenho documentos em mãos','Já existe um processo ou prazo correndo','Quero apenas uma segunda opinião'],'b');chips($('trC'),['Preciso falar o quanto antes','Nesta semana','Sem pressa'],'c');
+function go(n){st.i=n;[].forEach.call(document.querySelectorAll('#tr .pane'),function(p){p.classList.toggle('act',+p.dataset.p===n)});[].forEach.call(document.querySelectorAll('#tr .dots i'),function(d,k){d.classList.toggle('on',k<=n)});
+ $('tr').style.setProperty('--pg',(n/3*100)+'%');$('trBack').style.display=n>0&&n<3?'':'none';$('trNav').style.display=n==3?'none':'';$('trNext').textContent=n==2?'Ver resumo':'Continuar';$('trNext').disabled=n<3&&!st[K[n]]}
+function txt(){var n=$('trN').value.trim();return 'Olá! '+(n?'Sou '+n+'. ':'')+'Gostaria de orientação na {{ s.short_name }}:\n• Assunto: '+st.a+'\n• Situação: '+st.b+'\n• Urgência: '+st.c}
+$('trNext').onclick=function(){if(st.i==2){var r=$('trR');r.innerHTML='';[['Assunto',st.a],['Situação',st.b],['Urgência',st.c]].forEach(function(x){var d=document.createElement('div');d.innerHTML='<span></span><b></b>';d.children[0].textContent=x[0];d.children[1].textContent=x[1];r.appendChild(d)});
+ var L=$('trL');L.innerHTML='';['Documento de identificação','Comprovante de endereço','Documentos e comunicações relacionados ao assunto'].forEach(function(t){var li=document.createElement('li');li.textContent=t;L.appendChild(li)});go(3)}else go(st.i+1)};
+$('trBack').onclick=function(){go(st.i-1)};$('trAgain').onclick=function(){st.a=st.b=st.c='';[].forEach.call(document.querySelectorAll('#tr .chip'),function(c){c.classList.remove('on')});go(0)};
+$('trSend').onclick=function(){window.pvSend&&pvSend(txt())};
+})();
+</script>

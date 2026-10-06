@@ -63,7 +63,7 @@ def img_candidates(soup, base):
         if not u or u in seen or (not u.startswith("data:") and SKIP_IMG_RE.search(u)):
             continue
         blob = " ".join([tag.get("alt", ""), " ".join(tag.get("class", [])), tag.get("id", "")]).lower()
-        if "logo" in blob or BANNER_RE.search(blob) or (not u.startswith("data:") and BANNER_RE.search(u.split("?")[0].rsplit("/", 1)[-1])):
+        if "logo" in blob or ICON_ALT_RE.search(blob) or ICON_ALT_RE.search(u.split("?")[0].rsplit("/", 1)[-1]) or BANNER_RE.search(blob) or (not u.startswith("data:") and BANNER_RE.search(u.split("?")[0].rsplit("/", 1)[-1])):
             continue
         w, h = tag.get("width", ""), tag.get("height", "")
         if w.isdigit() and h.isdigit() and (int(w) < 120 or int(h) < 80):
@@ -121,6 +121,7 @@ def clean_address(raw):
     """Corta o endereco onde ele termina: depois do CEP ou da UF, e antes de rotulos de formulario/horario."""
     s = clean(raw)
     s = re.split(r"\s(?:E-?mail|Tel|Telefone|Fone|Seg|Segunda|WhatsApp|CNPJ|Nome|Mensagem|Assunto|Enviar|Hor[aá]rio)\b|\s\*|\s{2,}", s, maxsplit=1)[0]
+    s = re.split(r",?\s*(?:\(\d{2}\)|\d{4,5}[ -]\d{4}|\S+@)", s, maxsplit=1)[0] or s      # telefone/e-mail colados no endereco
     m = re.search(r"CEP:?\s*\d{5}-?\d{3}", s)
     if m:
         return s[:m.end()].strip(" ,-–")
@@ -151,6 +152,41 @@ def _photo_like(raw):
         white = sum(1 for r, g, b in px if r > 235 and g > 235 and b > 235) / len(px)
         flat = sum(1 for i in range(97, len(px)) if i % 96 and sum(abs(a - b) for a, b in zip(px[i], px[i - 1])) < 6) / len(px)
         return not (white >= 0.5 and flat >= 0.5)
+    except Exception:  # noqa: BLE001
+        return True
+
+
+ICON_ALT_RE = re.compile(r"diferencial|[ií]cone|(?<![a-z])icon|(?<![a-z])selo(?![a-z])|badge|(?<![a-z])seta(?![a-z])|arrow|avatar|depoimento", re.I)
+
+
+def _prep_logo(path):
+    """Apara as margens vazias (transparentes ou brancas) do logo para ele nao ficar minusculo no cabecalho.
+    Devolve False se o arquivo for uma FOTO (nao e logo) ou ilegivel: quem chama descarta."""
+    try:
+        from PIL import Image, ImageChops
+        if path.lower().endswith(".svg"):
+            return True
+        raw = open(path, "rb").read()
+        im = Image.open(path)
+        if path.lower().endswith((".jpg", ".jpeg")) and min(im.size) >= 200 and _photo_like(raw):
+            return False                     # JPG com cara de foto: provavelmente nao e o logo
+        im.load()
+        if im.mode in ("RGBA", "LA", "PA") or (im.mode == "P" and "transparency" in im.info):
+            rgba = im.convert("RGBA")
+            bbox = rgba.getchannel("A").point(lambda v: 255 if v > 16 else 0).getbbox()
+            out = rgba
+        else:
+            rgb = im.convert("RGB")
+            bbox = ImageChops.difference(rgb, Image.new("RGB", rgb.size, (255, 255, 255))).point(lambda v: 255 if v > 24 else 0).getbbox()
+            out = rgb
+        if not bbox:
+            return False
+        pad = max(2, int(0.02 * max(im.size)))
+        box = (max(0, bbox[0] - pad), max(0, bbox[1] - pad), min(im.width, bbox[2] + pad), min(im.height, bbox[3] + pad))
+        if (box[2] - box[0]) * (box[3] - box[1]) < 0.9 * im.width * im.height:
+            ext = "PNG" if out.mode == "RGBA" else ("JPEG" if path.lower().endswith((".jpg", ".jpeg")) else "PNG")
+            out.crop(box).save(path, ext)
+        return True
     except Exception:  # noqa: BLE001
         return True
 
@@ -293,6 +329,8 @@ def extract(url, screenshot_path=None, save_dir=None, brand=None):
         if logo:
             lg = materialize([{"url": logo}], os.path.join(save_dir, "img"), limit=1)
             logo = lg[0]["file"] if lg else None
+            if logo and not _prep_logo(os.path.join(save_dir, "img", logo)):
+                logo = None
     colors =dominant_colors(screenshot_path) if screenshot_path and os.path.exists(screenshot_path) else {"palette": [], "accent": None}
 
     data = {

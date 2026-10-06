@@ -61,6 +61,7 @@ def capture(target, out_dir, tag, is_url):
                 pg.wait_for_load_state("networkidle", timeout=8000)
             except Exception:  # noqa: BLE001
                 pass
+            pg.add_style_tag(content=".rv-off .rv,.rv-off .pv-ix,.rv-off .pv-hero-in{transition:none!important;animation:none!important;opacity:1!important;transform:none!important;filter:none!important;clip-path:none!important}")
             pg.evaluate("document.documentElement.classList.add('rv-off')")
             pg.wait_for_timeout(500)
             out = os.path.join(out_dir, f"{tag}_{name}.png")

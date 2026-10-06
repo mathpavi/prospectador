@@ -163,7 +163,18 @@ def init_db():
         # E4/M1: e-mail honesto e variado (template) ou geracao livre antiga (ai); esboco automatico no envio
         'email_generation_mode': 'template',
         'mockup_in_email': '1',
-        'mockup_daily_limit': '40'
+        'mockup_daily_limit': '40',
+        # C1: follow-up automatico (desligado ate o usuario ligar)
+        'followup_enabled': '0',
+        'followup_daily_limit': '8',
+        'followup_max_age_days': '30',
+        # T3: leitura da caixa de entrada (respostas e rejeicoes)
+        'imap_enabled': '0',
+        'imap_host': 'imap.hostinger.com',
+        # T4: alertas de lead quente e resumo diario (e-mail para voce mesmo)
+        'alerts_enabled': '1',
+        'alert_email': '',
+        'digest_hour': '8'
     }
     
     for key, val in default_settings.items():

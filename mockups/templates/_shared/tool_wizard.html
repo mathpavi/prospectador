@@ -1,0 +1,35 @@
+{# Orcamento em 3 passos (industrial_escuro). Exige --t-* no template. #}
+{% include 'tool_base.html' %}
+<section class="tool" id="ferramenta" data-tool="wizard">
+  <div class="tw">
+    <div class="label rv">Orçamento rápido</div>
+    <h2 class="rv">Monte seu orçamento em 3 passos</h2>
+    <p class="tlead rv">Escolha o que precisa e envie um pedido já organizado para a equipe da {{ s.short_name }}.</p>
+    <div class="box rv" id="wz">
+      <div class="pane act" data-p="0"><div class="q">O que você precisa?</div><div class="hint">Pode marcar mais de um.</div><div class="chips" id="wzS"></div></div>
+      <div class="pane" data-p="1"><div class="q">Qual o volume?</div><div class="hint">Isso ajuda a equipe a dimensionar a produção.</div><div class="chips" id="wzV"></div></div>
+      <div class="pane" data-p="2"><div class="q">Para quando?</div><div class="hint">Informe seu nome para o atendimento ser direto.</div><div class="chips" id="wzP"></div><input type="text" id="wzN" placeholder="Seu nome (opcional)" aria-label="Seu nome"></div>
+      <div class="pane" data-p="3"><div class="ok"><svg viewBox="0 0 54 54"><circle cx="27" cy="27" r="24"/><path d="M16 28l8 8 15-17"/></svg><div class="q" style="margin:0">Pedido montado!</div></div><div class="sum" id="wzR"></div><button type="button" class="btn" id="wzSend">Enviar pelo WhatsApp</button> <button type="button" class="btn ghost" id="wzAgain">Refazer</button></div>
+      <div class="nav2" id="wzNav"><div class="dots"><i class="on"></i><i></i><i></i></div><div><button type="button" class="btn ghost" id="wzBack" style="display:none">Voltar</button> <button type="button" class="btn" id="wzNext" disabled>Continuar</button></div></div>
+    </div>
+    <p class="note">Esboço ilustrativo: o pedido é montado na própria página e enviado por WhatsApp.</p>
+  </div>
+</section>
+<script>
+(function(){
+var SV={{ s.services|map(attribute='name')|list|tojson }},V=['Peça única','Lote pequeno','Produção seriada','Contrato recorrente'],P=['Urgente','Esta semana','Este mês','Sem pressa'];
+var st={s:[],v:'',p:'',i:0},$=function(i){return document.getElementById(i)};
+function chips(el,list,multi,key){list.forEach(function(t){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=t;b.onclick=function(){
+ if(multi){b.classList.toggle('on');st[key]=[].map.call(el.querySelectorAll('.on'),function(x){return x.textContent})}else{[].forEach.call(el.children,function(c){c.classList.remove('on')});b.classList.add('on');st[key]=t}upd()};el.appendChild(b)})}
+chips($('wzS'),SV,true,'s');chips($('wzV'),V,false,'v');chips($('wzP'),P,false,'p');
+function ok(){return st.i==0?st.s.length>0:st.i==1?!!st.v:!!st.p}
+function go(n){st.i=n;[].forEach.call(document.querySelectorAll('#wz .pane'),function(p){p.classList.toggle('act',+p.dataset.p===n)});
+ [].forEach.call(document.querySelectorAll('#wz .dots i'),function(d,k){d.classList.toggle('on',k<=n)});$('wz').style.setProperty('--pg',(n/3*100)+'%');
+ $('wzBack').style.display=n>0&&n<3?'':'none';$('wzNav').style.display=n==3?'none':'';$('wzNext').textContent=n==2?'Ver resumo':'Continuar';upd()}
+function upd(){$('wzNext').disabled=!ok()}
+function txt(){var n=$('wzN').value.trim();return 'Olá! '+(n?'Sou '+n+'. ':'')+'Quero um orçamento na {{ s.short_name }}:\n• Itens: '+st.s.join(', ')+'\n• Volume: '+st.v+'\n• Prazo: '+st.p}
+$('wzNext').onclick=function(){if(st.i==2){var r=$('wzR');r.innerHTML='';[['Itens',st.s.join(', ')],['Volume',st.v],['Prazo',st.p]].forEach(function(x){var d=document.createElement('div');d.innerHTML='<span></span><b></b>';d.children[0].textContent=x[0];d.children[1].textContent=x[1];r.appendChild(d)});go(3)}else go(st.i+1)};
+$('wzBack').onclick=function(){go(st.i-1)};$('wzAgain').onclick=function(){st.s=[];st.v=st.p='';[].forEach.call(document.querySelectorAll('#wz .chip'),function(c){c.classList.remove('on')});go(0)};
+$('wzSend').onclick=function(){window.pvSend&&pvSend(txt())};
+})();
+</script>

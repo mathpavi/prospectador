@@ -44,7 +44,10 @@ Responda SOMENTE um objeto JSON valido, sem markdown, com exatamente estas chave
  "process": [str]|[] (so se os dados descreverem etapas),
  "about_title": str (max 7 palavras), "about": [str] (1 a 2 paragrafos curtos, parafraseando o texto da propria empresa),
  "facts": [{"k": str, "v": str}] (max 3, somente fatos presentes nos dados),
- "contact_title": str (pergunta curta e direta)}"""
+ "contact_title": str (pergunta curta e direta),
+ "how": [str, str, str] (3 passos curtos de como o cliente contrata, do primeiro contato ao servico; genericos, sem prazos),
+ "faq": [{"q": str, "a": str}] (3 a 4 perguntas que clientes DESTE segmento costumam ter, com respostas educativas e prudentes;
+        pode usar conhecimento geral do segmento, mas SEM numeros, prazos, precos, garantias, certificacoes ou promessas sobre a empresa)}"""
 
 
 def build_user(prospect, ex):
@@ -61,7 +64,7 @@ def build_user(prospect, ex):
 def call_anthropic(user):
     r = requests.post("https://api.anthropic.com/v1/messages", timeout=60, headers={
         "x-api-key": os.environ["ANTHROPIC_API_KEY"], "anthropic-version": "2023-06-01", "content-type": "application/json"},
-        json={"model": MODELS["anthropic"]["id"], "max_tokens": 1500, "temperature": 0.4, "system": SYSTEM,
+        json={"model": MODELS["anthropic"]["id"], "max_tokens": 2200, "temperature": 0.4, "system": SYSTEM,
               "messages": [{"role": "user", "content": user}]})
     r.raise_for_status()
     j = r.json()
@@ -96,7 +99,7 @@ def call_gemini(user):
                           json={"systemInstruction": {"parts": [{"text": SYSTEM}]},
                                 "contents": [{"role": "user", "parts": [{"text": user}]}],
                                 "generationConfig": {"temperature": 0.4, "responseMimeType": "application/json", "maxOutputTokens": 4000}})
-        if r.status_code in (404, 403):
+        if r.status_code in (404, 403, 429, 500, 502, 503, 504):
             last = f"{model_id}: HTTP {r.status_code}"
             print(f"modelo {model_id} indisponivel para esta chave (HTTP {r.status_code}); tentando o proximo...")
             continue
@@ -130,7 +133,7 @@ def gemini_json(parts, temperature=0.2, max_tokens=1200):
         r = requests.post(url, timeout=120, headers={"x-goog-api-key": api_key, "content-type": "application/json"},
                           json={"contents": [{"role": "user", "parts": parts}],
                                 "generationConfig": {"temperature": temperature, "responseMimeType": "application/json", "maxOutputTokens": max_tokens}})
-        if r.status_code in (404, 403):
+        if r.status_code in (404, 403, 429, 500, 502, 503, 504):
             last = f"{model_id}: HTTP {r.status_code}"
             continue
         if r.status_code != 200:
@@ -159,7 +162,7 @@ def validate(copy, ex, prospect):
     src = source_blob(ex, prospect)
     # so campos de copy escritos pelo modelo (fatos como telefone/arquivos nao passam por aqui)
     copy_keys = ("eyebrow", "hero_title_html", "hero_sub", "hero_alt", "services_title", "services_intro", "services",
-                 "process", "about_title", "about", "facts", "contact_title")
+                 "process", "about_title", "about", "facts", "contact_title", "how", "faq")
     flat = json.dumps({k: copy.get(k) for k in copy_keys}, ensure_ascii=False).lower()
 
     for pat in BANNED:
@@ -187,6 +190,24 @@ def validate(copy, ex, prospect):
     return copy, problems, fatal
 
 
+def brand_name(prospect, ex):
+    """Nome da marca para o esboco: cadastro limpo; se for lixo ('Pagina inicial', 'Sobre') usa o nome do site/dominio."""
+    raw = prospect.get("company_name") or ""
+    if "  " in raw.strip():                       # 'Plastibras  de Plasticos': pedaco cortado por limpeza antiga
+        raw = raw.strip().split("  ")[0]
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if here not in sys.path:
+        sys.path.insert(0, here)
+    try:
+        import whatsapp_msg as wm
+        if wm.is_junk_name(raw):
+            site = re.split(r"\s*[|\-–—·]\s*", ex.get("site_name") or "")[0].strip()
+            raw = site if site and not wm.is_junk_name(site) else (wm.brand_from_domain(prospect.get("website") or ex.get("url")) or raw)
+    except Exception:  # noqa: BLE001
+        pass
+    return re.sub(r"\s+", " ", raw).strip() or ex.get("site_name") or ""
+
+
 def assemble(copy, ex, prospect):
     """Junta copy do LLM + fatos do extrator (que nunca passam pelo modelo)."""
     c = ex["contacts"]
@@ -200,8 +221,8 @@ def assemble(copy, ex, prospect):
     # a IA nao enxerga as imagens: o texto alternativo vem do proprio site, ou e so o nome da empresa (sem inventar descricao)
     first_alt = next((i.get("alt") for i in ex.get("images", []) if i.get("file") and i.get("alt")), "")
     slots.update({
-        "brand_name": prospect.get("company_name") or ex.get("site_name"),
-        "short_name": prospect.get("company_name") or ex.get("site_name"),
+        "brand_name": brand_name(prospect, ex),
+        "short_name": brand_name(prospect, ex),
         "accent": ex["colors"].get("accent"),
         "specbar": [x for x in [uf and slots.get("eyebrow", "").split("·")[-1].strip(), (c.get("phones") or [None])[0]] if x],
         "phones": c.get("phones", [])[:2],

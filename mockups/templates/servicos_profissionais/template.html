@@ -20,6 +20,8 @@
   --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --gutter:clamp(20px,5vw,72px);
   --ease:cubic-bezier(.2,.7,.2,1);
+  /* pv-bridge: variaveis lidas pelas partes compartilhadas */
+  --t-bg:var(--paper);--t-panel:var(--tint);--t-raise:#fff;--t-text:var(--ink);--t-muted:var(--muted);--t-line:var(--line);--t-accent:var(--accent);--t-on-accent:var(--on-accent);--t-r:6px;--t-chip:999px;--t-display:var(--serif);--t-body:var(--sans);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
@@ -132,7 +134,7 @@ footer{padding:24px var(--gutter);display:flex;justify-content:space-between;gap
   </a>
   <nav class="nav">
     <a href="#areas">Áreas de atuação</a><a href="#sobre">Sobre</a>
-    <a class="btn" href="#contato">Agendar atendimento</a>
+    <a class="btn" href="#ferramenta">Agendar atendimento</a>
   </nav>
 </header>
 
@@ -144,7 +146,7 @@ footer{padding:24px var(--gutter);display:flex;justify-content:space-between;gap
       <h1 class="rv">{{ s.hero_title_html | safe }}</h1>
       <p class="lede rv">{{ s.hero_sub }}</p>
       <div class="cta rv">
-        <a class="btn" href="#contato">Agendar atendimento</a>
+        <a class="btn" href="#ferramenta">Agendar atendimento</a>
         <a class="btn ghost" href="#areas">Conhecer as áreas</a>
       </div>
       {% if s.specbar %}<div class="trust rv">{% for it in s.specbar %}<span><b>{{ it }}</b></span>{% endfor %}</div>{% endif %}
@@ -190,13 +192,15 @@ footer{padding:24px var(--gutter);display:flex;justify-content:space-between;gap
   </div>
 </section>
 
+{% include 'tool_triage.html' %}
+{% include 'extras.html' %}
 <section class="contact wrap" id="contato">
   <div class="card rv">
     <div><div class="label">Contato</div><h2>{{ s.contact_title }}</h2></div>
     <div>
-      <div class="ph">{% for p in s.phones %}<a href="#contato">{{ p }}</a>{% endfor %}</div>
+      <div class="ph">{% for p in s.phones %}<a href="tel:{{ p|replace(' ','')|replace('(','')|replace(')','')|replace('-','') }}">{{ p }}</a>{% endfor %}</div>
       {% if s.address %}<address>{{ s.address }}</address>{% endif %}
-      <a class="btn" href="#contato">Agendar atendimento</a>
+      <a class="btn" href="#ferramenta">Agendar atendimento</a>
     </div>
   </div>
 </section>
@@ -206,6 +210,7 @@ footer{padding:24px var(--gutter);display:flex;justify-content:space-between;gap
 
 <div class="proposal" role="note">
   <span><b>Proposta visual</b> <span class="long">preparada por {{ proposal.author }} · não é o site oficial de {{ s.short_name }}</span></span>
+  <span class="pv-tag"><i class="on">Gostou, mas quer mudanças? Também fazemos!</i><i>Quer algo diferente? Criamos rapidamente para você!</i></span>
   <a href="{{ proposal.cta_url }}">{{ proposal.cta_label }}</a>
 </div>
 
@@ -217,5 +222,6 @@ footer{padding:24px var(--gutter);display:flex;justify-content:space-between;gap
   els.forEach(function(e,i){e.style.transitionDelay=(i%4)*60+'ms';io.observe(e)});
 })();
 </script>
+{% include 'fx.html' %}
 </body>
 </html>

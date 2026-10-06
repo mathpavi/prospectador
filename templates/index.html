@@ -1342,6 +1342,30 @@
                         </div>
                     </div>
                     <div class="form-group">
+                        <label for="followup_enabled">Follow-up automático por e-mail (dias 3, 7 e 14)</label>
+                        <select id="followup_enabled" name="followup_enabled">
+                            <option value="0">Desligado</option>
+                            <option value="1">Ligado: retoma quem não respondeu, com prioridade sobre e-mails novos</option>
+                        </select>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            Para sozinho quando a pessoa responde, pede para sair ou o e-mail é bloqueado. Conta no limite diário de e-mails.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="imap_enabled">Ler respostas e rejeições na caixa de entrada</label>
+                        <select id="imap_enabled" name="imap_enabled">
+                            <option value="0">Desligado</option>
+                            <option value="1">Ligado: respostas viram estágio no funil; "SAIR" e rejeições bloqueiam o e-mail</option>
+                        </select>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            Somente leitura (não apaga nem marca como lida). Teste antes com <code>python tools/ler_caixa.py</code>.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="followup_daily_limit">Máximo de follow-ups por dia</label>
+                        <input type="number" id="followup_daily_limit" name="followup_daily_limit" min="0" max="100" value="8">
+                    </div>
+                    <div class="form-group">
                         <label for="whatsapp_daily_goal">Meta diária de contatos manuais no WhatsApp</label>
                         <input type="number" id="whatsapp_daily_goal" name="whatsapp_daily_goal" min="1" max="60" value="15">
                         <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">

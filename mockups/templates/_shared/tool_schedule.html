@@ -1,0 +1,32 @@
+{# Agendamento em 30 segundos (servico_local). #}
+{% include 'tool_base.html' %}
+<section class="tool" id="ferramenta" data-tool="schedule">
+  <div class="tw">
+    <div class="label rv">Agendamento</div>
+    <h2 class="rv">Agende em 30 segundos</h2>
+    <p class="tlead rv">Escolha o serviço, o dia e o período. A {{ s.short_name }} confirma pelo WhatsApp.</p>
+    <div class="box rv" id="sc">
+      <div class="pane act" data-p="0"><div class="q">Qual serviço?</div><div class="chips" id="scS" style="margin-top:12px"></div></div>
+      <div class="pane" data-p="1"><div class="q">Qual dia?</div><div class="chips" id="scD" style="margin-top:12px"></div></div>
+      <div class="pane" data-p="2"><div class="q">Qual período?</div><div class="chips" id="scP" style="margin-top:12px"></div><input type="text" id="scB" placeholder="Seu bairro ou endereço (opcional)" aria-label="Bairro ou endereço"></div>
+      <div class="pane" data-p="3"><div class="ok"><svg viewBox="0 0 54 54"><circle cx="27" cy="27" r="24"/><path d="M16 28l8 8 15-17"/></svg><div class="q" style="margin:0">Quase lá! Confira:</div></div><div class="sum" id="scR"></div><button type="button" class="btn" id="scSend">Confirmar pelo WhatsApp</button> <button type="button" class="btn ghost" id="scAgain">Refazer</button></div>
+      <div class="nav2" id="scNav"><div class="dots"><i class="on"></i><i></i><i></i></div><div><button type="button" class="btn ghost" id="scBack" style="display:none">Voltar</button> <button type="button" class="btn" id="scNext" disabled>Continuar</button></div></div>
+    </div>
+  </div>
+</section>
+<script>
+(function(){
+var SV={{ s.services|map(attribute='name')|list|tojson }},$=function(i){return document.getElementById(i)},st={s:'',d:'',p:'',i:0};
+var DN=['dom','seg','ter','qua','qui','sex','sáb'],MN=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+function chips(el,list,key){list.forEach(function(t){var b=document.createElement('button');b.type='button';b.className='chip';b.textContent=t;b.onclick=function(){[].forEach.call(el.children,function(c){c.classList.remove('on')});b.classList.add('on');st[key]=t;$('scNext').disabled=false};el.appendChild(b)})}
+var days=[],t=new Date();for(var k=1;days.length<7;k++){var x=new Date(t.getTime()+k*864e5);if(x.getDay()!==0)days.push(DN[x.getDay()]+' '+x.getDate()+'/'+MN[x.getMonth()])}
+chips($('scS'),SV,'s');chips($('scD'),days,'d');chips($('scP'),['Manhã','Tarde','Qualquer horário'],'p');
+var key=['s','d','p'];
+function go(n){st.i=n;[].forEach.call(document.querySelectorAll('#sc .pane'),function(p){p.classList.toggle('act',+p.dataset.p===n)});[].forEach.call(document.querySelectorAll('#sc .dots i'),function(d,k){d.classList.toggle('on',k<=n)});
+ $('sc').style.setProperty('--pg',(n/3*100)+'%');$('scBack').style.display=n>0&&n<3?'':'none';$('scNav').style.display=n==3?'none':'';$('scNext').textContent=n==2?'Ver resumo':'Continuar';$('scNext').disabled=n<3&&!st[key[n]]}
+function txt(){var b=$('scB').value.trim();return 'Olá! Quero agendar com a {{ s.short_name }}:\n• Serviço: '+st.s+'\n• Dia: '+st.d+'\n• Período: '+st.p+(b?'\n• Local: '+b:'')}
+$('scNext').onclick=function(){if(st.i==2){var r=$('scR');r.innerHTML='';[['Serviço',st.s],['Dia',st.d],['Período',st.p],['Local',$('scB').value.trim()||'a combinar']].forEach(function(x){var d=document.createElement('div');d.innerHTML='<span></span><b></b>';d.children[0].textContent=x[0];d.children[1].textContent=x[1];r.appendChild(d)});go(3)}else go(st.i+1)};
+$('scBack').onclick=function(){go(st.i-1)};$('scAgain').onclick=function(){st.s=st.d=st.p='';[].forEach.call(document.querySelectorAll('#sc .chip'),function(c){c.classList.remove('on')});go(0)};
+$('scSend').onclick=function(){window.pvSend&&pvSend(txt())};
+})();
+</script>

@@ -1,0 +1,32 @@
+<style>
+.tool{background:var(--t-panel);padding-block:clamp(64px,9vw,120px)}
+.tool .tw{padding-inline:var(--gutter);max-width:1180px;margin-inline:auto}
+.tool .tlead{margin-top:14px;max-width:56ch;color:var(--t-muted)}
+.tool .box{background:var(--t-raise);border:1px solid var(--t-line);border-radius:var(--t-r);padding:clamp(20px,3.4vw,46px);margin-top:34px;position:relative;overflow:hidden;box-shadow:0 20px 60px -30px rgba(0,0,0,.35)}
+.tool .box::before{content:"";position:absolute;left:0;top:0;height:3px;width:var(--pg,0%);background:var(--t-accent);transition:width .6s var(--ease)}
+.tool .q{font:600 clamp(1.15rem,2vw,1.5rem)/1.2 var(--t-display);margin-bottom:6px;color:var(--t-text)}
+.tool .hint{font-size:.9rem;color:var(--t-muted);margin-bottom:18px}
+.tool .chips{display:flex;flex-wrap:wrap;gap:10px}
+.tool .chip{border:1px solid var(--t-line);background:transparent;color:var(--t-text);font:500 .95rem/1.2 var(--t-body);padding:.75em 1.15em;border-radius:var(--t-chip);cursor:pointer;transition:transform .25s var(--ease),background .25s,border-color .25s,color .25s}
+.tool .chip:hover{transform:translateY(-2px);border-color:var(--t-accent)}
+.tool .chip.on{background:var(--t-accent);color:var(--t-on-accent);border-color:var(--t-accent);transform:scale(1.03)}
+.tool .pane{display:none}
+.tool .pane.act{display:block;animation:pvIn .55s var(--ease) both}
+@keyframes pvIn{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+.tool .nav2{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:28px;flex-wrap:wrap}
+.tool .dots{display:flex;gap:8px}.tool .dots i{width:9px;height:9px;border-radius:50%;background:var(--t-line);transition:background .3s,transform .3s}
+.tool .dots i.on{background:var(--t-accent);transform:scale(1.35)}
+.tool button.btn{border:0;cursor:pointer}
+.tool .btn[disabled]{opacity:.4;pointer-events:none}
+.tool .sum{border:1px dashed var(--t-line);border-radius:var(--t-r);padding:18px 20px;margin:6px 0 22px;display:grid;gap:10px}
+.tool .sum div{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid var(--t-line);padding-bottom:9px;font-size:.95rem}
+.tool .sum div:last-child{border:0;padding:0}.tool .sum span{color:var(--t-muted)}.tool .sum b{text-align:right;font-weight:600;color:var(--t-text)}
+.tool input[type=text],.tool input[type=number]{width:100%;max-width:420px;padding:.85em 1em;background:transparent;border:1px solid var(--t-line);border-radius:var(--t-r);color:var(--t-text);font:inherit;margin-top:6px}
+.tool input[type=range]{width:100%;accent-color:var(--t-accent);margin:10px 0 4px}
+.tool .rl{display:flex;justify-content:space-between;font-size:.82rem;color:var(--t-muted)}
+.tool .ok{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.tool .ok svg{width:54px;height:54px}.tool .ok circle,.tool .ok path{fill:none;stroke:var(--t-accent);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:160;stroke-dashoffset:160;animation:pvDraw .9s .1s var(--ease) forwards}
+.tool .ok path{animation-delay:.5s}
+@keyframes pvDraw{to{stroke-dashoffset:0}}
+.tool .note{font-size:.8rem;color:var(--t-muted);margin-top:16px}
+</style>

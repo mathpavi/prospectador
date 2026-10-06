@@ -61,8 +61,41 @@ def logo_class(path, bg_is_dark):
     return ""
 
 
+def _digits(x):
+    return re.sub(r"\D", "", x or "")
+
+
+def company_contact(phones):
+    """(whatsapp_url_base, tel_url) da empresa: WhatsApp so se houver celular (9 apos o DDD); tel: com o primeiro numero."""
+    wa = tel = ""
+    for p in phones or []:
+        d = _digits(p)
+        d = d[2:] if d.startswith("55") and len(d) > 11 else d
+        if not tel and len(d) >= 10:
+            tel = "tel:+55" + d
+        if not wa and len(d) == 11 and d[2] == "9":
+            wa = "https://wa.me/55" + d
+    return wa, tel
+
+
+def default_proposal(brand):
+    """Faixa 'Proposta visual': o botao abre o WhatsApp do Paviani (configuracao sender_whatsapp) com mensagem pronta."""
+    from urllib.parse import quote
+    num = ""
+    try:
+        import fill
+        num = _digits(fill._db_setting("sender_whatsapp"))
+    except Exception:  # noqa: BLE001
+        pass
+    num = num or "5551997661506"
+    if not num.startswith("55"):
+        num = "55" + num
+    msg = f"Olá! Vi o esboço de site que você preparou para a {brand}. Gostei e quero conversar sobre ajustes ou algo diferente."
+    return {"author": "Paviani", "cta_label": "Falar com a Paviani", "cta_url": f"https://wa.me/{num}?text={quote(msg)}"}
+
+
 def render(template_id, slots, assets_dir, out_dir, proposal=None, og=None):
-    env = Environment(loader=FileSystemLoader(os.path.join(TEMPLATES, template_id)),
+    env = Environment(loader=FileSystemLoader([os.path.join(TEMPLATES, template_id), os.path.join(TEMPLATES, "_shared")]),
                       autoescape=select_autoescape(["html"]))
     tpl = env.get_template("template.html")
 
@@ -77,6 +110,7 @@ def render(template_id, slots, assets_dir, out_dir, proposal=None, og=None):
     meta_path = os.path.join(TEMPLATES, template_id, "meta.json")
     meta = json.load(open(meta_path, encoding="utf-8")) if os.path.exists(meta_path) else {"bg": "#0d0f11", "dark": True, "alt_bg": "#f3f1ec"}
     slots = dict(slots)
+    slots["wa_url"], slots["tel_url"] = company_contact(slots.get("phones"))
     slots["accent"], on_accent = fit_accent(slots.get("accent"), meta["bg"])
     accent_alt, on_accent_alt = fit_accent(slots.get("accent"), meta["alt_bg"])   # versao para blocos de fundo oposto
     logo_file = slots.get("logo_file") if slots.get("logo_file") in used else None
@@ -85,7 +119,7 @@ def render(template_id, slots, assets_dir, out_dir, proposal=None, og=None):
         s=slots, on_accent=on_accent, accent_alt=accent_alt, on_accent_alt=on_accent_alt, og=og, logo_cls=lcls,
         images=[i for i in slots.get("images", []) if i in used],
         logo_file=logo_file,
-        proposal=proposal or {"author": "Paviani", "cta_label": "Falar com a Paviani", "cta_url": "#contato"},
+        proposal=proposal or default_proposal(slots.get("short_name") or slots.get("brand_name") or "minha empresa"),
     )
     path = os.path.join(out_dir, "index.html")
     with open(path, "w", encoding="utf-8") as f:
@@ -99,6 +133,7 @@ def screenshot(index_path, out_png, width=1440, height=900, full=True):
         b = p.chromium.launch()
         pg = b.new_page(viewport={"width": width, "height": height})
         pg.goto("file:///" + index_path.replace("\\", "/"), wait_until="networkidle")
+        pg.add_style_tag(content=".rv-off .rv,.rv-off .pv-ix,.rv-off .pv-hero-in{transition:none!important;animation:none!important;opacity:1!important;transform:none!important;filter:none!important;clip-path:none!important}")
         pg.evaluate("document.documentElement.classList.add('rv-off')")
         pg.wait_for_timeout(400)
         pg.screenshot(path=out_png, full_page=full)

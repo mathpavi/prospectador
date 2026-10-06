@@ -20,6 +20,8 @@
   --body:'Figtree',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --gutter:clamp(18px,5vw,72px);
   --ease:cubic-bezier(.2,.7,.2,1);
+  /* pv-bridge: variaveis lidas pelas partes compartilhadas */
+  --t-bg:var(--paper);--t-panel:var(--tint);--t-raise:#fff;--t-text:var(--ink);--t-muted:var(--muted);--t-line:var(--line);--t-accent:var(--accent);--t-on-accent:var(--on-accent);--t-r:16px;--t-chip:999px;--t-display:var(--display);--t-body:var(--body);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
@@ -162,7 +164,7 @@ footer{padding:28px var(--gutter);display:flex;justify-content:space-between;gap
   </a>
   <nav class="nav">
     <a href="#servicos">Serviços</a><a href="#sobre">Sobre</a>
-    <a class="btn" href="#contato"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.2 14.2c-.2.6-1.300 1.200-1.800 1.200-.5.100-1 .2-3.300-.7-2.800-1.100-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.8 2c.1.200.1.400 0 .6l-.4.600c-.1.200-.3.300-.1.600.2.300.8 1.300 1.700 2.100 1.200 1 2.100 1.300 2.400 1.500.3.100.5.100.7-.1l1-1.200c.2-.3.400-.2.700-.1l1.900.9c.3.100.5.200.5.300.1.200.1.800-.1 1.400z"/></svg>Chamar no WhatsApp</a>
+    <a class="btn" href="#ferramenta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.2 14.2c-.2.6-1.300 1.200-1.800 1.200-.5.100-1 .2-3.300-.7-2.800-1.100-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.8 2c.1.200.1.400 0 .6l-.4.600c-.1.200-.3.300-.1.600.2.300.8 1.300 1.700 2.100 1.200 1 2.100 1.300 2.400 1.500.3.100.5.100.7-.1l1-1.200c.2-.3.400-.2.700-.1l1.900.9c.3.100.5.200.5.300.1.200.1.800-.1 1.400z"/></svg>Chamar no WhatsApp</a>
   </nav>
 </header>
 
@@ -174,7 +176,7 @@ footer{padding:28px var(--gutter);display:flex;justify-content:space-between;gap
       <h1 class="rv">{{ s.hero_title_html | safe }}</h1>
       <p class="lede rv">{{ s.hero_sub }}</p>
       <div class="cta rv">
-        <a class="btn big" href="#contato"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.2 14.2c-.2.6-1.300 1.200-1.800 1.200-.5.100-1 .2-3.300-.7-2.800-1.100-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.8 2c.1.200.1.400 0 .6l-.4.600c-.1.200-.3.300-.1.600.2.300.8 1.300 1.700 2.100 1.200 1 2.100 1.300 2.400 1.500.3.100.5.100.7-.1l1-1.200c.2-.3.400-.2.700-.1l1.900.9c.3.100.5.200.5.300.1.200.1.800-.1 1.400z"/></svg>Pedir orçamento</a>
+        <a class="btn big" href="#ferramenta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.2 14.2c-.2.6-1.300 1.200-1.800 1.200-.5.100-1 .2-3.300-.7-2.800-1.100-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.8 2c.1.200.1.400 0 .6l-.4.600c-.1.200-.3.300-.1.600.2.300.8 1.300 1.700 2.100 1.200 1 2.100 1.300 2.400 1.500.3.100.5.100.7-.1l1-1.200c.2-.3.400-.2.700-.1l1.900.9c.3.100.5.200.5.300.1.200.1.800-.1 1.400z"/></svg>Pedir orçamento</a>
         <a class="btn big ghost" href="#servicos">Ver serviços</a>
       </div>
       {% if s.services %}<div class="quick rv">{% for sv in s.services[:5] %}<span>{{ sv.name }}</span>{% endfor %}</div>{% endif %}
@@ -221,14 +223,16 @@ footer{padding:28px var(--gutter);display:flex;justify-content:space-between;gap
   </div>
 </section>
 
+{% include 'tool_schedule.html' %}
+{% include 'extras.html' %}
 <section class="contact wrap" id="contato" style="padding-top:clamp(48px,7vw,96px)">
   <div class="block rv">
     <div><div class="label">Contato</div><h2>{{ s.contact_title }}</h2></div>
     <div>
-      <div class="ph">{% for p in s.phones %}<a href="#contato">{{ p }}</a>{% endfor %}</div>
+      <div class="ph">{% for p in s.phones %}<a href="tel:{{ p|replace(' ','')|replace('(','')|replace(')','')|replace('-','') }}">{{ p }}</a>{% endfor %}</div>
       {% if s.address %}<address>{{ s.address }}</address>{% endif %}
       <div class="cta">
-        <a class="btn big" href="#contato"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.2 14.2c-.2.6-1.300 1.200-1.800 1.200-.5.100-1 .2-3.300-.7-2.800-1.100-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.8 2c.1.200.1.400 0 .6l-.4.600c-.1.200-.3.300-.1.600.2.300.8 1.300 1.700 2.100 1.200 1 2.100 1.300 2.400 1.500.3.100.5.100.7-.1l1-1.200c.2-.3.400-.2.700-.1l1.900.9c.3.100.5.200.5.300.1.200.1.800-.1 1.400z"/></svg>Chamar no WhatsApp</a>
+        <a class="btn big" href="#ferramenta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.2 14.2c-.2.6-1.300 1.200-1.800 1.200-.5.100-1 .2-3.300-.7-2.800-1.100-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.8 2c.1.200.1.400 0 .6l-.4.600c-.1.200-.3.300-.1.600.2.300.8 1.300 1.700 2.100 1.200 1 2.100 1.300 2.400 1.500.3.100.5.100.7-.1l1-1.200c.2-.3.400-.2.700-.1l1.900.9c.3.100.5.200.5.300.1.200.1.800-.1 1.400z"/></svg>Chamar no WhatsApp</a>
       </div>
     </div>
   </div>
@@ -237,10 +241,11 @@ footer{padding:28px var(--gutter);display:flex;justify-content:space-between;gap
 
 <footer><span>© {{ s.brand_name }}</span><span>{{ s.city_uf }}</span></footer>
 
-<a class="fab" href="#contato" aria-label="Chamar no WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.2 14.2c-.2.6-1.300 1.200-1.800 1.200-.5.100-1 .2-3.300-.7-2.800-1.100-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.8 2c.1.200.1.400 0 .6l-.4.600c-.1.200-.3.300-.1.600.2.300.8 1.300 1.700 2.100 1.200 1 2.100 1.300 2.400 1.500.3.100.5.100.7-.1l1-1.200c.2-.3.400-.2.700-.1l1.900.9c.3.100.5.200.5.300.1.200.1.800-.1 1.400z"/></svg></a>
+<a class="fab" href="{{ s.wa_url or s.tel_url or '#ferramenta' }}" aria-label="Chamar no WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.2 14.2c-.2.6-1.300 1.200-1.800 1.200-.5.100-1 .2-3.300-.7-2.800-1.100-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.8 2c.1.200.1.400 0 .6l-.4.600c-.1.200-.3.300-.1.600.2.300.8 1.300 1.700 2.100 1.200 1 2.100 1.300 2.400 1.500.3.100.5.100.7-.1l1-1.200c.2-.3.400-.2.700-.1l1.900.9c.3.100.5.200.5.300.1.200.1.800-.1 1.400z"/></svg></a>
 
 <div class="proposal" role="note">
   <span><b>Proposta visual</b> <span class="long">preparada por {{ proposal.author }} · não é o site oficial de {{ s.short_name }}</span></span>
+  <span class="pv-tag"><i class="on">Gostou, mas quer mudanças? Também fazemos!</i><i>Quer algo diferente? Criamos rapidamente para você!</i></span>
   <a href="{{ proposal.cta_url }}">{{ proposal.cta_label }}</a>
 </div>
 
@@ -252,5 +257,6 @@ footer{padding:28px var(--gutter);display:flex;justify-content:space-between;gap
   els.forEach(function(e,i){e.style.transitionDelay=(i%4)*60+'ms';io.observe(e)});
 })();
 </script>
+{% include 'fx.html' %}
 </body>
 </html>
