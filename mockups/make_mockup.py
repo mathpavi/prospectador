@@ -119,11 +119,14 @@ def make(prospect, provider=None, slots_file=None, days=21, forced_template=None
         idx = render_mod.render(template, slots, work, out_dir, og=og)
         render_mod.screenshot(idx, os.path.join(out_dir, "thumb.png"), 1200, 630, full=False)
         if judge and not reasons:        # etapa 2: o esboco precisa ser REALMENTE melhor que o site atual
-            ok, why, ns, nm, cost = judge_mod.judge_mockup(prospect, idx, work, saved_shot=shot)
+            keep = {}
+            ok, why, ns, nm, cost = judge_mod.judge_mockup(prospect, idx, work, saved_shot=shot, keep=keep)
             print(f"juiz: {why} (US$ {cost:.4f})")
             if not ok:
                 reasons.append(why)
         status = "review" if reasons else "ready"
+        if status == "ready":        # M2: antes/depois (so para esbocos que serao servidos)
+            judge_mod.write_compare(prospect, idx, work, out_dir, keep=locals().get("keep"), saved_shot=shot)
         store.create(token, prospect["id"], prospect["company_name"], template, status, "; ".join(reasons), score, days)
         print(f"custo da IA: US$ {usage.get('usd', 0)} ({usage.get('model') or usage.get('provider')})")
         return token, status, reasons

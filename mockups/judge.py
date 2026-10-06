@@ -138,7 +138,7 @@ def judge_site_only(prospect, work, saved_shot=None, call=None, capture_fn=None)
     return False, nota, "", cost
 
 
-def judge_mockup(prospect, index_path, work, saved_shot=None, call=None, capture_fn=None):
+def judge_mockup(prospect, index_path, work, saved_shot=None, call=None, capture_fn=None, keep=None):
     """Etapa 2. Devolve (ok, motivo, nota_site, nota_esboco, custo). Falha FECHADO."""
     capture_fn = capture_fn or capture
     try:
@@ -151,6 +151,8 @@ def judge_mockup(prospect, index_path, work, saved_shot=None, call=None, capture
         site = [saved_shot] * 2 if saved_shot and os.path.exists(saved_shot) else None
     if not site:
         return False, "nao foi possivel capturar o site atual para comparar", None, None, 0.0
+    if keep is not None:
+        keep["site"], keep["mock"] = site[0], mock[0]
     runs, total = [], 0.0
     try:
         for swap in (False, True):
@@ -161,3 +163,29 @@ def judge_mockup(prospect, index_path, work, saved_shot=None, call=None, capture
         return False, f"juiz indisponivel ({str(e)[:80]})", None, None, total
     ok, why = decide(runs)
     return ok, why, sum(r[0] for r in runs) / 2, sum(r[1] for r in runs) / 2, total
+
+
+def write_compare(prospect, index_path, work, out_dir, keep=None, saved_shot=None, capture_fn=None):
+    """M2: grava antes.jpg (site atual) e depois.jpg (esboco) na pasta do esboco, para o antes/depois da pagina. Nunca levanta excecao."""
+    capture_fn = capture_fn or capture
+    try:
+        from PIL import Image
+        keep = dict(keep or {})
+        if not keep.get("mock"):
+            keep["mock"] = capture_fn(index_path, work, "cmp_mock", False)[0]
+        if not keep.get("site"):
+            try:
+                keep["site"] = capture_fn(prospect["website"], work, "cmp_site", True)[0]
+            except Exception:  # noqa: BLE001
+                if not (saved_shot and os.path.exists(saved_shot)):
+                    return False
+                keep["site"] = saved_shot
+        for name, src in (("antes.jpg", keep["site"]), ("depois.jpg", keep["mock"])):
+            im = Image.open(src).convert("RGB")
+            im = im.crop((0, 0, im.width, min(im.height, int(im.width * 900 / 1440))))
+            if im.width > 1440:
+                im = im.resize((1440, int(im.height * 1440 / im.width)))
+            im.save(os.path.join(out_dir, name), "JPEG", quality=80)
+        return True
+    except Exception:  # noqa: BLE001
+        return False

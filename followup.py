@@ -76,8 +76,55 @@ def due_list(now=None, max_age_days=None):
             continue
         out.append({"prospect": p, "step": n + 1, "overdue_days": age - SCHEDULE[n]})
     conn.close()
+    try:
+        out += expiring_list()
+    except Exception:  # noqa: BLE001
+        pass
     out.sort(key=lambda x: -x["overdue_days"])
     return out
+
+
+def expiring_list(now_ts=None, within_days=2.5):
+    """C3: esbocos prontos que vencem nos proximos dias, de leads que ainda estao em conversa e nao foram avisados."""
+    import time
+    from mockups import store
+    now_ts = now_ts or time.time()
+    out = []
+    conn = database.get_db_connection()
+    for m in store.list_all():
+        if m.get("status") != "ready" or not m.get("prospect_id"):
+            continue
+        left = (m["expires_at"] - now_ts) / 86400
+        if not (0 < left <= within_days):
+            continue
+        p = conn.execute("SELECT * FROM prospects WHERE id=?", (m["prospect_id"],)).fetchone()
+        if not p or p["status"] != "sent" or not p["contact_email"] or (p["stage"] or "novo") in STOP_STAGES:
+            continue
+        done = conn.execute("SELECT 1 FROM events WHERE prospect_id=? AND type='expiry_notice_sent' AND meta LIKE ? LIMIT 1", (p["id"], f'%"token": "{m["token"]}"%')).fetchone()
+        sent_mail = conn.execute("SELECT 1 FROM events WHERE prospect_id=? AND type IN ('email_sent','followup_sent') LIMIT 1", (p["id"],)).fetchone()
+        if done or not sent_mail:
+            continue
+        out.append({"prospect": dict(p), "step": "aviso", "token": m["token"], "expires_at": m["expires_at"], "overdue_days": 100 - left})
+    conn.close()
+    return out
+
+
+def build_expiry(prospect, sender, url, expires_at):
+    from datetime import datetime as _dt
+    company = wm.clean_company_name(prospect.get("company_name"), prospect.get("website"))
+    pn = wm.partner_first_name(prospect.get("socios"))
+    wa = (sender.get("whatsapp") or "").strip()
+    full = (sender.get("name") or "Matheus Paviani").strip()
+    when = _dt.fromtimestamp(expires_at).strftime("%d/%m")
+    rng = random.Random(zlib.crc32(f"{prospect.get('id')}|exp".encode("utf-8")))
+    subject = rng.choice([f"O esboço da {company} sai do ar em {when}", f"Aviso: esboço da {company} disponível até {when}"])
+    nl = chr(10)
+    body = (nl * 2).join([
+        f"Olá, {pn}," if pn else "Olá,",
+        f"Só um aviso: o esboço do site da {company} fica disponível até {when} e depois sai do ar automaticamente." + nl + str(url),
+        "Se quiser mais alguns dias para ver com calma, ou pedir ajustes, é só me responder" + (f" aqui ou no WhatsApp {wa}." if wa else " por aqui.") + " Posso manter no ar por mais uma semana.",
+        "Abraço," + nl + full])
+    return subject, body
 
 
 def can_send_today():
@@ -146,7 +193,17 @@ def send_followup(prospect_id, step):
         database.add_event(prospect_id, "followup_skipped", "e-mail na lista de bloqueio", {"step": step})
         raise Exception(mailer.REJECT_PREFIX + "e-mail na lista de bloqueio")
     url = _mockup_url(prospect_id)
-    subject, body = build_followup(prospect, step, mailer._sender_info(), url)
+    exp = None
+    if step == "aviso":
+        from mockups import store
+        token = store.ready_tokens([prospect_id]).get(prospect_id)
+        m = store.get(token) if token else None
+        if not m:
+            raise Exception(mailer.REJECT_PREFIX + "esboco ja saiu do ar")
+        exp = {"token": token}
+        subject, body = build_expiry(prospect, mailer._sender_info(), url, m["expires_at"])
+    else:
+        subject, body = build_followup(prospect, step, mailer._sender_info(), url)
     footer, unsub_url = mailer.build_footer(prospect_id, email_to)
     smtp_user = database.get_setting("smtp_user", "")
     headers = {}
@@ -163,6 +220,9 @@ def send_followup(prospect_id, step):
         else:
             database.add_event(prospect_id, "followup_failed", str(e)[:200], {"email": email_to, "step": step, "kind": kind})
         raise Exception(f"Falha no follow-up: {e}")
+    if exp:
+        database.add_event(prospect_id, "expiry_notice_sent", subject, {"email": email_to, "token": exp["token"]})
+        return True, "Aviso de expiracao enviado."
     database.add_event(prospect_id, "followup_sent", subject, {"email": email_to, "step": step, "mockup": bool(url)})
     return True, f"Follow-up {step} enviado."
 

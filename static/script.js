@@ -157,7 +157,9 @@ navItems.forEach(item => {
         
         try {
             // Tab specific loading
-            if (tabId === 'tab-leads') {
+            if (tabId === 'tab-dia') {
+                if (typeof loadDia === 'function') loadDia();
+            } else if (tabId === 'tab-leads') {
                 if (typeof loadLeads === 'function') loadLeads();
             } else if (tabId === 'tab-queue') {
                 if (typeof loadQueueStatus === 'function') loadQueueStatus();

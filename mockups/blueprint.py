@@ -34,13 +34,27 @@ def preview_gate(req):
 TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{12,40}$")
 # robos e pre-visualizadores de link nao contam como "abertura" de verdade
 BOT_RE = re.compile(r"bot|crawl|spider|whatsapp|facebookexternalhit|slack|telegram|linkedin|preview|curl|wget|python-requests|headless|monitor", re.I)
-ALLOWED_FILES = {"thumb.png"}
+ALLOWED_FILES = {"thumb.png", "antes.jpg", "depois.jpg"}
 
 EXPIRED = """<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><title>Proposta encerrada</title>
 <body style="font:16px/1.6 system-ui;display:grid;place-items:center;min-height:100vh;margin:0;background:#0d0f11;color:#ebe8e1;text-align:center;padding:24px">
 <div><h1 style="font-size:1.4rem;margin:0 0 8px">Esta proposta visual foi encerrada</h1>
-<p style="color:#9b9b95;margin:0">Para ver novamente, fale com a Paviani.</p></div></body></html>"""
+<p style="color:#9b9b95;margin:0 0 18px">Quer rever ou pedir ajustes? Fale com a Paviani.</p>
+<a href="__WA__" style="display:inline-block;background:#ebe8e1;color:#0d0f11;padding:.8em 1.3em;border-radius:6px;font-weight:600;text-decoration:none">Falar com a Paviani</a></div></body></html>"""
+
+
+def _expired_page():
+    """Pagina de esboco encerrado, com botao que abre o WhatsApp do Paviani (configuracao sender_whatsapp)."""
+    num = ""
+    try:
+        import database
+        num = re.sub(r"\D", "", database.get_setting("sender_whatsapp", "") or "")
+    except Exception:  # noqa: BLE001
+        pass
+    num = num or "5551997661506"
+    num = num if num.startswith("55") else "55" + num
+    return EXPIRED.replace("__WA__", f"https://wa.me/{num}?text=Ol%C3%A1!%20Meu%20esbo%C3%A7o%20expirou%20e%20gostaria%20de%20ver%20novamente.")
 
 
 def _headers(resp):
@@ -58,7 +72,7 @@ def _load(token):
     if not m or m["status"] != "ready":
         abort(404)
     if m["expires_at"] < time.time():
-        return m, _headers(Response(EXPIRED, status=410, mimetype="text/html"))
+        return m, _headers(Response(_expired_page(), status=410, mimetype="text/html"))
     return m, None
 
 

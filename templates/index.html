@@ -20,7 +20,16 @@
         
         <ul class="nav-links">
             <li>
-                <a class="nav-item active" data-tab="tab-prospector">
+                <a class="nav-item active" data-tab="tab-dia">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    Painel do Dia
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" data-tab="tab-prospector">
                     <svg viewBox="0 0 24 24">
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -126,8 +135,36 @@
     <!-- Main Content -->
     <div class="main-content">
         
+        <!-- TAB 0: PAINEL DO DIA (U1) -->
+        <div id="tab-dia" class="tab-pane active">
+            <style>
+                .dia-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0}
+                .dia-kpi{border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:14px 16px;background:rgba(255,255,255,.04)}
+                .dia-kpi b{display:block;font-size:1.6rem;line-height:1.1}.dia-kpi span{font-size:.8rem;opacity:.7}
+                .dia-box{border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:16px 18px;margin-bottom:16px;background:rgba(255,255,255,.04)}
+                .dia-box h3{margin:0 0 12px;font-size:1.05rem}
+                .dia-warn{border-left:4px solid #e0a030;padding:8px 12px;margin:6px 0;background:rgba(224,160,48,.1);border-radius:6px;font-size:.9rem}
+                .dia-lead{display:grid;grid-template-columns:1fr auto;gap:10px;padding:12px 0;border-top:1px solid rgba(255,255,255,.1)}
+                .dia-lead:first-of-type{border-top:0}.dia-lead small{opacity:.7;display:block}
+                .dia-lead .acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-items:center}
+                .dia-lead .acts a,.dia-lead .acts button{font-size:.78rem;padding:.4em .8em;border-radius:999px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;text-decoration:none}
+                .dia-pill{display:inline-block;font-size:.72rem;padding:.2em .7em;border-radius:999px;background:rgba(80,200,120,.18);margin-right:6px}
+                .dia-pill.off{background:rgba(255,255,255,.08);opacity:.7}
+                .dia-funil span{display:inline-block;margin:3px 10px 3px 0;font-size:.9rem}
+            </style>
+            <div class="header">
+                <h1>Painel do Dia</h1>
+                <p>O que fazer agora: quem chamar, como está o sistema e para onde estão indo os leads. <span id="dia-hora" style="opacity:.6"></span></p>
+            </div>
+            <div class="dia-kpis" id="dia-kpis"></div>
+            <div class="dia-box" id="dia-avisos-box" style="display:none"><h3>Atenção</h3><div id="dia-avisos"></div></div>
+            <div class="dia-box"><h3>Quem chamar hoje</h3><div id="dia-chamar"><span style="opacity:.7">Carregando…</span></div></div>
+            <div class="dia-box"><h3>Sistema</h3><div id="dia-sistema"></div></div>
+            <div class="dia-box"><h3>Funil</h3><div class="dia-funil" id="dia-funil"></div></div>
+        </div>
+
         <!-- TAB 1: PROSPECTOR -->
-        <div id="tab-prospector" class="tab-pane active">
+        <div id="tab-prospector" class="tab-pane">
             <div class="header">
                 <h1>Buscar Novas Empresas</h1>
                 <p>Configure a inteligência artificial para rastrear, analisar sites e extrair contatos qualificados.</p>
@@ -1899,6 +1936,7 @@
     <!-- TOAST NOTIFICATION CONTAINER -->
     <div class="toast-container" id="toast-container"></div>
 
+    <script src="/static/dia.js"></script>
     <script src="/static/script.js"></script>
 </body>
 </html>

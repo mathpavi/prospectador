@@ -15,6 +15,7 @@ import prioritize
 import followup
 import inbox
 import alerts
+import painel
 from mockups.blueprint import bp as mockups_bp, preview_gate
 from public_routes import bp as public_bp
 from whatsapp_routes import bp as whatsapp_bp, apply_generated_drafts
@@ -110,6 +111,14 @@ def api_set_prospect_stage(prospect_id):
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
     return jsonify({"success": True})
+
+@app.route('/api/dia')
+def api_dia():
+    # U1: Painel do Dia (quem chamar hoje, saude do sistema, funil)
+    try:
+        return jsonify(painel.build())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/prospects/<int:prospect_id>/events')
 def api_prospect_events(prospect_id):
@@ -386,7 +395,7 @@ def autopilot_send_next_email(force=False):
     if fu:
         fp = fu['prospect']
         autopilot_status["sender_status"] = "sending"
-        autopilot_log(f"Follow-up {fu['step']}/3 para: {fp['company_name']} ({fp['contact_email']})...")
+        autopilot_log(f"Follow-up ({fu['step']}) para: {fp['company_name']} ({fp['contact_email']})...")
         try:
             followup.send_followup(fp['id'], fu['step'])
             database.save_settings({'autopilot_last_email_sent_at': database.get_now_str()})

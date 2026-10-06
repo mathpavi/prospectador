@@ -42,6 +42,18 @@ def set_status(token, status, reason=""):
         c.execute("update mockups set status=?, reason=? where token=?", (status, reason, token))
 
 
+def extend(token, days=7):
+    """C3: prorroga a validade de um esboco (a partir de agora ou do vencimento, o que for maior)."""
+    now = int(time.time())
+    with _conn() as c:
+        r = c.execute("select expires_at from mockups where token=?", (token,)).fetchone()
+        if not r:
+            return None
+        new = max(now, r[0]) + days * 86400
+        c.execute("update mockups set expires_at=? where token=?", (new, token))
+    return new
+
+
 def record_view(token):
     now = int(time.time())
     with _conn() as c:
