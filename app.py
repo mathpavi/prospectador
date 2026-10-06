@@ -13,7 +13,7 @@ import json
 import security
 from mockups.blueprint import bp as mockups_bp, preview_gate
 from public_routes import bp as public_bp
-from whatsapp_routes import bp as whatsapp_bp
+from whatsapp_routes import bp as whatsapp_bp, apply_generated_drafts
 
 app = Flask(__name__)
 # F1: chave de sessao vem do ambiente ou e gerada e guardada em DATA_DIR (nunca um valor fixo no codigo)
@@ -1046,7 +1046,7 @@ def api_international_status():
 def api_international_prospects():
     status_filter = request.args.get('status')
     prospects = database.get_prospects(status_filter=status_filter, is_international_filter=1)
-    return jsonify(prospects)
+    return jsonify(apply_generated_drafts(prospects))     # mensagem de WhatsApp gerada (nao o rascunho fixo antigo)
 
 # Get International Stats
 @app.route('/api/international/stats', methods=['GET'])
@@ -1109,7 +1109,7 @@ def api_prospects():
     )
     
     return jsonify({
-        "prospects": paginated["prospects"],
+        "prospects": apply_generated_drafts(paginated["prospects"]),     # mensagem de WhatsApp gerada (nao o rascunho fixo antigo)
         "total": paginated["total"],
         "page": paginated["page"],
         "limit": paginated["limit"],

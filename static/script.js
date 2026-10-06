@@ -19,6 +19,8 @@ let systemSettings = {};
 // Helper to format WhatsApp draft dynamic text based on email sent status
 function getFormattedWhatsappDraft(lead) {
     let draft = lead.whatsapp_draft || '';
+    // Mensagem já gerada pelo servidor (variada e honesta): não mexer. Só rascunhos antigos recebem o ajuste abaixo.
+    if (lead.wa_generated) return draft;
     if (lead.status === 'sent' || lead.sent_at) {
         const phrase = "Te enviei um e-mail mas não sei se já viu... ";
         if (draft.includes("Olá, tudo bem?")) {
@@ -3510,6 +3512,12 @@ window.loadWhatsappOpportunities = async function() {
                             <button class="btn btn-secondary" onclick="copyWaDraft(${lead.id})" style="font-size: 0.85rem; padding: 8px 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
                                 📋 Copiar Mensagem
                             </button>
+                            <button class="btn btn-secondary" onclick="nextWaVariant(${lead.id})" style="font-size: 0.85rem; padding: 8px 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;" title="Troca por outra versão do texto (grátis e instantâneo)">
+                                🔄 Outra versão
+                            </button>
+                            <button class="btn btn-secondary" onclick="rewriteWaWithAI(${lead.id}, this)" style="font-size: 0.85rem; padding: 8px 14px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;" title="A IA reescreve com outras palavras, sem inventar nada (custa centavos)">
+                                ✨ Reescrever com IA
+                            </button>
                         </div>
                         <div style="display: flex; gap: 8px;">
                             ${lead.whatsapp_contacted 
@@ -3712,6 +3720,50 @@ window.copyWaDraft = function(leadId) {
         document.execCommand('copy');
         showToast('Mensagem copiada!', 'success');
     });
+};
+
+// ---- Variação de mensagens (nenhuma conversa começa igual) ----
+window.nextWaVariant = async function(leadId) {
+    const card = document.getElementById(`wa-card-${leadId}`);
+    const draftEl = document.getElementById(`wa-draft-${leadId}`);
+    if (!draftEl) return;
+    const next = (parseInt((card && card.dataset.variant) || '0', 10) || 0) + 1;
+    try {
+        const res = await fetch(`/api/whatsapp/message/${leadId}?variant=${next}`);
+        if (!res.ok) throw new Error('falha');
+        const data = await res.json();
+        draftEl.value = data.message;
+        if (card) card.dataset.variant = String(next);
+        saveWaDraft(leadId);
+    } catch (e) {
+        showToast('Não foi possível trocar a versão.', 'error');
+    }
+};
+
+window.rewriteWaWithAI = async function(leadId, btn) {
+    const draftEl = document.getElementById(`wa-draft-${leadId}`);
+    if (!draftEl || !draftEl.value.trim()) return;
+    const label = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Reescrevendo...'; }
+    try {
+        const res = await fetch(`/api/whatsapp/rewrite/${leadId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: draftEl.value })
+        });
+        const data = await res.json();
+        if (res.ok && data.text) {
+            draftEl.value = data.text;
+            saveWaDraft(leadId);
+            showToast('Mensagem reescrita. Confira antes de enviar.', 'success');
+        } else {
+            showToast(data.error || 'Não foi possível reescrever.', 'error');
+        }
+    } catch (e) {
+        showToast('Erro ao reescrever a mensagem.', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = label; }
+    }
 };
 
 window.saveWaDraft = async function(leadId) {

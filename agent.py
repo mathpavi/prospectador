@@ -17,6 +17,7 @@ except ImportError:
 import database
 import gemini_util
 import validators
+import whatsapp_msg
 
 try:
     from scrapling import Fetcher, StealthyFetcher
@@ -2146,7 +2147,8 @@ def generate_prospect_email(prospect):
 
         data = json.loads(response.text.strip())
         add_log(f"E-mail personalizado pela IA ({model_name}) para '{prospect.get('company_name', '?')}'.")
-        return data.get('subject', ''), data.get('body', ''), data.get('whatsapp', '')
+        # o WhatsApp NAO vem da IA: ela repetia a mesma frase fixa (e afirmava proposta/elogio que nao existiam)
+        return data.get('subject', ''), data.get('body', ''), whatsapp_msg.build_message(prospect, 'no_email', None, sender_name)
         
     except Exception as e:
         msg = (f"!!! FALHA NO GEMINI (modelo '{model_name}') para '{prospect.get('company_name', '?')}': "
@@ -2164,7 +2166,7 @@ def generate_prospect_email_fallback(prospect, sender_name, sender_whatsapp, sen
             f"Sobre a presença digital da {prospect['company_name']}"
         ]
         subject = random.choice(subjects)
-        whatsapp_draft = f"Olá, tudo bem? Meu nome é {sender_name}. Gostei muito do trabalho de vocês, mas reparei numa oportunidade: vocês ainda não têm um site próprio. Elaborei uma proposta visual rápida mostrando como ficaria um site moderno e focado em WhatsApp/orçamentos no celular. Se tiver 5 minutos, posso te apresentar?"
+        whatsapp_draft = whatsapp_msg.build_message(prospect, 'no_email', None, sender_name)   # variada e sem afirmacoes falsas
         
         body = f"""Olá, tudo bem?
 
@@ -2222,7 +2224,7 @@ Portfólio: {sender_portfolio}"""
     else:
         opportunity_desc = f"a estrutura atual pode ser otimizada com um design mais imponente, destaque visual para os produtos de {prospect['segment']} e botões estratégicos de WhatsApp no celular"
         
-    whatsapp_draft = f"Olá, tudo bem? Meu nome é {sender_name}. Dei uma olhada no site da {prospect['company_name']} e vi que ele tem um bom posicionamento, mas reparei em oportunidades visuais para destacar os produtos e agilizar o contato no celular. Montei uma proposta visual moderna. Posso te apresentar rápido sem compromisso?"
+    whatsapp_draft = whatsapp_msg.build_message(prospect, 'no_email', None, sender_name)   # variada e sem afirmacoes falsas
     
     body = f"""Olá, tudo bem?
 

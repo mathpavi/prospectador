@@ -3,7 +3,9 @@
 Nada aqui envia mensagem: so calcula a prioridade, higieniza o telefone e sugere o texto que VOCE le, ajusta e envia.
 """
 import json
+import random
 import re
+import zlib
 from datetime import datetime
 
 CORE_SEGMENTS = ("metal", "usina", "caldeir", "serralh", "alumin", "vidra", "esquadri", "marcen", "funilar", "solda")
@@ -104,44 +106,121 @@ def priority(lead, group, has_mockup):
 
 
 # ---------------------------------------------------------------------------- mensagens ----
-def _greeting(lead, company):
-    pn = partner_first_name(lead.get("socios"))
-    return f"Oi, tudo bem? Falo com {pn}?" if pn else f"Oi, tudo bem? Falo com o responsável pela {company}?"
+def _hour():
+    try:
+        import zoneinfo
+        return datetime.now(zoneinfo.ZoneInfo("America/Sao_Paulo")).hour
+    except Exception:  # noqa: BLE001
+        return datetime.now().hour
 
 
-def build_message(lead, group, mockup_url, sender_name):
-    """Texto curto, humano e honesto (sem elogio inventado). Termina com saida facil. Varia por lead para nao repetir."""
+def _domain(website):
+    return re.sub(r"^(https?://)?(www\.)?", "", (website or "").lower()).split("/")[0]
+
+
+def build_message(lead, group, mockup_url, sender_name, variant=0, hour=None):
+    """Mensagem curta, humana e HONESTA (so afirma o que e verdade: o que foi feito, o que foi visto, o que e oferta).
+
+    Montada a partir de pecas intercambiaveis (saudacao, identidade, apresentacao, motivo, link, chamada, saida) e de varios
+    formatos, para que dois leads quase nunca recebam o mesmo texto. A escolha e ESTAVEL por lead (mesmo id + nome + variant =
+    mesma mensagem), e `variant` troca de versao ("Outra versao"). Sem emoji, sem elogio inventado, sem artigo de genero no remetente.
+    """
+    rng = random.Random(zlib.crc32(f"{lead.get('id')}|{lead.get('company_name')}|{variant}".encode("utf-8")))
+    pick = lambda opts: opts[rng.randrange(len(opts))]  # noqa: E731
+    h = _hour() if hour is None else hour
     company = clean_company_name(lead.get("company_name"), lead.get("website"))
     sender = first_name(sender_name) or "Matheus"
-    greet = _greeting(lead, company)
     seg = (lead.get("segment") or "").strip().lower() or "seu segmento"
     region = re.sub(r"\s*\(\+?\d+\s*km\)", "", lead.get("region") or "").strip() or "sua região"
-    exit_line = "Se não for o momento, é só me avisar que eu não volto a escrever."
-    v = (lead.get("id") or 0) % 3
+    pn = partner_first_name(lead.get("socios"))
+    site = _domain(lead.get("website"))
+
+    greetings = ["Oi, tudo bem?", "Olá, tudo bem?", "Oi!", "Olá!", "Tudo bem?"]
+    if h < 12:
+        greetings += ["Bom dia!", "Bom dia, tudo bem?"]
+    elif h < 18:
+        greetings += ["Boa tarde!", "Boa tarde, tudo bem?"]
+    if pn:
+        identity = pick([f"Falo com {pn}?", f"Estou falando com {pn}?", f"Esse número é de {pn}?", f"{pn}, é você que cuida da {company}?"])
+    else:
+        identity = pick([f"Falo com a pessoa responsável pela {company}?", f"Quem cuida da divulgação da {company} por aí?",
+                         f"Estou falando com a {company}?", f"Consigo falar com quem decide sobre o site da {company}?"])
+    # se a saudacao ja citou a empresa, o resto da mensagem fala "de vocês" (evita repetir o nome 3 vezes e soar mecanico)
+    identity_used = True if group != "email_sent" else (rng.random() < 0.5)
+    use_you = identity_used and (company in identity) and (rng.random() < 0.8)
+    de = "de vocês" if use_you else f"da {company}"
+    para = "para vocês" if use_you else f"para a {company}"
+    em = "em vocês" if use_you else f"na {company}"
+    obj = "vocês" if use_you else f"a {company}"
+    intro = pick([f"Aqui é {sender}.", f"Meu nome é {sender}.", f"{sender} aqui.", f"Me chamo {sender}.",
+                  f"Sou {sender}, trabalho com criação de sites.", f"Sou {sender}, faço sites para empresas.",
+                  f"Meu nome é {sender}, faço sites para empresas do segmento de {seg}.", f"Sou {sender} e crio sites para empresas de {seg}."])
+    exit_line = pick(["Se não for o momento, é só me avisar que não volto a escrever.", "Se não tiver interesse, sem problema: é só me dizer.",
+                      "Se preferir que eu não escreva mais, me avise que eu paro por aqui.", "Sem compromisso: se não fizer sentido, é só falar que não incomodo mais.",
+                      "Caso não seja o momento, me avisa que eu paro de mandar mensagem.", "Se não for útil agora, sem problema, é só avisar."])
+    link = ""
+    if mockup_url:
+        link = pick(["Dá uma olhada: {u}", "Está aqui: {u}", "Pode ver por este link: {u}", "Link: {u}", "{u}"]).format(u=mockup_url)
 
     if group == "email_sent":
         d = _days_since(lead.get("sent_at"))
         when = "ontem" if d == 1 else (f"há {d} dias" if d and d > 1 else "recentemente")
-        base = f"{greet} Aqui é o {sender}. Te mandei um e-mail {when} com uma ideia de site para a {company}."
+        reason = pick([f"Te enviei um e-mail {when} com uma ideia de site {para}.",
+                       f"Mandei um e-mail {when} sobre uma proposta de site {para}.",
+                       f"Passando para saber se você viu o e-mail que enviei {when} sobre o site {de}.",
+                       f"Enviei {when} um e-mail com uma ideia de site {para} e queria saber se chegou."])
+        cta = pick(["Conseguiu dar uma olhada?", "Chegou a ver?", "O que achou?", "Posso te explicar por aqui?"])
+        if link:
+            reason += " Preparei também um esboço."
+        opener = pick(greetings) + (" " + identity if identity_used else "")
+    else:
         if mockup_url:
-            base += f" Se quiser ver o esboço que preparei: {mockup_url}"
-        return f"{base}\nConseguiu dar uma olhada? {exit_line}"
+            reason = pick([f"Montei uma proposta visual de como o site {de} poderia ficar.",
+                           f"Preparei um esboço de site pensando {em}.",
+                           f"Fiz um esboço de como poderia ser o site {de}, com base no que vi publicado.",
+                           f"Separei um esboço de site {para} e queria sua opinião.",
+                           f"Criei uma ideia de site {para}."])
+            cta = pick(["O que achou?", "Me diz o que você acha?", "Posso te explicar como funcionaria?",
+                        "Se fizer sentido, a gente conversa rapidinho.", "Quer que eu te explique em 5 minutos?"])
+        elif has_own_site(lead):
+            look = pick([f"Dei uma olhada no site {de}.", f"Vi o site {de} ({site}).", f"Acessei o site {de}."])
+            value = pick(["Tenho ideias para deixá-lo mais rápido no celular e com pedido de orçamento direto pelo WhatsApp.",
+                          "Dá para deixar o site mais leve no celular e com um botão de orçamento pelo WhatsApp.",
+                          "Vejo espaço para deixá-lo mais rápido no celular e facilitar o contato dos clientes."])
+            reason = f"{look} {value}"
+            cta = pick(["Posso te mostrar um exemplo?", "Faz sentido conversarmos rapidinho?", "Posso te mandar um exemplo por aqui?",
+                        "Teria interesse em ver como ficaria?", "Posso te explicar em 5 minutos?"])
+        else:
+            look = pick([f"Encontrei {obj} em {region}, mas não achei um site próprio.",
+                         f"Procurei {obj} na internet e não encontrei um site próprio.",
+                         f"Vi {obj} em {region}, mas sem site próprio."])
+            value = pick(["Faço páginas simples com serviços, mapa e botão de WhatsApp.",
+                          f"Crio sites simples e rápidos, com WhatsApp e localização, para empresas de {seg}.",
+                          f"Monto uma página com seus serviços, contato e WhatsApp para empresas do segmento de {seg}."])
+            reason = f"{look} {value}"
+            cta = pick(["Posso te mostrar um exemplo?", "Faz sentido conversarmos rapidinho?", "Posso te mandar um exemplo por aqui?",
+                        "Teria interesse em ver como ficaria?", "Posso te explicar em 5 minutos?"])
+        opener = pick(greetings) + " " + identity
 
-    if mockup_url:
-        options = [
-            f"{greet} Aqui é o {sender}. Montei uma proposta visual de como o site da {company} poderia ficar. É só olhar, sem compromisso: {mockup_url}\nSe fizer sentido, a gente conversa. {exit_line}",
-            f"{greet} Sou o {sender}, faço sites para empresas do setor de {seg}. Preparei um esboço pensando na {company}: {mockup_url}\nO que você acha? {exit_line}",
-            f"{greet} {sender} aqui. Fiz um esboço de site para a {company}, com o que vi publicamente de vocês: {mockup_url}\nPosso te explicar em 5 minutos? {exit_line}",
-        ]
-        return options[v]
-    if has_own_site(lead):
-        return (f"{greet} Aqui é o {sender}. Dei uma olhada no site da {company} e vi um caminho para deixá-lo mais rápido no celular, "
-                f"com pedido de orçamento direto pelo WhatsApp. Posso te mostrar um exemplo? {exit_line}")
-    return (f"{greet} Aqui é o {sender}. Encontrei a {company} em {region}, mas não achei um site próprio. "
-            f"Faço páginas simples (serviços, mapa e WhatsApp) para empresas do setor de {seg}. Posso te mostrar um exemplo? {exit_line}")
+    if "interesse" in cta.lower() and "interesse" in exit_line.lower():       # evita repetir a palavra na mesma mensagem
+        exit_line = "Se não for o momento, é só me avisar que não volto a escrever."
+
+    shape = rng.randrange(4)
+    if shape == 0:      # um bloco + link + fechamento
+        text = f"{opener} {intro} {reason}\n{link}\n\n{cta} {exit_line}"
+    elif shape == 1:    # blocos separados por linha
+        text = f"{opener}\n\n{intro} {reason}\n{link}\n\n{cta}\n{exit_line}"
+    elif shape == 2:    # compacto
+        text = f"{opener} {intro} {reason} {link} {cta}\n{exit_line}"
+    else:               # motivo primeiro, apresentacao depois
+        text = f"{opener} {reason}\n{link}\n{intro} {cta} {exit_line}"
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n[ \t]*\n[ \t]*\n+", "\n\n", text)
+    text = re.sub(r"[ \t]+\n", "\n", text).strip()
+    return re.sub(r"\n{2,}$", "", text)
 
 
-def enrich(lead, group, mockup_url, sender_name):
+def enrich(lead, group, mockup_url, sender_name, variant=0):
     """Acrescenta ao registro do prospect os campos que a tela usa."""
     digits, mobile, why = phone_info(lead.get("contact_whatsapp") or lead.get("contact_phone"))
     score, flags = priority(lead, group, bool(mockup_url))
@@ -149,7 +228,7 @@ def enrich(lead, group, mockup_url, sender_name):
     out.update({
         "wa_digits": digits, "wa_mobile": mobile, "wa_phone_note": why,
         "wa_priority": score, "wa_flags": flags, "mockup_url": mockup_url or "",
-        "suggested_message": build_message(lead, group, mockup_url, sender_name),
+        "suggested_message": build_message(lead, group, mockup_url, sender_name, variant),
         "display_name": clean_company_name(lead.get("company_name"), lead.get("website")),
     })
     return out

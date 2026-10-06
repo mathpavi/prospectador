@@ -1,9 +1,11 @@
 """Rotas da Central WhatsApp (C9 do PLANO_PROSPECTADOR). Contato SEMPRE manual: nada aqui envia mensagem."""
 import math
+import re
 
 from flask import Blueprint, jsonify, request
 
 import database
+import gemini_util
 import mailer
 import whatsapp_msg
 
@@ -87,6 +89,82 @@ def mark_contacted(prospect_id):
     if not prospect.get("stage") or prospect.get("stage") == "novo":
         database.set_stage(prospect_id, "contatado", note="WhatsApp")
     return jsonify({"success": True, "message": "Lead marcado como contatado via WhatsApp!"})
+
+
+def apply_generated_drafts(prospects):
+    """Troca o rascunho de WhatsApp ANTIGO (frase fixa, igual para todos, com afirmacoes que nao eram verdade) pela mensagem gerada.
+    Respeita o texto que voce mesmo editou e salvou (whatsapp_custom_draft). Usado nas listas de Leads, Acompanhamento etc."""
+    sender = database.get_setting("sender_name", "Matheus Paviani")
+    urls = _mockup_urls(prospects)
+    for p in prospects:
+        if p.get("whatsapp_custom_draft"):
+            p["wa_generated"] = False
+            continue
+        p["whatsapp_draft"] = whatsapp_msg.build_message(p, _group_of(p), urls.get(p["id"]), sender)
+        p["wa_generated"] = True
+    return prospects
+
+
+@bp.route("/api/whatsapp/message/<int:prospect_id>", methods=["GET"])
+def message_variant(prospect_id):
+    """'Outra versao': a mensagem do lead na versao N (0, 1, 2...). Estavel e gratuita (nao usa IA)."""
+    prospect = database.get_prospect(prospect_id)
+    if not prospect:
+        return jsonify({"error": "prospect nao encontrado"}), 404
+    variant = request.args.get("variant", 0, type=int) or 0
+    sender = database.get_setting("sender_name", "Matheus Paviani")
+    url = _mockup_urls([prospect]).get(prospect_id)
+    return jsonify({"message": whatsapp_msg.build_message(prospect, _group_of(prospect), url, sender, variant), "variant": variant})
+
+
+_URL_RE = re.compile(r"https?://[^\s]+")
+_EXIT_RE = re.compile(r"avis|\bparo\b|parar|incomod|n[aã]o volto|sem problema|sem compromisso|me diga|me diz|falar que n[aã]o", re.I)
+_CLAIM_RE = re.compile(r"garant|gr[aá]tis|gratuit|l[ií]der|refer[eê]ncia|premiad|certificad|desconto|promo[cç]|melhor do|n[uú]mero 1", re.I)
+
+
+def check_rewrite(original, rewritten):
+    """Travas da reescrita por IA: devolve (ok, motivo). A IA nao pode inventar nada."""
+    if not rewritten or len(rewritten) < 40:
+        return False, "texto vazio ou curto demais"
+    if len(rewritten) > max(int(len(original) * 1.4), 220) or len(rewritten) > 520:
+        return False, "texto longo demais"
+    if set(_URL_RE.findall(rewritten)) != set(_URL_RE.findall(original)):
+        return False, "alterou ou removeu um link"
+    if not set(re.findall(r"\d+", rewritten)) <= set(re.findall(r"\d+", original)):
+        return False, "acrescentou numeros"
+    if _CLAIM_RE.search(rewritten) and not _CLAIM_RE.search(original):
+        return False, "acrescentou promessa ou afirmacao"
+    if re.search(r"[\U0001F300-\U0001FAFF☀-➿]", rewritten):
+        return False, "usou emoji"
+    if not _EXIT_RE.search(rewritten):
+        return False, "perdeu a frase que deixa a pessoa livre para pedir que voce pare"
+    return True, ""
+
+
+@bp.route("/api/whatsapp/rewrite/<int:prospect_id>", methods=["POST"])
+def rewrite(prospect_id):
+    """'Reescrever com IA': mesmo sentido, palavras diferentes. Se a IA inventar algo, devolve o original."""
+    body = request.get_json(silent=True) or {}
+    original = (body.get("text") or "").strip()
+    if not original:
+        return jsonify({"error": "sem texto para reescrever"}), 400
+    api_key = database.get_setting("gemini_api_key", "")
+    if not api_key:
+        return jsonify({"error": "cadastre a chave do Gemini em Configuracoes"}), 503
+    prompt = ("Reescreva esta mensagem de WhatsApp (prospeccao comercial) com palavras e estrutura diferentes, mantendo exatamente o mesmo "
+              "significado, o mesmo tom humano e informal do portugues do Brasil e tamanho parecido.\n"
+              "Regras: mantenha os links EXATAMENTE como estao; nao acrescente fatos, numeros, elogios, promessas, precos nem emojis; "
+              "mantenha a frase final que deixa a pessoa livre para pedir que voce pare; devolva SOMENTE o texto da mensagem.\n\n"
+              f"MENSAGEM:\n{original}")
+    try:
+        resp, _ = gemini_util.generate(api_key, prompt, {"temperature": 0.9})
+        text = (resp.text or "").strip().strip('"').strip()
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"error": f"IA indisponivel ({type(e).__name__})"}), 502
+    ok, why = check_rewrite(original, text)
+    if not ok:
+        return jsonify({"error": f"a IA devolveu um texto que nao passou nas travas ({why}); mantive o original", "text": original}), 422
+    return jsonify({"text": text})
 
 
 @bp.route("/api/whatsapp/outcome/<int:prospect_id>", methods=["POST"])
