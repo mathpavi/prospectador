@@ -277,6 +277,11 @@ def send_prospect_email(prospect_id, bypass_limit=False):
             'email_body': body
         })
         database.add_event(prospect_id, 'email_sent', subject, {'email': email_to, 'mockup': bool(mockup_url), 'regenerated': regenerated})
+        try:
+            if (prospect.get('stage') or 'novo') == 'novo':
+                database.set_stage(prospect_id, 'contatado', note='primeiro e-mail enviado')
+        except Exception:
+            pass
         return True, "E-mail enviado!"
     except Exception as e:
         error_msg = str(e)

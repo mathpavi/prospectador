@@ -68,6 +68,10 @@ def due_list(now=None, max_age_days=None):
         age = (now - first).total_seconds() / 86400
         if age > max_age:
             continue
+        if validators.check_syntax(p["contact_email"])[0] != "valid":      # lixo como 'logo@2x.png': nunca tentar
+            continue
+        if conn.execute("SELECT 1 FROM events WHERE prospect_id=? AND type='followup_skipped' LIMIT 1", (p["id"],)).fetchone():
+            continue                                                         # ja foi barrado (e-mail invalido/bloqueado): nao insistir
         hist = _followup_history(conn, p["id"])
         n = len(hist)
         if n >= len(SCHEDULE) or age < SCHEDULE[n]:
@@ -187,6 +191,10 @@ def send_followup(prospect_id, step):
     status, why, norm = validators.check_email(email_to, check_dns=True)
     if status == "invalid":
         database.add_event(prospect_id, "followup_skipped", f"e-mail invalido ({why})", {"step": step})
+        try:
+            database.set_stage(prospect_id, "invalido", note=f"e-mail invalido ({why})")
+        except Exception:  # noqa: BLE001
+            pass
         raise Exception(mailer.REJECT_PREFIX + f"e-mail invalido ({why})")
     email_to = norm
     if database.is_suppressed(email_to):

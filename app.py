@@ -408,7 +408,10 @@ def autopilot_send_next_email(force=False):
             log_autopilot_activity("Follow-up", f"Falha no follow-up de {fp['company_name']}: {e}", "error")
             if mailer.REJECT_PREFIX not in str(e):
                 database.save_settings({'autopilot_last_email_sent_at': database.get_now_str()})
-        return
+                return
+            # follow-up barrado por validacao (e-mail invalido/bloqueado): nao trava o envio; segue para os leads novos
+        else:
+            return
 
     approved_leads = database.get_prospects(status_filter='approved')
     if not approved_leads:

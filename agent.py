@@ -1,5 +1,6 @@
 import time
 import re
+import unicodedata
 import random
 import requests
 import os
@@ -3428,6 +3429,15 @@ def run_directories_job(segment, region, state_uf=None, city_name=None, max_resu
                     elif dir_key == 'solutudo' and (href.endswith(f'/{city_name.lower()}' if city_name else '') or f'/{segment.lower()}' in href) and not re.search(r'-\d+$', href):
                         is_listing_page = True
                         
+                    # S7: pagina de listagem de OUTRO estado (ou de outra cidade, quando a cidade foi pedida) nao entra: antes o filtro
+                    # geografico so valia para fichas diretas, e listagens de RJ/MG traziam centenas de leads fora do alvo
+                    if is_listing_page and state_uf and f"/{state_uf.lower()}/" not in href.lower():
+                        continue
+                    if is_listing_page and city_name and dir_key == 'telelistas':
+                        city_slug = re.sub(r'[^a-z]+', '+', unicodedata.normalize('NFKD', city_name.lower()).encode('ascii', 'ignore').decode()).strip('+')
+                        if city_slug and city_slug not in href.lower():
+                            continue
+
                     if is_listing_page:
                         try:
                             list_res = fetch_html_resilient(href, timeout=8)
