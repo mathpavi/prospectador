@@ -36,10 +36,29 @@ async function loadDia() {
      [`${k.whatsapp_hoje}/${k.meta_whatsapp}`, 'WhatsApp hoje'], [k.esbocos_24h, 'esboços (24 h)'], [k.interessados, 'interessados'], [k.ganhos, 'ganhos']].forEach(([v, l]) => {
         const c = diaEl('div', null, 'dia-kpi'); c.appendChild(diaEl('b', v)); c.appendChild(diaEl('span', l)); kp.appendChild(c);
     });
+    const pil = d.piloto || {};
+    const todos = (pil.problemas || []).concat(d.avisos);
     const av = document.getElementById('dia-avisos');
     av.innerHTML = '';
-    d.avisos.forEach(a => av.appendChild(diaEl('div', a, 'dia-warn')));
-    document.getElementById('dia-avisos-box').style.display = d.avisos.length ? '' : 'none';
+    todos.forEach(a => av.appendChild(diaEl('div', a, 'dia-warn')));
+    document.getElementById('dia-avisos-box').style.display = todos.length ? '' : 'none';
+
+    const pb = document.getElementById('dia-piloto');
+    if (pb && d.piloto) {
+        pb.innerHTML = '';
+        const lin = (t, v) => { const r = diaEl('div'); r.style.margin = '4px 0'; r.appendChild(diaEl('strong', t + ': ')); r.appendChild(document.createTextNode(v)); pb.appendChild(r); };
+        lin('Estado', pil.vivo ? `vivo (último sinal há ${pil.ultimo_sinal_s}s, etapa: ${pil.etapa})` : 'SEM SINAL / TRAVADO');
+        lin('Envio', pil.envio.texto + (pil.envio.dica ? ' ' + pil.envio.dica : ''));
+        lin('Busca', pil.busca.texto + (pil.busca.dica ? ' ' + pil.busca.dica : ''));
+        lin('Última busca', pil.ultima_busca || 'nunca');
+        lin('Último e-mail automático', pil.ultimo_envio || 'nunca');
+        lin('Chaves cadastradas', Object.entries(pil.chaves).map(([k, v]) => `${k}: ${v ? 'sim' : 'NÃO'}`).join(' · '));
+        const tb = diaEl('div'); tb.style.marginTop = '10px'; tb.appendChild(diaEl('strong', 'Últimos 10 dias (leads novos / e-mails enviados):'));
+        const ln = diaEl('div'); ln.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:6px';
+        pil.serie.forEach(x => { const c = diaEl('div', null, 'dia-kpi'); c.style.padding = '6px 10px'; c.appendChild(diaEl('span', x.dia)); c.appendChild(diaEl('b', `${x.leads} / ${x.emails}`)); c.querySelector('b').style.fontSize = '1rem'; ln.appendChild(c); });
+        tb.appendChild(ln); pb.appendChild(tb);
+        if (pil.log && pil.log.length) { const lg = diaEl('div'); lg.style.cssText = 'margin-top:10px;font-size:.8rem;opacity:.8'; lg.appendChild(diaEl('strong', 'Últimas linhas do log do piloto:')); pil.log.forEach(l => lg.appendChild(diaEl('div', l))); pb.appendChild(lg); }
+    }
 
     const ch = document.getElementById('dia-chamar');
     ch.innerHTML = '';
