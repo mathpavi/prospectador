@@ -116,7 +116,9 @@ def api_set_prospect_stage(prospect_id):
 def api_dia():
     # U1: Painel do Dia (quem chamar hoje, saude do sistema, funil)
     try:
-        return jsonify(painel.build())
+        d = painel.build()
+        d['piloto'] = painel.piloto(autopilot_status)
+        return jsonify(d)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -567,30 +569,51 @@ def autopilot_run_next_search(force=False):
         autopilot_status["search_status"] = "idle"
 
 def background_autopilot_scheduler():
+    last_err = {}
+
+    def beat(step):
+        # sinal de vida: o Painel do Dia mostra ha quanto tempo o piloto respondeu e em que etapa esta (diagnostico de travamento)
+        autopilot_status["step"] = step
+        autopilot_status["heartbeat"] = time.time()
+
+    def fail(step, e):
+        # erro NUNCA mais some em silencio: vai para o log do piloto (sem repetir a mesma mensagem em sequencia)
+        msg = f"Erro na etapa '{step}': {type(e).__name__}: {str(e)[:200]}"
+        if last_err.get(step) != msg:
+            last_err[step] = msg
+            autopilot_log(f"❌ {msg}")
+
     while True:
+        beat("envio")
         try:
             autopilot_send_next_email()
         except Exception as e:
-            pass
-            
+            fail("envio", e)
+
+        beat("busca")
         try:
             autopilot_run_next_search()
         except Exception as e:
-            pass
+            fail("busca", e)
 
+        beat("caixa de entrada")
         try:
             r = inbox.maybe_check()      # T3: respostas e rejeicoes (so se imap_enabled=1; no maximo a cada 10 min)
             if r and r.get('acoes'):
                 for line in r['acoes'][:10]:
                     autopilot_log(f"📬 Caixa de entrada: {line}")
+            if r and r.get('erro'):
+                fail("caixa de entrada", Exception(r['erro']))
         except Exception as e:
-            pass
-            
+            fail("caixa de entrada", e)
+
+        beat("alertas")
         try:
             alerts.maybe_run()           # T4: alerta de lead quente (imediato) e resumo diario por e-mail
         except Exception as e:
-            pass
+            fail("alertas", e)
 
+        beat("aguardando")
         time.sleep(10)
 
 # Settings Autopilot Save

@@ -117,3 +117,63 @@ def build():
     if not sistema["followup"]:
         avisos.append("Follow-up automático desligado: quem não respondeu não é retomado.")
     return {"kpi": kpi, "chamar": chamar_hoje(), "sistema": sistema, "avisos": avisos, "funil": funil, "gerado_em": now.strftime("%H:%M")}
+
+
+SENDER_MSG = {
+    "disabled": ("Envio automático DESLIGADO (Piloto Automático > envio).", "Ligue o envio automático."),
+    "outside_hours": ("Fora do horário ou do dia de envio configurado.", "Normal fora do expediente; confira horário/dias no Piloto."),
+    "waiting_interval": ("Aguardando o intervalo entre e-mails.", "Normal."),
+    "limit_reached": ("Limite diário de e-mails atingido.", "Normal até virar o dia; aumente o limite se quiser."),
+    "no_leads": ("FILA VAZIA: não há leads aprovados com e-mail.", "É a causa de não enviar: falta lead aprovado (rode o diagnóstico da fila)."),
+    "sending": ("Enviando agora.", "Normal."),
+    "idle": ("Ocioso.", ""),
+}
+SEARCH_MSG = {
+    "disabled": ("Busca automática DESLIGADA.", "Ligue a busca automática no Piloto."),
+    "waiting_interval": ("Aguardando o intervalo entre buscas.", "Normal."),
+    "no_targets": ("NENHUM alvo de busca cadastrado.", "Cadastre segmento e região nos alvos do Piloto."),
+    "searching": ("Buscando agora.", "Normal."),
+    "idle": ("Ocioso.", ""),
+}
+
+
+def serie(days=10):
+    """Leads criados e e-mails enviados por dia (mostra QUANDO parou)."""
+    conn = database.get_db_connection()
+    out = []
+    for i in range(days - 1, -1, -1):
+        d = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+        leads = conn.execute("SELECT COUNT(*) FROM prospects WHERE date(created_at)=? AND coalesce(is_international,0)=0", (d,)).fetchone()[0]
+        mails = conn.execute("SELECT COUNT(*) FROM prospects WHERE status='sent' AND date(sent_at)=?", (d,)).fetchone()[0]
+        out.append({"dia": d[5:], "leads": leads, "emails": mails})
+    conn.close()
+    return out
+
+
+def piloto(status):
+    """Estado do piloto em palavras simples: vivo/travado, etapa, o que cada parte esta fazendo e por que nao anda."""
+    now = time.time()
+    hb = status.get("heartbeat")
+    idade = (now - hb) if hb else None
+    gs = database.get_setting
+    vivo = idade is not None and idade < 180
+    s_txt, s_fix = SENDER_MSG.get(status.get("sender_status"), (str(status.get("sender_status")), ""))
+    b_txt, b_fix = SEARCH_MSG.get(status.get("search_status"), (str(status.get("search_status")), ""))
+    problemas = []
+    if hb is None:
+        problemas.append("O piloto ainda não deu sinal de vida desde que o servidor iniciou (reinício recente, ou a thread não subiu).")
+    elif not vivo:
+        problemas.append(f"O piloto está TRAVADO na etapa '{status.get('step')}' há {int(idade // 60)} min: uma operação (busca, envio, geração de esboço ou e-mail) não terminou. Reiniciar o serviço no EasyPanel destrava.")
+    elif idade is not None and status.get("step") in ("envio", "busca") and idade > 90:
+        problemas.append(f"Etapa '{status.get('step')}' demorando há {int(idade)} s (pode ser busca longa ou geração de esboço).")
+    if status.get("sender_status") == "no_leads":
+        problemas.append("Sem leads aprovados na fila: o envio parou por falta de lead, não por erro.")
+    if status.get("search_status") in ("disabled", "no_targets"):
+        problemas.append(b_txt + " Sem busca, não entram leads novos.")
+    ultima_busca = gs("autopilot_last_search_run_at", "")
+    return {"vivo": vivo, "ultimo_sinal_s": int(idade) if idade is not None else None, "etapa": status.get("step"),
+            "envio": {"estado": status.get("sender_status"), "texto": s_txt, "dica": s_fix},
+            "busca": {"estado": status.get("search_status"), "texto": b_txt, "dica": b_fix},
+            "ultima_busca": ultima_busca, "ultimo_envio": gs("autopilot_last_email_sent_at", ""),
+            "chaves": {"serper": bool(gs("serper_api_key", "")), "brave": bool(gs("brave_api_key", "")), "kipflow": bool(gs("kipflow_api_key", "")), "gemini": bool(gs("gemini_api_key", ""))},
+            "problemas": problemas, "log": list(status.get("logs", []))[-10:], "serie": serie()}

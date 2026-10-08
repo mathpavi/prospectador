@@ -45,10 +45,16 @@ def diag_token():
     return os.environ.get("DIAGNOSTICS_TOKEN", "").strip()
 
 
+DIAG_READONLY_PATHS = ("/api/dia", "/api/autopilot/diagnostics", "/api/autopilot/status")
+
+
 def diag_authorized(req):
-    """Acesso programatico de monitoramento: so com DIAGNOSTICS_TOKEN definido e igual ao enviado (cabecalho)."""
+    """Acesso programatico de monitoramento: so com DIAGNOSTICS_TOKEN definido e igual ao enviado (cabecalho).
+    SOMENTE LEITURA: so metodo GET e so nos enderecos de diagnostico (nunca aprova, envia ou altera nada)."""
     token = diag_token()
     if not token:
+        return False
+    if req.method not in ("GET", "HEAD") or req.path.rstrip("/") not in DIAG_READONLY_PATHS:
         return False
     sent = (req.headers.get("X-Diag-Key") or "").strip()
     return bool(sent) and safe_equal(sent, token)
