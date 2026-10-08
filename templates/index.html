@@ -1380,6 +1380,35 @@
                         </div>
                     </div>
                     <div class="form-group">
+                        <label for="autopilot_auto_rotate">Rotação automática de alvos de busca</label>
+                        <select id="autopilot_auto_rotate" name="autopilot_auto_rotate">
+                            <option value="1">Ligada: quando um alvo satura, o piloto troca de segmento, região ou forma de busca</option>
+                            <option value="0">Desligada: só usa a lista de alvos do Piloto Automático</option>
+                        </select>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            Alvo que traz leads repetidos ou sem e-mail descansa por alguns dias e o piloto segue para outro. Nunca fica parado.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="autopilot_queue_target">Meta de leads com e-mail na fila de envio</label>
+                        <input type="number" id="autopilot_queue_target" name="autopilot_queue_target" min="0" max="2000" value="60">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+                            A busca roda continuamente (pausa mínima de poucos minutos) enquanto a fila estiver abaixo da meta, e descansa quando já tem o suficiente. Buscar não é spam: o limite existe só para poupar o crédito das APIs.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="autopilot_search_daily_cap">Teto de buscas por dia (proteção do crédito das APIs)</label>
+                        <input type="number" id="autopilot_search_daily_cap" name="autopilot_search_daily_cap" min="0" max="500" value="60">
+                    </div>
+                    <div class="form-group">
+                        <label for="autopilot_search_min_gap_min">Pausa mínima entre buscas (minutos)</label>
+                        <input type="number" id="autopilot_search_min_gap_min" name="autopilot_search_min_gap_min" min="0" max="120" value="2">
+                    </div>
+                    <div class="form-group">
+                        <label for="autopilot_cooldown_days">Dias de descanso de um alvo saturado</label>
+                        <input type="number" id="autopilot_cooldown_days" name="autopilot_cooldown_days" min="1" max="90" value="14">
+                    </div>
+                    <div class="form-group">
                         <label for="followup_enabled">Follow-up automático por e-mail (dias 3, 7 e 14)</label>
                         <select id="followup_enabled" name="followup_enabled">
                             <option value="0">Desligado</option>

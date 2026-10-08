@@ -133,6 +133,8 @@ SEARCH_MSG = {
     "waiting_interval": ("Aguardando o intervalo entre buscas.", "Normal."),
     "no_targets": ("NENHUM alvo de busca cadastrado.", "Cadastre segmento e região nos alvos do Piloto."),
     "searching": ("Buscando agora.", "Normal."),
+    "queue_full": ("Fila cheia de leads com e-mail: busca em pausa porque não há o que ganhar agora.", "Normal; volta sozinha quando a fila baixar."),
+    "daily_cap": ("Teto diário de buscas atingido (protege o crédito das APIs).", "Volta amanhã; aumente o teto em Configurações se quiser."),
     "idle": ("Ocioso.", ""),
 }
 
@@ -148,6 +150,14 @@ def serie(days=10):
         out.append({"dia": d[5:], "leads": leads, "emails": mails})
     conn.close()
     return out
+
+
+def _rot():
+    try:
+        import rotation
+        return rotation.summary()
+    except Exception:  # noqa: BLE001
+        return {"ligado": False, "em_descanso": [], "ativos": []}
 
 
 def piloto(status):
@@ -166,6 +176,9 @@ def piloto(status):
         problemas.append(f"O piloto está TRAVADO na etapa '{status.get('step')}' há {int(idade // 60)} min: uma operação (busca, envio, geração de esboço ou e-mail) não terminou. Reiniciar o serviço no EasyPanel destrava.")
     elif idade is not None and status.get("step") in ("envio", "busca") and idade > 90:
         problemas.append(f"Etapa '{status.get('step')}' demorando há {int(idade)} s (pode ser busca longa ou geração de esboço).")
+    sh = status.get("search_heartbeat")
+    if sh and now - sh > 2700:
+        problemas.append(f"A busca está sem sinal há {int((now - sh) // 60)} min (uma busca travada). Reiniciar o serviço no EasyPanel destrava.")
     if status.get("sender_status") == "no_leads":
         problemas.append("Sem leads aprovados na fila: o envio parou por falta de lead, não por erro.")
     if status.get("search_status") in ("disabled", "no_targets"):
@@ -176,4 +189,4 @@ def piloto(status):
             "busca": {"estado": status.get("search_status"), "texto": b_txt, "dica": b_fix},
             "ultima_busca": ultima_busca, "ultimo_envio": gs("autopilot_last_email_sent_at", ""),
             "chaves": {"serper": bool(gs("serper_api_key", "")), "brave": bool(gs("brave_api_key", "")), "kipflow": bool(gs("kipflow_api_key", "")), "gemini": bool(gs("gemini_api_key", ""))},
-            "problemas": problemas, "log": list(status.get("logs", []))[-10:], "serie": serie()}
+            "problemas": problemas, "log": list(status.get("logs", []))[-10:], "serie": serie(), "rotacao": _rot()}

@@ -16,6 +16,7 @@ import followup
 import inbox
 import alerts
 import painel
+import rotation
 from mockups.blueprint import bp as mockups_bp, preview_gate
 from public_routes import bp as public_bp
 from whatsapp_routes import bp as whatsapp_bp, apply_generated_drafts
@@ -468,25 +469,12 @@ def autopilot_send_next_email(force=False):
             f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
 
 def check_search_interval():
-    last_search_str = database.get_setting('autopilot_last_search_run_at', '')
-    if not last_search_str:
-        return True, ""
-        
+    """Portao da busca (rotation.search_gate): guiado pelo estoque de leads com e-mail, nao por relogio. Devolve (ok, motivo, codigo)."""
     try:
-        last_search = datetime.strptime(last_search_str, '%Y-%m-%d %H:%M:%S').replace(tzinfo=database.SAO_PAULO_TZ)
-    except Exception:
-        return True, ""
-        
-    try:
-        interval_hours = int(database.get_setting('autopilot_search_interval_hours', '12'))
-    except Exception:
-        interval_hours = 12
-        
-    elapsed = (database.get_now() - last_search).total_seconds() / 3600.0
-    if elapsed < interval_hours:
-        return False, f"Intervalo de buscas não atingido ({elapsed:.1f} horas)"
-        
-    return True, ""
+        ok, code, why = rotation.search_gate()
+        return ok, why, code
+    except Exception as e:
+        return True, f"portao indisponivel ({e})", "ok"
 
 def autopilot_run_next_search(force=False):
     if not force and database.get_setting('autopilot_search_enabled', '0') != '1':
@@ -494,9 +482,10 @@ def autopilot_run_next_search(force=False):
         return
         
     if not force:
-        ok, _ = check_search_interval()
+        ok, _why, code = check_search_interval()
         if not ok:
-            autopilot_status["search_status"] = "waiting_interval"
+            autopilot_status["search_status"] = code
+            autopilot_status["search_reason"] = _why
             return
         
     targets_str = database.get_setting('autopilot_search_targets', '[]')
@@ -505,21 +494,23 @@ def autopilot_run_next_search(force=False):
     except:
         targets = []
         
-    if not targets:
-        autopilot_status["search_status"] = "no_targets"
-        return
-        
     try:
         current_idx = int(database.get_setting('autopilot_search_target_index', '0'))
     except:
         current_idx = 0
-        
-    if current_idx >= len(targets):
+    if targets and current_idx >= len(targets):
         current_idx = 0
-        
-    target = targets[current_idx]
-    next_idx = (current_idx + 1) % len(targets)
+
+    # rotacao automatica: pula alvos saturados e, se todos estiverem, usa o catalogo automatico (nunca fica parado)
+    target, origem, next_idx = rotation.choose(targets, current_idx)
+    if not target:
+        autopilot_status["search_status"] = "no_targets"
+        return
     database.save_settings({'autopilot_search_target_index': str(next_idx)})
+    try:
+        rotation.note_search_started()
+    except Exception:
+        pass
     
     segment = target.get('segment')
     region = target.get('region')
@@ -533,11 +524,14 @@ def autopilot_run_next_search(force=False):
     search_limit = int(target.get('limit', batch_size)) if target.get('limit') else batch_size
     
     autopilot_status["search_status"] = "searching"
-    autopilot_log(f"Iniciando busca automática do Autopilot: Segmento='{segment}', Região='{region}' (Alvo: {search_limit} leads, Tipo: {search_type})...")
+    autopilot_log(f"Iniciando busca automática do Autopilot: Segmento='{segment}', Região='{region}' (Alvo: {search_limit} leads, Tipo: {search_type}{', alvo AUTOMÁTICO' if origem == 'automatico' else ''})...")
     
+    t_start = time.time()
+    search_error = None
     try:
         now_str = database.get_now_str()
         database.save_settings({'autopilot_last_search_run_at': now_str})
+        started_at = now_str
         
         state_uf, city_name = agent.parse_autopilot_region(region)
             
@@ -566,10 +560,47 @@ def autopilot_run_next_search(force=False):
         autopilot_log(f"✅ Busca automática do Autopilot concluída com sucesso!")
         log_autopilot_activity("Busca Automática", f"Busca concluída para '{segment}' em '{region}' (Qtd: {search_limit}, Fonte: {search_type})", "success")
     except Exception as e:
+        search_error = str(e) or type(e).__name__
         autopilot_log(f"❌ Erro na busca automática: {e}")
         log_autopilot_activity("Busca Automática", f"Falha na busca para '{segment}' em '{region}': {str(e)}", "error")
     finally:
         autopilot_status["search_status"] = "idle"
+
+    # mede o que a busca rendeu e decide se o alvo esta saturado (rotation.py)
+    try:
+        conn = database.get_db_connection()
+        row = conn.execute(
+            "SELECT COUNT(*) n, "
+            "SUM(CASE WHEN contact_email IS NOT NULL AND contact_email != '' THEN 1 ELSE 0 END) e, "
+            "SUM(CASE WHEN (contact_email IS NULL OR contact_email = '') AND contact_whatsapp IS NOT NULL AND contact_whatsapp != '' THEN 1 ELSE 0 END) w "
+            "FROM prospects WHERE is_autopilot = 1 AND created_at >= ?", (started_at,)).fetchone()
+        conn.close()
+        novos, com_email, so_wa = int(row['n'] or 0), int(row['e'] or 0), int(row['w'] or 0)
+        err = search_error
+        if not err and novos == 0 and (time.time() - t_start) < 20:
+            err = "a busca terminou em segundos sem nada (provável falha de API ou cota)"
+        if rotation.enabled():
+            sat, why = rotation.record_run(target, novos, com_email, so_wa, error=err)
+            rotation.set_retry_soon(bool(sat) or bool(err))
+            autopilot_log(f"📊 Busca '{segment}'/{region}/{search_type}: {novos} novos, {com_email} com e-mail, {so_wa} só WhatsApp." +
+                          (f" ⏸ Alvo em descanso: {why}. Próxima busca já vai para outro alvo." if sat else (f" ⚠ {why}" if err else "")))
+    except Exception as e:
+        autopilot_log(f"⚠️ Não consegui medir o rendimento da busca: {e}")
+
+def background_autopilot_search_scheduler():
+    """Busca de leads em thread PROPRIA: uma busca longa nunca mais atrasa o envio de e-mails (nem o contrario)."""
+    last_msg = {"t": None}
+    while True:
+        autopilot_status["search_heartbeat"] = time.time()
+        try:
+            autopilot_run_next_search()
+        except Exception as e:
+            msg = f"Erro na etapa 'busca': {type(e).__name__}: {str(e)[:200]}"
+            if last_msg["t"] != msg:
+                last_msg["t"] = msg
+                autopilot_log(f"❌ {msg}")
+        autopilot_status["search_heartbeat"] = time.time()
+        time.sleep(15)
 
 def background_autopilot_scheduler():
     last_err = {}
@@ -592,12 +623,6 @@ def background_autopilot_scheduler():
             autopilot_send_next_email()
         except Exception as e:
             fail("envio", e)
-
-        beat("busca")
-        try:
-            autopilot_run_next_search()
-        except Exception as e:
-            fail("busca", e)
 
         beat("caixa de entrada")
         try:
@@ -1355,7 +1380,10 @@ try:
         autopilot_thread = threading.Thread(target=background_autopilot_scheduler)
         autopilot_thread.daemon = True
         autopilot_thread.start()
-        print("[Autopilot] Thread do Piloto Automático iniciada com sucesso.")
+        search_thread = threading.Thread(target=background_autopilot_search_scheduler)
+        search_thread.daemon = True
+        search_thread.start()
+        print("[Autopilot] Threads do Piloto Automático (envio e busca) iniciadas com sucesso.")
 except Exception as e:
     print(f"[Autopilot] Aviso ao iniciar thread: {e}")
 

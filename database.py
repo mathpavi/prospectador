@@ -165,6 +165,11 @@ def init_db():
         'mockup_in_email': '1',
         'mockup_daily_limit': '40',
         # C1: follow-up automatico (desligado ate o usuario ligar)
+        'autopilot_auto_rotate': '1',
+        'autopilot_search_min_gap_min': '2',
+        'autopilot_queue_target': '60',
+        'autopilot_search_daily_cap': '60',
+        'autopilot_cooldown_days': '14',
         'followup_enabled': '0',
         'followup_daily_limit': '8',
         'followup_max_age_days': '30',

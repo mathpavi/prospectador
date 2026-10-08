@@ -57,6 +57,10 @@ async function loadDia() {
         const ln = diaEl('div'); ln.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:6px';
         pil.serie.forEach(x => { const c = diaEl('div', null, 'dia-kpi'); c.style.padding = '6px 10px'; c.appendChild(diaEl('span', x.dia)); c.appendChild(diaEl('b', `${x.leads} / ${x.emails}`)); c.querySelector('b').style.fontSize = '1rem'; ln.appendChild(c); });
         tb.appendChild(ln); pb.appendChild(tb);
+        const rot = pil.rotacao || {};
+        lin('Rotação automática', rot.ligado ? 'ligada: o piloto troca de alvo sozinho quando um fica saturado' : 'DESLIGADA');
+        (rot.em_descanso || []).forEach(r => lin('Em descanso', `${r.segmento} · ${r.regiao} · ${r.tipo}: ${r.motivo} (volta em ${r.volta_em})`));
+        (rot.ativos || []).slice(-4).forEach(r => lin('Alvo recente', `${r.segmento} · ${r.regiao} · ${r.tipo}${r.ultima ? ' → ' + r.ultima : ''}`));
         if (pil.log && pil.log.length) { const lg = diaEl('div'); lg.style.cssText = 'margin-top:10px;font-size:.8rem;opacity:.8'; lg.appendChild(diaEl('strong', 'Últimas linhas do log do piloto:')); pil.log.forEach(l => lg.appendChild(diaEl('div', l))); pb.appendChild(lg); }
     }
 
