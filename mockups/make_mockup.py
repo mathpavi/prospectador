@@ -114,6 +114,13 @@ def make(prospect, provider=None, slots_file=None, days=21, forced_template=None
             if res["problems"]:
                 print("avisos:", res["problems"])
 
+        if not slots_file and slots.get("images"):         # foto principal escolhida por IA de visao (se falhar, vale a ordenacao tecnica)
+            ordered, cost = fill_mod.pick_hero(prospect, slots, os.path.join(work, "img"))
+            if ordered:
+                slots["images"] = ordered
+                slots["images_locked"] = True
+                usage["usd"] = round(usage.get("usd", 0) + cost, 6)
+
         og = {"title": f"Proposta visual · {slots.get('brand_name', '')}", "image": f"{BASE_URL}/p/{token}/thumb.png",
               "url": f"{BASE_URL}/p/{token}/"}
         idx = render_mod.render(template, slots, work, out_dir, og=og)

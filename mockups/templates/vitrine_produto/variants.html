@@ -1,0 +1,23 @@
+{# Variacoes de estrutura (v0 = padrao). #}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* v1: titulo em coluna unica, foto em faixa panoramica, botoes retos, faixa escura */
+body.v1{--serif:'Playfair Display','Fraunces',Georgia,serif}
+body.v1 .hero .head{grid-template-columns:1fr}
+body.v1 h1{font-size:clamp(2.6rem,6.4vw,6rem);font-weight:500;letter-spacing:-.02em}
+body.v1 .hero .shot img,body.v1 .hero .shot .ph{aspect-ratio:21/9}
+body.v1 .btn{border-radius:3px}
+body.v1 .band{background:var(--ink);color:var(--cream)}
+body.v1 .band .label,body.v1 .band .quote{color:var(--cream)}
+/* v2: editorial: coluna estreita a esquerda, foto recuada a direita, sem cantos arredondados */
+body.v2{--serif:'DM Serif Display','Fraunces',Georgia,serif}
+body.v2 .hero .head{grid-template-columns:minmax(0,3fr) minmax(0,9fr)}
+body.v2 .hero .head>*:last-child{order:-1}
+body.v2 h1{font-weight:400;letter-spacing:-.025em}
+body.v2 .hero .shot{max-width:80%;margin-left:auto}
+body.v2 .hero .shot img,body.v2 .hero .shot .ph{aspect-ratio:4/3}
+body.v2 .btn,body.v2 .btn.ghost{border-radius:0}
+body.v2 .band{background:var(--cream-2);color:var(--ink)}
+body.v2 .band .label,body.v2 .band .quote,body.v2 .band .rest{color:var(--ink)}
+@media (max-width:900px){body.v2 .hero .shot{max-width:100%}body.v2 .hero .head{grid-template-columns:1fr}}
+</style>

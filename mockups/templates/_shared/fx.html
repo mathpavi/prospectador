@@ -1,5 +1,6 @@
 {# Animacoes e utilitarios compartilhados: barra de progresso, parallax, contadores, revelar imagens, botao magnetico, envio por WhatsApp. #}
 <style>
+html,body{overflow-x:clip}
 .pv-prog{position:fixed;left:0;top:0;height:3px;width:0;background:var(--t-accent);z-index:60;transition:width .12s linear}
 .rv-off .pv-prog{display:none}
 .js:not(.rv-off) main img.pv-ix{clip-path:inset(0 0 100% 0);transform:scale(1.06);transition:clip-path 1.1s var(--ease),transform 1.4s var(--ease)}

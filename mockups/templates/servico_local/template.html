@@ -152,8 +152,9 @@ footer{padding:28px var(--gutter);display:flex;justify-content:space-between;gap
   .proposal span.long{display:none}
 }
 </style>
+{% include 'variants.html' %}
 </head>
-<body>
+<body class="v{{ s.variant|default(0) }}">
 <script>document.documentElement.classList.add('js')</script>
 
 <div class="strip">Peça seu orçamento pelo WhatsApp</div>

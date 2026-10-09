@@ -1,0 +1,23 @@
+{# Variacoes de estrutura (v0 = padrao). #}
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Libre+Caslon+Text:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* v1: retrato a esquerda, serifa classica, areas em coluna unica */
+body.v1{--serif:'Cormorant Garamond','Instrument Serif',Georgia,serif}
+body.v1 h1{font-weight:500;letter-spacing:-.01em}
+body.v1 .hero .wrap>*:first-child{order:2}
+body.v1 .arch .card{left:auto;right:-8%}
+body.v1 .areas .grid{grid-template-columns:1fr}
+body.v1 .areas .intro p{max-width:56ch}
+body.v1 .flow ol{grid-template-columns:repeat(2,1fr)}
+/* v2: retrato retangular (sem arco), hero com fio, contato em faixa escura */
+body.v2{--serif:'Libre Caslon Text','Instrument Serif',Georgia,serif}
+body.v2 h1{font-size:clamp(2.4rem,4.8vw,4.6rem);font-weight:400}
+body.v2 .arch::before{display:none}
+body.v2 .arch .img{border-radius:4px;aspect-ratio:4/5}
+body.v2 .hero{border-bottom:1px solid var(--ink)}
+body.v2 .btn,body.v2 .btn.ghost{border-radius:2px}
+body.v2 .contact .card{background:var(--ink);color:#f2efe9;border-color:var(--ink);border-radius:4px}
+body.v2 .contact h2,body.v2 .contact .ph a{color:#fff}
+body.v2 .contact address{color:#b9bfc7}
+@media (max-width:900px){body.v1 .hero .wrap>*:first-child{order:0}body.v1 .flow ol{grid-template-columns:1fr 1fr}}
+</style>

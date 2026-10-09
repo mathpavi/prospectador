@@ -1,0 +1,25 @@
+{# Variacoes de estrutura (v0 = padrao). #}
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* v1: foto em arco a esquerda, cartoes menos arredondados, primeiro cartao escuro */
+body.v1{--display:'Outfit','Bricolage Grotesque',system-ui,sans-serif}
+body.v1 .hero .wrap>*:first-child{order:2}
+body.v1 .photo .img{border-radius:999px 999px 28px 28px;aspect-ratio:4/5}
+body.v1 .photo .badge{left:auto;right:-4%}
+body.v1 .tile{border-radius:10px}
+body.v1 .tile:nth-child(1){background:var(--ink);color:#fff}
+body.v1 .contact .block{border-radius:14px}
+/* v2: hero centralizado, foto panoramica, todos os cartoes do mesmo tamanho */
+body.v2{--display:'Sora','Bricolage Grotesque',system-ui,sans-serif}
+body.v2 .hero .wrap{grid-template-columns:1fr;text-align:center;justify-items:center}
+body.v2 .hero .lede{margin-inline:auto}
+body.v2 .hero .cta{justify-content:center}
+body.v2 .photo{width:100%;max-width:1000px}
+body.v2 .photo .img{aspect-ratio:16/8;border-radius:40px}
+body.v2 .photo .badge{left:4%}
+body.v2 h1{max-width:15ch;margin-inline:auto;letter-spacing:-.03em}
+body.v2 .tile,body.v2 .tile:nth-child(n){grid-column:span 3;grid-row:auto}
+body.v2 .tile:nth-child(1){grid-column:span 6}
+body.v2 .contact .block{border-radius:0}
+@media (max-width:900px){body.v1 .hero .wrap>*:first-child{order:0}}
+</style>

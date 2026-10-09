@@ -1,0 +1,27 @@
+{# Variacoes de estrutura (v0 = padrao). #}
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+/* v1: foto a esquerda, fundo liso (sem grade de papel milimetrado), tipografia mais geometrica */
+body.v1{--display:'Space Grotesk','Archivo',Arial,sans-serif}
+body.v1 .hero{background-image:none;background:var(--paper-2)}
+body.v1 .hero .wrap{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
+body.v1 .hero .wrap>*:first-child{order:2}
+body.v1 h1{letter-spacing:-.035em;font-weight:700}
+body.v1 .plate .frame{border-color:var(--accent);padding:0}
+body.v1 .plate .frame::before,body.v1 .plate .frame::after{display:none}
+body.v1 .about .grid{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}
+body.v1 .about .rest{order:-1}
+/* v2: hero centralizado, titulo largo, foto em faixa; rodape escuro azulado */
+body.v2{--display:'Manrope','Archivo',Arial,sans-serif}
+body.v2 .hero .wrap{grid-template-columns:1fr;text-align:center;justify-items:center}
+body.v2 .hero .lede{margin-inline:auto}
+body.v2 .hero .cta,body.v2 .hero .eyebrow{justify-content:center}
+body.v2 h1{max-width:16ch;margin-inline:auto;font-weight:800}
+body.v2 .sheet{width:100%;max-width:640px;text-align:left}
+body.v2 .plate{width:100%;max-width:980px}
+body.v2 .plate img,body.v2 .plate .ph{aspect-ratio:16/8}
+body.v2 .inset{display:none}
+body.v2 .contact{background:#0f1a24}
+body.v2 .btn,body.v2 .btn.ghost{border-radius:999px}
+@media (max-width:900px){body.v1 .hero .wrap>*:first-child{order:0}body.v1 .about .rest{order:0}}
+</style>

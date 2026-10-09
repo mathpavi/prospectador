@@ -1,0 +1,31 @@
+{# Variacoes de estrutura (v0 = padrao). Escolhida por empresa em render.py: duas empresas do mesmo segmento nao recebem a mesma pagina. #}
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* v1: foto a esquerda, corte invertido, indice de servicos em duas colunas */
+body.v1{--display:'Big Shoulders Display','Barlow Condensed',Impact,sans-serif}
+body.v1 .hero{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+body.v1 .hero .photo{order:-1;clip-path:polygon(0 0,86% 0,100% 100%,0 100%)}
+body.v1 .hero .copy{padding-left:clamp(20px,4vw,64px);padding-right:var(--gutter)}
+body.v1 h1{font-weight:800;max-width:13ch}
+body.v1 .services .grid{grid-template-columns:1fr}
+body.v1 .services .intro{position:static}
+body.v1 .idx{display:grid;grid-template-columns:1fr 1fr;column-gap:clamp(24px,5vw,72px)}
+body.v1 .about .grid{grid-template-columns:minmax(0,6fr) minmax(0,5fr)}
+body.v1 .about .fig{order:2;margin:0 0 0 clamp(0px,3vw,40px)}
+/* v2: poster (foto de fundo inteira), titulo grande, servicos com numeros grandes */
+body.v2{--display:'Saira Condensed','Barlow Condensed',Impact,sans-serif}
+body.v2 .hero{grid-template-columns:1fr;overflow:hidden}
+body.v2 .hero .photo{position:absolute;inset:0;min-height:0;clip-path:none}
+body.v2 .hero .photo::after{background:linear-gradient(90deg,rgba(13,15,17,.95) 8%,rgba(13,15,17,.55) 60%,rgba(13,15,17,.25))}
+body.v2 .hero .copy{max-width:min(900px,100%)}
+body.v2 h1{max-width:14ch;font-size:clamp(3rem,7.4vw,7rem);letter-spacing:.005em}
+body.v2 .idx .n{font:700 clamp(1.4rem,2.6vw,2.2rem)/1 var(--display);opacity:.9}
+body.v2 .idx li{grid-template-columns:84px 1fr auto}
+body.v2 .btn,body.v2 .btn.ghost{border-radius:0}
+@media (max-width:900px){
+  body.v1 .hero .photo,body.v2 .hero .photo{clip-path:polygon(0 0,100% 0,100% 100%,0 92%)}
+  body.v2 .hero .photo{position:relative;min-height:46svh;order:-1}
+  body.v1 .idx{grid-template-columns:1fr}
+  body.v1 .hero .copy{padding:36px var(--gutter) 40px}
+}
+</style>

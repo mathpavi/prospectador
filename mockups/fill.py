@@ -28,7 +28,11 @@ GEMINI_PRICES = {
 GEMINI_CHAIN = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
 
 BANNED = [r"transforme (o )?seu neg[oó]cio", r"revolucion", r"solu[cç][aã]o completa", r"l[ií]der de mercado",
-          r"refer[eê]ncia (no|em) (mercado|setor)", r"de ponta", r"inova[cç][aã]o disruptiva"]
+          r"refer[eê]ncia (no|em) (mercado|setor)", r"de ponta", r"inova[cç][aã]o disruptiva",
+          # vocabulario de folheto/IA: marca o texto como generico
+          r"excel[eê]ncia", r"compromisso com a qualidade", r"qualidade e (seriedade|confian[cç]a)", r"solu[cç][oõ]es (completas|personalizadas|inovadoras|sob medida)",
+          r"parceir[oa] (ideal|de confian[cç]a)", r"tradi[cç][aã]o e inova[cç][aã]o", r"alto padr[aã]o", r"mais do que", r"jornada", r"ecossistema",
+          r"potencialize", r"eleve (o|a|seu|sua)", r"da melhor forma", r"cuidado em cada detalhe", r"pensado para voc[eê]", r"seu sucesso [eé] o nosso"]
 
 SYSTEM = """Voce escreve o texto de um esboco de site institucional em portugues do Brasil para uma empresa REAL.
 Regras inegociaveis:
@@ -37,6 +41,12 @@ Regras inegociaveis:
 3. A hero precisa ser ESPECIFICA desta empresa (o que faz, para quem, onde), nao poderia servir a qualquer concorrente. Titulo com no maximo 9 palavras. Pode destacar UMA palavra com <em>...</em>.
 4. Servicos: use os nomes que a empresa ja usa. No maximo 6. Descricao so quando os dados trazem uma frase real sobre aquele servico; senao omita "desc".
 5. Textos curtos. Sem emojis.
+VOZ (evite texto de folheto, o tipo de frase que serviria a qualquer concorrente):
+6. O titulo da hero precisa de UM detalhe concreto que so esta empresa tem nos dados: o produto especifico, o material, o publico, a cidade ou a regiao. Ruim: "Solucoes em aco para a industria". Bom: "Tanques de inox para vinho, feitos na Serra Gaucha".
+7. Use o vocabulario do proprio site (termos tecnicos, nomes de produtos e de linhas). Nunca troque o nome que a empresa usa por um sinonimo mais "bonito".
+8. Frases curtas, verbo concreto, sujeito claro. Proibido: listas de tres adjetivos ("rapido, seguro e eficiente"), "mais do que", "jornada", "excelencia", "compromisso com a qualidade", "solucoes sob medida", "parceiro de confianca", "alto padrao".
+9. Se os dados forem poucos, escreva MENOS. Nao complete com generalidades para encher espaco.
+10. O texto "sobre" deve soar como a empresa falando de si (primeira pessoa do plural, "fazemos", "atendemos") apenas se o site tambem fala assim; senao use terceira pessoa direta.
 Responda SOMENTE um objeto JSON valido, sem markdown, com exatamente estas chaves:
 {"eyebrow": str (segmento + cidade/UF), "hero_title_html": str, "hero_sub": str (max 30 palavras), "hero_alt": str,
  "services_title": str (max 6 palavras), "services_intro": str|null,
@@ -190,6 +200,40 @@ def validate(copy, ex, prospect):
     return copy, problems, fatal
 
 
+def pick_hero(prospect, slots, img_dir, call=None):
+    """Foto principal escolhida por IA de visao (barata): olha ate 6 fotos e ordena da melhor para a pior como foto de abertura.
+    Evita logos, banners com texto, mockups de notebook/celular, imagens de banco genericas e texturas. Devolve (ordem, custo)
+    ou (None, 0) se nao conseguir (quem chama mantem a ordenacao por qualidade tecnica)."""
+    import base64
+    import io
+    names = [n for n in slots.get("images", []) if n][:6]
+    if len(names) < 2:
+        return None, 0.0
+    call = call or gemini_json
+    try:
+        from PIL import Image
+        parts = [{"text": "Estas sao " + str(len(names)) + " imagens numeradas (1 a " + str(len(names)) + ") do site de uma empresa do segmento '" + str(prospect.get("segment") or "") + "'. "
+                  "Ordene da MELHOR para a PIOR como foto principal de abertura do novo site. Prefira fotos reais da empresa (fabrica, produto, equipe, fachada, trabalho feito). "
+                  "Evite logos, banners com texto, ilustracoes, mockups de notebook/celular, imagens de banco genericas e texturas. "
+                  'Responda apenas JSON: {"ordem": [numeros]}'}]
+        for i, n in enumerate(names, 1):
+            im = Image.open(os.path.join(img_dir, n)).convert("RGB")
+            im.thumbnail((512, 512))
+            buf = io.BytesIO()
+            im.save(buf, "JPEG", quality=70)
+            parts.append({"text": "Imagem " + str(i) + ":"})
+            parts.append({"inline_data": {"mime_type": "image/jpeg", "data": base64.b64encode(buf.getvalue()).decode()}})
+        data, cost, _ = call(parts, temperature=0.1, max_tokens=200)
+        order = [int(x) - 1 for x in data.get("ordem", []) if str(x).isdigit() and 1 <= int(x) <= len(names)]
+        order = list(dict.fromkeys(order))
+        if not order:
+            return None, cost
+        ordered = [names[i] for i in order] + [n for i, n in enumerate(names) if i not in order]
+        return ordered + [n for n in slots.get("images", []) if n not in ordered], cost
+    except Exception:  # noqa: BLE001
+        return None, 0.0
+
+
 def brand_name(prospect, ex):
     """Nome da marca para o esboco: cadastro limpo; se for lixo ('Pagina inicial', 'Sobre') usa o nome do site/dominio."""
     raw = prospect.get("company_name") or ""
@@ -248,6 +292,22 @@ def fill(prospect, ex, provider="anthropic"):
         return {"slots": {}, "problems": [], "fatal": ["a IA devolveu uma resposta fora do formato esperado"], "usage": usage,
                 "raw": txt[:300]}
     copy, problems, fatal = validate(copy, ex, prospect)
+    # texto com cara de folheto/IA (2+ expressoes de BANNED): pede UMA reescrita especifica, apontando o que sair
+    slop = [x for x in problems if x.startswith("expressao proibida")]
+    if len(slop) >= 2:
+        try:
+            nl = chr(10) * 2
+            feedback = (user + nl + "SEU TEXTO ANTERIOR tinha frases de folheto (" + "; ".join(slop[:6]) + "). Reescreva TUDO sem essas expressoes, "
+                        "com um detalhe concreto desta empresa no titulo e vocabulario do proprio site.")
+            txt2, tin2, tout2, model2 = (call_anthropic if provider == "anthropic" else call_gemini)(feedback)
+            copy2 = parse_json(txt2)
+            copy2, problems2, fatal2 = validate(copy2, ex, prospect)
+            if len([x for x in problems2 if x.startswith("expressao proibida")]) < len(slop) and not fatal2:
+                copy, problems, fatal = copy2, problems2, fatal2
+                usage["retry"] = True
+                usage["usd"] = round(usage.get("usd", 0) + tin2 * 0.3 / 1e6 + tout2 * 2.5 / 1e6, 6)
+        except Exception:  # noqa: BLE001
+            pass
     return {"slots": assemble(copy, ex, prospect), "problems": problems, "fatal": fatal, "usage": usage}
 
 

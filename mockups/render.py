@@ -61,6 +61,43 @@ def logo_class(path, bg_is_dark):
     return ""
 
 
+def _prep_photo(path, accent=None):
+    """Tratamento de foto para as imagens nao parecerem 'colagem do site antigo': tom uniforme (contraste automatico, cor um pouco
+    contida, leve toque da cor da marca), ampliacao suave de fotos pequenas e granulado fino para esconder serrilhado.
+    Devolve (nota_de_qualidade, largura). A nota ordena as fotos: a melhor vira a foto principal. Nunca levanta excecao."""
+    try:
+        from PIL import Image, ImageChops, ImageEnhance, ImageFilter, ImageOps, ImageStat
+        im = Image.open(path)
+        if im.mode in ("RGBA", "LA", "P") and (im.mode != "P" or "transparency" in im.info):
+            alpha = im.convert("RGBA").getchannel("A")
+            if alpha.getextrema()[0] < 250:
+                return 0.0, im.width            # arte com transparencia (emblema): nao mexer
+        fmt = (im.format or "JPEG").upper()
+        w0, h0 = im.size
+        rgb = im.convert("RGB")
+        gray = rgb.convert("L").resize((min(w0, 640), max(1, int(h0 * min(w0, 640) / w0))))
+        edges = ImageStat.Stat(gray.filter(ImageFilter.FIND_EDGES)).var[0]       # nitidez (variancia das bordas)
+        if w0 < 1400:
+            k = 1400 / w0
+            rgb = rgb.resize((1400, int(h0 * k)), Image.LANCZOS)
+            rgb = rgb.filter(ImageFilter.UnsharpMask(radius=1.6, percent=60, threshold=3))
+        rgb = ImageOps.autocontrast(rgb, cutoff=0.6)
+        rgb = ImageEnhance.Color(rgb).enhance(0.93)
+        if accent and re.fullmatch(r"#[0-9a-fA-F]{6}", accent):
+            tint = Image.new("RGB", rgb.size, accent)
+            rgb = Image.blend(rgb, tint, 0.05)
+        noise = Image.effect_noise(rgb.size, 6).convert("RGB")
+        rgb = Image.blend(rgb, ImageChops.add(rgb, noise, 1.0, -128), 0.12)
+        out_fmt = "PNG" if fmt == "PNG" else "JPEG"
+        rgb.save(path, out_fmt, **({"quality": 86, "optimize": True} if out_fmt == "JPEG" else {}))
+        import math
+        ratio = w0 / max(h0, 1)
+        pen = 0.35 if (ratio > 2.2 or ratio < 0.55) else 1.0           # faixas muito largas/estreitas servem mal de foto principal
+        return (min(w0, 1800) / 1800.0) * (0.5 + math.log10(1.0 + edges) / 4.0) * pen, w0
+    except Exception:  # noqa: BLE001
+        return 1.0, 0
+
+
 def _digits(x):
     return re.sub(r"\D", "", x or "")
 
@@ -107,9 +144,24 @@ def render(template_id, slots, assets_dir, out_dir, proposal=None, og=None):
             shutil.copy2(src, os.path.join(out_dir, "img", name))
             used.append(name)
 
+    # tratamento e ordenacao das fotos: a de melhor qualidade vira a principal (hero)
+    scored = []
+    for name in [i for i in slots.get("images", []) if i in used]:
+        q, w = _prep_photo(os.path.join(out_dir, "img", name), slots.get("accent"))
+        scored.append((q, name))
+    ordered = [n for q, n in sorted(scored, key=lambda x: -x[0])]
+    if slots.get("images_locked"):                       # a IA de visao ja escolheu a ordem: respeita
+        ordered = [i for i in slots.get("images", []) if i in used]
+    slots = dict(slots)
+    slots["images"] = ordered + [i for i in slots.get("images", []) if i not in ordered]
+
     meta_path = os.path.join(TEMPLATES, template_id, "meta.json")
     meta = json.load(open(meta_path, encoding="utf-8")) if os.path.exists(meta_path) else {"bg": "#0d0f11", "dark": True, "alt_bg": "#f3f1ec"}
     slots = dict(slots)
+    if slots.get("variant") not in (0, 1, 2):
+        # variacao de estrutura: estavel por empresa, para duas empresas do mesmo segmento nao receberem a mesma pagina
+        import zlib
+        slots["variant"] = zlib.crc32((slots.get("brand_name") or "").encode("utf-8")) % 3
     slots["wa_url"], slots["tel_url"] = company_contact(slots.get("phones"))
     slots["accent"], on_accent = fit_accent(slots.get("accent"), meta["bg"])
     accent_alt, on_accent_alt = fit_accent(slots.get("accent"), meta["alt_bg"])   # versao para blocos de fundo oposto
