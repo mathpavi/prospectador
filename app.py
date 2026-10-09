@@ -529,6 +529,10 @@ def autopilot_run_next_search(force=False):
     t_start = time.time()
     search_error = None
     try:
+        log_mark = (len(agent.job_logs), len(agent.directory_logs))
+    except Exception:
+        log_mark = (0, 0)
+    try:
         now_str = database.get_now_str()
         database.save_settings({'autopilot_last_search_run_at': now_str})
         started_at = now_str
@@ -579,6 +583,14 @@ def autopilot_run_next_search(force=False):
         err = search_error
         if not err and novos == 0 and (time.time() - t_start) < 20:
             err = "a busca terminou em segundos sem nada (provável falha de API ou cota)"
+        if not err and novos == 0:
+            try:     # linhas de log da propria busca que parecem erro (API fora, cota, chave) = falha, nao saturacao
+                msgs = [x.get('message', '') for x in list(agent.job_logs)[log_mark[0]:]] + [x.get('message', '') for x in list(agent.directory_logs)[log_mark[1]:]]
+                n_err, sample = rotation.log_errors(msgs)
+                if n_err >= 3:
+                    err = f"{n_err} erros no log da busca (ex.: {sample})"
+            except Exception:
+                pass
         if rotation.enabled():
             sat, why = rotation.record_run(target, novos, com_email, so_wa, error=err)
             rotation.set_retry_soon(bool(sat) or bool(err))

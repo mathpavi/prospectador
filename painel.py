@@ -179,6 +179,12 @@ def piloto(status):
     sh = status.get("search_heartbeat")
     if sh and now - sh > 2700:
         problemas.append(f"A busca está sem sinal há {int((now - sh) // 60)} min (uma busca travada). Reiniciar o serviço no EasyPanel destrava.")
+    try:
+        import rotation
+        if rotation.stall_message():
+            problemas.append(rotation.stall_message())
+    except Exception:  # noqa: BLE001
+        pass
     if status.get("sender_status") == "no_leads":
         problemas.append("Sem leads aprovados na fila: o envio parou por falta de lead, não por erro.")
     if status.get("search_status") in ("disabled", "no_targets"):

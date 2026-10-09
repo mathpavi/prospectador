@@ -18,11 +18,24 @@ import database
 SEGMENTS = ["Metalúrgica", "Usinagem", "Caldeiraria / Soldagem", "Serralheria", "Vidraçaria", "Esquadrias de Alumínio", "Marmoraria",
             "Indústria de Plásticos", "Fábrica de Móveis", "Indústria Têxtil", "Panificadora", "Serviços de Limpeza",
             "Distribuidora / Logística", "Advogado", "Segurança Eletrônica", "Clínica de Estética"]
-# ordem de expansao geografica (estado inteiro)
-REGIONS = ["RS", "SC", "PR", "SP", "MG", "RJ", "ES", "GO", "DF", "BA", "PE", "CE"]
+# polos industriais/comerciais, em ordem de expansao (RS primeiro). Busca por CIDADE devolve empresas novas;
+# busca pelo estado inteiro devolve sempre os mesmos primeiros resultados e satura em poucos dias.
+CITIES = {
+    "RS": ["Caxias do Sul", "Porto Alegre", "Canoas", "Novo Hamburgo", "São Leopoldo", "Gravataí", "Passo Fundo", "Bento Gonçalves", "Farroupilha",
+           "Santa Maria", "Pelotas", "Lajeado", "Santa Cruz do Sul", "Erechim", "Sapucaia do Sul", "Esteio", "Cachoeirinha", "Campo Bom", "Sapiranga",
+           "Montenegro", "Guaíba", "Rio Grande", "Ijuí", "Santo Ângelo", "Carazinho", "Vacaria", "Garibaldi", "Flores da Cunha", "Marau", "Venâncio Aires",
+           "Viamão", "Alvorada", "Taquara", "Estrela", "Cruz Alta", "Uruguaiana", "Bagé", "Santa Rosa", "Horizontina", "Frederico Westphalen"],
+    "SC": ["Joinville", "Blumenau", "Jaraguá do Sul", "Itajaí", "Criciúma", "Chapecó", "Florianópolis", "São José", "Brusque", "Lages", "Balneário Camboriú",
+           "Indaial", "Tubarão", "Rio do Sul", "Concórdia", "Videira", "Gaspar", "São Bento do Sul", "Palhoça", "Joaçaba"],
+    "PR": ["Curitiba", "Londrina", "Maringá", "Ponta Grossa", "Cascavel", "São José dos Pinhais", "Foz do Iguaçu", "Toledo", "Guarapuava", "Apucarana",
+           "Campo Largo", "Araucária", "Pato Branco", "Francisco Beltrão"],
+    "SP": ["Campinas", "Sorocaba", "Ribeirão Preto", "São José dos Campos", "Santo André", "Guarulhos", "Jundiaí", "Piracicaba", "Bauru", "Limeira"],
+    "MG": ["Belo Horizonte", "Contagem", "Betim", "Uberlândia", "Juiz de Fora", "Divinópolis", "Pouso Alegre"],
+}
 # formas de busca, da que mais rende e-mail para a que menos rende
 TYPES = ["organic", "maps_only", "directory"]
 
+STATS_VERSION = "3"            # mudou a regra de saturacao/catalogo: historico antigo e descartado uma vez
 KEEP_RUNS = 6
 MIN_USEFUL_2RUNS = 3.0          # soma de "utilidade" nas 2 ultimas buscas abaixo disso = saturado
 ERROR_COOLDOWN_H = 3            # erro de busca (API fora, cota): descansa pouco, nao e saturacao
@@ -41,6 +54,9 @@ def _now():
 
 
 def _load():
+    if database.get_setting("autopilot_stats_version", "") != STATS_VERSION:
+        database.save_settings({"autopilot_stats_version": STATS_VERSION, "autopilot_target_stats": "{}", "autopilot_recent_runs": "[]", "autopilot_search_stall": ""})
+        return {}
     try:
         d = json.loads(database.get_setting("autopilot_target_stats", "{}") or "{}")
         return d if isinstance(d, dict) else {}
@@ -68,16 +84,52 @@ def usefulness(run):
     return run.get("email", 0) + 0.1 * run.get("whatsapp_only", 0)
 
 
+ERROR_HINTS = ("erro", "falha", "quota", "cota", "credit", "crédit", "429", "401", "403", "rate limit", "limite", "timeout", "timed out", "invalid", "inválid", "unauthorized", "forbidden")
+
+
+def log_errors(messages):
+    """Quantas linhas do log da busca parecem erro (API fora, cota, chave invalida...). Devolve (n, exemplo)."""
+    hits = [m for m in messages if any(h in str(m).lower() for h in ERROR_HINTS)]
+    return len(hits), (str(hits[0])[:110] if hits else "")
+
+
+def stall_message():
+    return database.get_setting("autopilot_search_stall", "")
+
+
+def _recent_runs():
+    try:
+        v = json.loads(database.get_setting("autopilot_recent_runs", "[]") or "[]")
+        return v if isinstance(v, list) else []
+    except Exception:  # noqa: BLE001
+        return []
+
+
 def record_run(target, new, email, whatsapp_only, error=None, now=None):
     """Registra o resultado de uma busca e decide se o alvo esta saturado. Devolve (saturado, motivo)."""
     now = now or _now()
     d = _load()
     k = key_of(target)
+    recent = _recent_runs()
+    recent.append({"k": k, "new": int(new), "err": bool(error)})
+    recent = recent[-8:]
+    zeros = [r for r in recent[-4:] if r["new"] == 0]
+    stalled = len(recent) >= 4 and len(zeros) == 4 and len({r["k"] for r in zeros}) >= 3
+    database.save_settings({"autopilot_recent_runs": json.dumps(recent),
+                            "autopilot_search_stall": ("As ultimas buscas, em alvos diferentes, nao trouxeram NENHUM lead novo: provavel falha de API/cota (Serper/Brave/Google), "
+                                                       "chave invalida ou bloqueio. Confira creditos e chaves em Configuracoes." if stalled else "")})
     st = d.setdefault(k, {"segment": target.get("segment"), "region": target.get("region"), "type": target.get("type") or "organic", "runs": []})
     st["runs"].append({"t": now.strftime("%Y-%m-%d %H:%M:%S"), "new": int(new), "email": int(email), "whatsapp_only": int(whatsapp_only), "error": (error or "")[:120]})
     st["runs"] = st["runs"][-KEEP_RUNS:]
     reason = ""
-    if error:
+    if stalled:     # os alvos das buscas zeradas recentes provavelmente NAO estao saturados: descansam so algumas horas
+        for r in recent[-4:]:
+            other = d.get(r["k"])
+            if other and other.get("cooldown_until"):
+                other["cooldown_until"] = (now + timedelta(hours=ERROR_COOLDOWN_H)).strftime("%Y-%m-%d %H:%M:%S")
+                other["reason"] = "sem leads novos em varias buscas seguidas (suspeita de falha geral)"
+    if error or stalled:
+        error = error or "varias buscas seguidas sem nenhum lead novo (suspeita de falha geral, nao de saturacao)"
         st["cooldown_until"] = (now + timedelta(hours=ERROR_COOLDOWN_H)).strftime("%Y-%m-%d %H:%M:%S")
         st["reason"] = f"erro na busca: {error[:80]}"
         _save(d)
@@ -105,12 +157,17 @@ def record_run(target, new, email, whatsapp_only, error=None, now=None):
 
 
 def candidates():
-    """Catalogo de alvos automaticos na ordem de expansao: regiao > segmento > forma de busca."""
+    """Catalogo de alvos automaticos: cidade (RS primeiro) > segmento > forma de busca. Por fim, estados inteiros."""
     out = []
-    for region in REGIONS:
+    for uf, cities in CITIES.items():
+        for city in cities:
+            for seg in SEGMENTS:
+                for typ in TYPES:
+                    out.append({"segment": seg, "region": f"{city} - {uf}", "type": typ, "radius_km": 0, "limit": 60, "auto": True})
+    for uf in ("RS", "SC", "PR", "SP", "MG", "RJ", "ES", "GO", "DF", "BA", "PE", "CE"):
         for seg in SEGMENTS:
             for typ in TYPES:
-                out.append({"segment": seg, "region": region, "type": typ, "radius_km": 0, "limit": 60, "auto": True})
+                out.append({"segment": seg, "region": uf, "type": typ, "radius_km": 0, "limit": 60, "auto": True})
     return out
 
 

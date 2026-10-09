@@ -45,7 +45,7 @@ def diag_token():
     return os.environ.get("DIAGNOSTICS_TOKEN", "").strip()
 
 
-DIAG_READONLY_PATHS = ("/api/dia", "/api/autopilot/diagnostics", "/api/autopilot/status")
+DIAG_READONLY_PATHS = ("/api/dia", "/api/autopilot/diagnostics", "/api/autopilot/status", "/api/prospect/status", "/api/surgical/status", "/api/directories/status")
 
 
 def diag_authorized(req):
