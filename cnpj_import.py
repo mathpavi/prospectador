@@ -113,13 +113,26 @@ def open_stage():
     return con
 
 
+def _clean_lines(f):
+    """Linhas do arquivo sem caracteres NUL (existem no arquivo da Receita e fazem o modulo csv do Python parar)."""
+    for line in f:
+        yield line.replace("\x00", "") if "\x00" in line else line
+
+
 def _rows(zf_path):
-    """Linhas (listas de campos) do primeiro CSV do zip, em ISO-8859-1, separador ';'."""
+    """Linhas (listas de campos) do primeiro CSV do zip, em ISO-8859-1, separador ';'. Linha defeituosa e pulada, nao derruba a leitura."""
     with zipfile.ZipFile(zf_path) as z:
         name = z.namelist()[0]
         with z.open(name) as raw:
-            reader = csv.reader(io.TextIOWrapper(raw, encoding="latin-1", newline=""), delimiter=";", quotechar='"')
-            for row in reader:
+            text = io.TextIOWrapper(raw, encoding="latin-1", newline="")
+            it = iter(csv.reader(_clean_lines(text), delimiter=";", quotechar='"'))
+            while True:
+                try:
+                    row = next(it)
+                except StopIteration:
+                    break
+                except csv.Error:
+                    continue
                 yield row
 
 
@@ -284,8 +297,15 @@ def list_files(month):
 
 
 def download(month, filename, dest_dir, progress=None):
+    """Baixa um arquivo. Se um arquivo completo (mesmo tamanho) ja estiver na pasta, reaproveita: nao baixa de novo."""
     os.makedirs(dest_dir, exist_ok=True)
     dest = os.path.join(dest_dir, filename)
+    try:
+        expected = int(webdav(f"{month}/{filename}", "HEAD", timeout=60).headers.get("content-length", 0))
+    except Exception:  # noqa: BLE001
+        expected = 0
+    if expected and os.path.exists(dest) and os.path.getsize(dest) == expected:
+        return dest
     with webdav(f"{month}/{filename}", stream=True, timeout=120) as r:
         r.raise_for_status()
         total, got, t0 = int(r.headers.get("content-length", 0)), 0, time.time()
