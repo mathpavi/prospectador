@@ -19,6 +19,7 @@ import painel
 import crm
 import queue_tools
 import cnpj_runner
+import rejudge_runner
 import rotation
 import site_finder
 import mockup_runner
@@ -173,6 +174,21 @@ def api_fontes_cnpj_importar():
     except Exception as e:
         return jsonify({"success": False, "message": f"Não consegui iniciar: {e}"}), 500
     return jsonify({"success": ok, "message": msg})
+
+@app.route('/api/esbocos/reavaliar', methods=['GET'])
+def api_reavaliar_status():
+    return jsonify(rejudge_runner.status())
+
+@app.route('/api/esbocos/reavaliar', methods=['POST'])
+def api_reavaliar_start():
+    ok, msg = rejudge_runner.start()
+    return jsonify({"success": ok, "message": msg})
+
+@app.route('/api/esbocos/revogar', methods=['POST'])
+def api_esbocos_revogar():
+    data = request.get_json(silent=True) or {}
+    n = rejudge_runner.revoke(tokens=data.get('tokens'), all_failed_unsent=bool(data.get('todos_nao_enviados')))
+    return jsonify({"success": True, "tirados": n})
 
 @app.route('/api/esboco/prorrogar', methods=['POST'])
 def api_esboco_prorrogar():
@@ -1352,6 +1368,14 @@ def api_prospects():
         except:
             is_surgical_filter = None
         
+    ids_filter = None
+    esboco = request.args.get('esboco')
+    if esboco in ('ready', 'review'):
+        try:
+            from mockups import store as mock_store
+            ids_filter = mock_store.prospect_ids_with(esboco)
+        except Exception:
+            ids_filter = []
     paginated = database.get_prospects_paginated(
         page=page,
         limit=limit,
@@ -1359,7 +1383,8 @@ def api_prospects():
         search_query=search_query,
         is_surgical_filter=is_surgical_filter,
         is_international_filter=0,
-        is_directory_filter=is_directory_filter
+        is_directory_filter=is_directory_filter,
+        ids_filter=ids_filter
     )
     
     stats = database.get_prospects_stats(

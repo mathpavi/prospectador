@@ -85,6 +85,19 @@ def created_last_24h():
         return c.execute("select count(*) from mockups where created_at>?", (int(time.time()) - 86400,)).fetchone()[0]
 
 
+def prospect_ids_with(kind):
+    """ids dos leads com esboco: 'ready' (no ar e dentro da validade) ou 'review' (barrado pelo juiz/checagens, ultimo estado do lead)."""
+    now = int(time.time())
+    with _conn() as c:
+        rows = c.execute("select prospect_id, status, expires_at from mockups order by created_at asc").fetchall()
+    last = {}
+    for r in rows:
+        last[r["prospect_id"]] = r                          # o mais recente de cada lead
+    if kind == "ready":
+        return [i for i, r in last.items() if r["status"] == "ready" and r["expires_at"] > now]
+    return [i for i, r in last.items() if r["status"] == "review"]
+
+
 def ready_tokens(prospect_ids):
     """{prospect_id: token} dos esbocos PRONTOS e dentro da validade (o mais recente de cada prospect)."""
     ids = [int(i) for i in prospect_ids if i is not None]

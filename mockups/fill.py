@@ -207,7 +207,7 @@ def pick_hero(prospect, slots, img_dir, call=None):
     import base64
     import io
     names = [n for n in slots.get("images", []) if n][:6]
-    if len(names) < 2:
+    if not names:
         return None, 0.0
     call = call or gemini_json
     try:
@@ -215,7 +215,9 @@ def pick_hero(prospect, slots, img_dir, call=None):
         parts = [{"text": "Estas sao " + str(len(names)) + " imagens numeradas (1 a " + str(len(names)) + ") do site de uma empresa do segmento '" + str(prospect.get("segment") or "") + "'. "
                   "Ordene da MELHOR para a PIOR como foto principal de abertura do novo site. Prefira fotos reais da empresa (fabrica, produto, equipe, fachada, trabalho feito). "
                   "Evite logos, banners com texto, ilustracoes, mockups de notebook/celular, imagens de banco genericas e texturas. "
-                  'Responda apenas JSON: {"ordem": [numeros]}'}]
+                  'Informe tambem "relevante": true somente se a PRIMEIRA da ordem mostra claramente o produto, o servico, a obra, a fabrica ou a fachada desta empresa; '
+                  'false se for generica (apertos de mao, equipe sorrindo, pessoas em escritorio, fundo abstrato) ou sem relacao com o que ela vende. '
+                  'Responda apenas JSON: {"ordem": [numeros], "relevante": true|false}'}]
         for i, n in enumerate(names, 1):
             im = Image.open(os.path.join(img_dir, n)).convert("RGB")
             im.thumbnail((512, 512))
@@ -228,6 +230,8 @@ def pick_hero(prospect, slots, img_dir, call=None):
         order = list(dict.fromkeys(order))
         if not order:
             return None, cost
+        if data.get("relevante") is False:
+            slots["_hero_relevant"] = False
         ordered = [names[i] for i in order] + [n for i, n in enumerate(names) if i not in order]
         return ordered + [n for n in slots.get("images", []) if n not in ordered], cost
     except Exception:  # noqa: BLE001

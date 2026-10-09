@@ -97,6 +97,7 @@ def apply_generated_drafts(prospects):
     sender = database.get_setting("sender_name", "Matheus Paviani")
     urls = _mockup_urls(prospects)
     for p in prospects:
+        p["mockup_url"] = urls.get(p["id"], "")             # esboco no ar (selo nos cartoes de lead)
         if p.get("whatsapp_custom_draft"):
             p["wa_generated"] = False
             continue

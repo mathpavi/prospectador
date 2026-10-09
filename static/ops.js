@@ -54,6 +54,7 @@ async function loadFila() {
     const f = d.followups, fb = document.getElementById('fila-followups'); fb.innerHTML = '';
     fb.appendChild(opsEl('p', `Follow-up automático: ${f.ligado ? 'ligado' : 'DESLIGADO (Configurações)'} · devidos agora: ${f.total} · enviados hoje: ${f.enviados_hoje}`, 'ls-muted'));
     f.lista.forEach(x => { const row = opsEl('div', `${x.empresa}: ${x.passo === 'aviso' ? 'aviso de vencimento do esboço' : 'passo ' + x.passo + ' de 3'}`); row.style.cssText = 'cursor:pointer;padding:6px 0;border-top:1px solid rgba(255,255,255,.08);font-size:.9rem'; row.onclick = () => openLeadSheet(x.id); fb.appendChild(row); });
+    loadReavaliacao();
     document.getElementById('fila-caixa-estado').textContent = d.caixa_ligada ? 'Leitura automática da caixa: ligada' : 'Leitura automática da caixa: desligada (ligue em Configurações depois de testar aqui)';
 }
 
@@ -116,4 +117,49 @@ async function importarCnpj() {
     const j = await opsPost('/api/fontes/cnpj/importar', {limite: parseInt(n, 10)});
     showToast(j.message, j.success ? 'success' : 'error');
     setTimeout(loadFontes, 1500);
+}
+
+// ---------------- Reavaliar esboços no ar ----------------
+let reavalTimer = null;
+const VEREDITO = {mantem: ['Mantém', '#4ade80'], reprova: ['Reprovado', '#f87171'], sem_veredito: ['Sem veredito (falha técnica)', '#fbbf24'], nao_se_aplica: ['Não se aplica', '#94a3b8']};
+
+async function loadReavaliacao() {
+    let d;
+    try { d = await (await fetch('/api/esbocos/reavaliar')).json(); } catch (e) { return; }
+    const out = document.getElementById('reaval-out'); if (!out) return;
+    out.innerHTML = '';
+    document.getElementById('reaval-start').disabled = !!d.rodando;
+    if (reavalTimer) clearTimeout(reavalTimer);
+    if (d.rodando) reavalTimer = setTimeout(() => { if (document.getElementById('tab-fila').classList.contains('active')) loadReavaliacao(); }, 6000);
+    if (!d.existe) { document.getElementById('reaval-bulk').style.display = 'none'; return; }
+    out.appendChild(opsEl('p', `${d.rodando ? '🟢 Reavaliando… ' : 'Última reavaliação (' + (d.terminado_em || d.iniciado) + '): '}${d.feitos} de ${d.total} esboços.`, 'ls-line'));
+    const bulkN = d.itens.filter(x => x.veredito === 'reprova' && !x.ja_tirado && !x.enviado).length;
+    const bulk = document.getElementById('reaval-bulk'); bulk.style.display = bulkN ? '' : 'none'; bulk.textContent = `Tirar do ar os reprovados ainda não enviados (${bulkN})`;
+    d.itens.slice().sort((a, b) => (a.veredito === 'reprova' ? 0 : 1) - (b.veredito === 'reprova' ? 0 : 1)).forEach(x => {
+        const row = opsEl('div', null, 'dia-lead');
+        const left = opsEl('div'); const nm = opsEl('strong', x.empresa); nm.style.cursor = 'pointer'; nm.style.textDecoration = 'underline'; nm.onclick = () => openLeadSheet(x.prospect_id); left.appendChild(nm);
+        const v = VEREDITO[x.veredito] || [x.veredito, '#94a3b8'];
+        const tag = opsEl('span', ' ' + v[0] + (x.ja_tirado ? ' · já tirado do ar' : '') + (x.enviado ? ' · e-mail já enviado' : '')); tag.style.color = v[1]; left.appendChild(tag);
+        left.appendChild(opsEl('small', x.motivo || ''));
+        row.appendChild(left);
+        if (x.veredito === 'reprova' && !x.ja_tirado) {
+            const acts = opsEl('div', null, 'acts'); const b = opsEl('button', 'Tirar do ar');
+            b.onclick = async () => {
+                if (!confirm('Tirar o esboço de ' + x.empresa + ' do ar?' + (x.enviado ? ' ATENÇÃO: o e-mail já foi enviado com o link; quem clicar verá "esboço indisponível".' : ''))) return;
+                const j = await opsPost('/api/esbocos/revogar', {tokens: [x.token]}); showToast(j.tirados + ' esboço(s) tirado(s) do ar.'); loadReavaliacao();
+            };
+            acts.appendChild(b); row.appendChild(acts);
+        }
+        out.appendChild(row);
+    });
+}
+
+async function reavaliarEsbocos() {
+    if (!confirm('Reavaliar todos os esboços que estão no ar? Usa a IA e demora cerca de 1 minuto por esboço. Nada sai do ar sozinho.')) return;
+    const j = await opsPost('/api/esbocos/reavaliar'); showToast(j.message, j.success ? 'success' : 'error'); setTimeout(loadReavaliacao, 1500);
+}
+
+async function tirarReprovados() {
+    if (!confirm('Tirar do ar todos os esboços reprovados cujo e-mail ainda NÃO foi enviado? Os que já foram enviados ficam, e você decide um a um.')) return;
+    const j = await opsPost('/api/esbocos/revogar', {todos_nao_enviados: true}); showToast(j.tirados + ' esboço(s) tirado(s) do ar.'); loadReavaliacao();
 }

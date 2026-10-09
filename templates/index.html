@@ -276,6 +276,13 @@
             </div>
             <div class="dia-box"><h3>Próximos a sair (<span id="fila-total">0</span> na fila)</h3><div id="fila-proximos"></div></div>
             <div class="dia-box"><h3>Follow-ups (dias 3, 7 e 14)</h3><div id="fila-followups"></div></div>
+            <div class="dia-box" id="reaval-box">
+                <h3>Esboços no ar: reavaliar com o juiz atual</h3>
+                <p class="ls-muted">Passa todos os esboços publicados pelo juiz mais rígido (compara de novo com o site da empresa). Nada sai do ar sozinho: você vê o resultado e decide. Leva cerca de 1 minuto por esboço e usa a IA.</p>
+                <div class="ls-acts"><button id="reaval-start" onclick="reavaliarEsbocos()">Reavaliar esboços no ar</button>
+                    <button id="reaval-bulk" onclick="tirarReprovados()" style="display:none">Tirar do ar os reprovados ainda não enviados</button></div>
+                <div id="reaval-out"></div>
+            </div>
         </div>
 
         <!-- TAB: FONTES DE LEADS -->
@@ -1041,6 +1048,15 @@
                             <option value="0">🔍 Prospecção Geral</option>
                             <option value="1">🎯 Cirúrgicos (Maps / Críticos)</option>
                             <option value="directory">📖 Diretórios Locais (Sem Site)</option>
+                        </select>
+                    </div>
+                    <button type="button" class="subnav-btn" onclick="showTab('tab-fila'); document.getElementById('reaval-box').scrollIntoView({behavior:'smooth'})">Reavaliar esboços…</button>
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">
+                        <span>Esboço:</span>
+                        <select id="leads-esboco-select" class="form-control" style="padding: 7px 12px; font-size: 0.85rem; background: rgba(15,23,42,0.8); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                            <option value="all" selected>Todos</option>
+                            <option value="ready">Só com esboço no ar</option>
+                            <option value="review">Esboço barrado pelo juiz</option>
                         </select>
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">

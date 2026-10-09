@@ -12,10 +12,14 @@ import os
 
 import fill as fill_mod
 
-DEFAULTS = {"mockup_judge": "1", "mockup_min_score": "7.0", "mockup_min_margin": "1.5", "mockup_skip_site_score": "8.0"}
+DEFAULTS = {"mockup_judge": "1", "mockup_min_score": "7.5", "mockup_min_margin": "2.0", "mockup_skip_site_score": "7.0"}
 
 CRITERIA = ("clareza da proposta e do que a empresa faz, hierarquia visual e tipografia, aparencia moderna e profissional, "
-            "uso de espaco/contraste, destaque do contato/orcamento (WhatsApp) e usabilidade no celular")
+            "uso de espaco/contraste, destaque do contato/orcamento (WhatsApp) e usabilidade no celular. "
+            "REGRAS: tema claro nao e pior nem melhor que escuro (nao premie escuro/dramatico so por parecer moderno); "
+            "premie o que combina com o setor e o publico da empresa e que mantem a identidade (logo, cores, fotos reais do trabalho/produto); "
+            "penalize forte uma versao cuja foto principal nao tem relacao clara com o que a empresa vende (banco de imagens generico, "
+            "apertos de mao, equipes de escritorio) ou que perdeu a identidade visual; se as duas forem parecidas, de notas proximas")
 
 
 def cfg(key):

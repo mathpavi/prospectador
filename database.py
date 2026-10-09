@@ -660,7 +660,7 @@ def get_prospects(status_filter=None, is_surgical_filter=None, is_international_
         result.append(res)
     return result
 
-def get_prospects_stats(is_surgical_filter=None, is_international_filter=0, is_directory_filter=None):
+def get_prospects_stats(is_surgical_filter=None, is_international_filter=0, is_directory_filter=None, ids_filter=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -698,7 +698,7 @@ def get_prospects_stats(is_surgical_filter=None, is_international_filter=0, is_d
         "daily_limit": int(get_setting('daily_email_limit', '20'))
     }
 
-def get_prospects_paginated(page=1, limit=24, status_filter=None, search_query=None, is_surgical_filter=None, is_international_filter=0, is_directory_filter=None):
+def get_prospects_paginated(page=1, limit=24, status_filter=None, search_query=None, is_surgical_filter=None, is_international_filter=0, is_directory_filter=None, ids_filter=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -716,6 +716,14 @@ def get_prospects_paginated(page=1, limit=24, status_filter=None, search_query=N
     if status_filter and status_filter != 'all':
         clauses.append('status = ?')
         params.append(status_filter)
+
+    if ids_filter is not None:
+        ids_filter = [int(i) for i in ids_filter]
+        if ids_filter:
+            clauses.append('id IN (' + ','.join('?' * len(ids_filter)) + ')')
+            params.extend(ids_filter)
+        else:
+            clauses.append('1 = 0')
         
     if search_query:
         search_pattern = f'%{search_query.strip()}%'

@@ -149,6 +149,8 @@ def make(prospect, provider=None, slots_file=None, days=21, forced_template=None
                 slots["images"] = ordered
                 slots["images_locked"] = True
                 usage["usd"] = round(usage.get("usd", 0) + cost, 6)
+            if slots.pop("_hero_relevant", True) is False:
+                reasons.append("a melhor foto do site nao mostra o produto/servico da empresa (ficaria generica)")
 
         og = {"title": f"Proposta visual · {slots.get('brand_name', '')}", "image": f"{BASE_URL}/p/{token}/thumb.png",
               "url": f"{BASE_URL}/p/{token}/"}

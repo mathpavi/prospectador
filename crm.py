@@ -13,7 +13,7 @@ LABELS = {
     "prospect_created": ("Lead cadastrado", "🆕"), "site_checked": ("Site procurado", "🔎"), "site_search_empty": ("Busca de site sem resultado (vai tentar de novo)", "🔎"),
     "lane_assigned": ("Faixa de abordagem definida", "🧭"), "lane_skipped": ("Barrado pela faixa 'descartar'", "⛔"),
     "cnpj_approved": ("Aprovado para envio", "✅"), "cnpj_approve_blocked": ("Aprovação barrada pelas checagens", "⛔"),
-    "mockup_generated": ("Esboço gerado", "🖼️"), "mockup_review": ("Esboço não liberado (revisão)", "🖼️"),
+    "mockup_generated": ("Esboço gerado", "🖼️"), "mockup_review": ("Esboço não liberado (revisão)", "🖼️"), "mockup_revoked": ("Esboço tirado do ar após reavaliação", "🖼️"),
     "email_sent": ("E-mail enviado", "✉️"), "followup_sent": ("Follow-up enviado", "↩️"), "followup_skipped": ("Follow-up barrado", "⛔"),
     "followup_failed": ("Falha no follow-up", "⚠️"), "expiry_notice_sent": ("Aviso de que o esboço vai vencer", "⏳"),
     "email_failed": ("Falha no envio", "⚠️"), "email_deferred": ("Envio adiado pelo provedor", "⏳"), "email_bounced": ("E-mail rejeitado (não existe)", "❌"),

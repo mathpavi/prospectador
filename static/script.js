@@ -595,6 +595,15 @@ let currentLeadPage = 1;
 let leadsPerPage = 24;
 let leadSearchFilterText = '';
 let currentLeadOrigin = 'all';
+let currentLeadEsboco = 'all';
+const leadsEsbocoSelect = document.getElementById('leads-esboco-select');
+if (leadsEsbocoSelect) {
+    leadsEsbocoSelect.addEventListener('change', (e) => {
+        currentLeadEsboco = e.target.value;
+        currentLeadPage = 1;
+        loadLeads();
+    });
+}
 let leadSearchTimeout = null;
 
 if (leadSearchInput) {
@@ -653,6 +662,7 @@ async function loadLeads() {
                 params.append('is_surgical', currentLeadOrigin);
             }
         }
+        if (currentLeadEsboco !== 'all') params.append('esboco', currentLeadEsboco);
         params.append('page', currentLeadPage);
         params.append('limit', leadsPerPage);
         
@@ -842,6 +852,7 @@ function renderLeadCards(prospects) {
             screenshotHtml = `<img src="/static/screenshots/${lead.screenshot}" class="lead-screenshot" alt="${lead.company_name} screenshot" onerror="this.style.display='none'">`;
         }
         
+        const esbocoBadge = lead.mockup_url ? `<a href="${escapeHtml(lead.mockup_url)}" target="_blank" rel="noopener" class="badge" style="background-color:rgba(34,197,94,0.15); color:#4ade80; font-size:0.7rem; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:2px; border:1px solid rgba(34,197,94,0.3); vertical-align:middle; margin-left:6px; text-decoration:none;" title="Abrir o esboço no ar">🖼️ Esboço no ar</a>` : '';
         const pilotBadge = lead.is_autopilot ? `<span class="badge" style="background-color:rgba(56,189,248,0.15); color:#38bdf8; font-size:0.7rem; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:2px; border:1px solid rgba(56,189,248,0.3); vertical-align:middle; margin-left:6px;">⚡ Autopilot</span>` : '';
         const surgicalBadge = lead.is_surgical ? `<span class="badge" style="background-color:rgba(239,68,68,0.15); color:#f87171; font-size:0.7rem; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:2px; border:1px solid rgba(239,68,68,0.3); vertical-align:middle; margin-left:6px;" title="${escapeHtml(lead.surgical_type || 'Alvo Cirúrgico')}">🎯 Cirúrgico</span>` : '';
         const directoryBadge = (lead.is_directory || lead.surgical_type === 'directory') ? `<span class="badge" style="background-color:rgba(168,85,247,0.15); color:#c084fc; font-size:0.7rem; padding:2px 6px; border-radius:4px; display:inline-flex; align-items:center; gap:2px; border:1px solid rgba(168,85,247,0.3); vertical-align:middle; margin-left:6px;" title="Diretório: ${escapeHtml(lead.directory_source || 'Comercial')}">📖 ${escapeHtml(lead.directory_source ? (lead.directory_source.charAt(0).toUpperCase() + lead.directory_source.slice(1)) : 'Diretório')}</span>` : '';
@@ -943,7 +954,7 @@ function renderLeadCards(prospects) {
             ${screenshotHtml}
             <div class="lead-header">
                 <div>
-                    <div class="lead-company">${lead.company_name}${pilotBadge}${surgicalBadge}${directoryBadge}</div>
+                    <div class="lead-company">${lead.company_name}${pilotBadge}${esbocoBadge}${surgicalBadge}${directoryBadge}</div>
                     <a href="${lead.website}" target="_blank" class="lead-website">
                         ${lead.website}
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
