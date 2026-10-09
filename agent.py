@@ -180,13 +180,97 @@ IGNORED_DOMAINS = [
     'theharvestkitchen.com', 'eatyourselfskinny.com', 'allrecipes.com', 'tudogostoso.com.br'
 ]
 
+# --- disjuntor dos buscadores pagos: sem credito/chave valida, nao insiste em cada consulta (gasta tempo e enche o log) ---
+_PROVIDER_DOWN = {}
+
+
+def provider_down(name):
+    ent = _PROVIDER_DOWN.get(name)
+    return bool(ent and ent[0] > time.time())
+
+
+def mark_provider_down(name, hours, reason):
+    """Marca um buscador como fora por algumas horas e guarda o aviso para o Painel do Dia. O fallback gratuito (Bing/DuckDuckGo) continua."""
+    first = not provider_down(name)
+    _PROVIDER_DOWN[name] = (time.time() + hours * 3600, reason)
+    try:
+        cur = json.loads(database.get_setting('search_provider_alerts', '{}') or '{}')
+        cur[name] = {"ate": time.strftime('%Y-%m-%d %H:%M', time.localtime(time.time() + hours * 3600)), "motivo": reason}
+        database.save_settings({'search_provider_alerts': json.dumps(cur, ensure_ascii=False)})
+    except Exception:
+        pass
+    if first:
+        add_log(f"⛔ Buscador {name} fora do ar por {hours} h ({reason}). Usando os demais e os gratuitos (Bing/DuckDuckGo).")
+
+
+_BUDGET = {"day": "", "n": {}}
+
+
+def _budget_ok(name):
+    """Teto diario de consultas a uma API paga (setting `<nome>_daily_budget`, padrao 800): uma busca continua nao esvazia o credito em um dia."""
+    today = time.strftime('%Y-%m-%d')
+    if _BUDGET["day"] != today:
+        _BUDGET["day"], _BUDGET["n"] = today, {}
+    try:
+        cap = int(database.get_setting(f'{name}_daily_budget', '800') or 800)
+    except Exception:
+        cap = 800
+    if cap and _BUDGET["n"].get(name, 0) >= cap:
+        if not provider_down(name):
+            mark_provider_down(name, 6, f'teto diario de {cap} consultas atingido (protege o credito)')
+        return False
+    _BUDGET["n"][name] = _BUDGET["n"].get(name, 0) + 1
+    return True
+
+
+def search_searlo(query, max_results=20):
+    """Searlo.tech (SERP API barata, ~US$0,30-0,80 por 1.000 consultas; 3.000 gratis ao criar a conta). Chave em Configuracoes (`searlo_api_key`).
+    A documentacao tem dois formatos de endereco; tenta o oficial e, se der 404, o das integracoes."""
+    api_key = database.get_setting('searlo_api_key', '')
+    if not api_key or provider_down('searlo'):
+        return []
+    results = []
+    pages = max(1, min(3, (max_results + 9) // 10))
+    try:
+        for page in range(1, pages + 1):
+            if not _budget_ok('searlo'):
+                break
+            r = None
+            for url, pname in (('https://api.searlo.tech/api/v1/search/web', 'limit'), ('https://api.searlo.tech/v1/search/web', 'num')):
+                r = requests.get(url, headers={'x-api-key': api_key.strip(), 'X-API-Key': api_key.strip()},
+                                 params={'q': query, pname: 10, 'page': page, 'gl': 'br', 'hl': 'pt'}, timeout=15)
+                if r.status_code != 404:
+                    break
+            if r.status_code == 200:
+                data = r.json()
+                items = data.get('organic') or (data.get('data') or {}).get('organic') or []
+                if not items:
+                    break
+                for item in items:
+                    href = item.get('link') or item.get('url') or ''
+                    if href.startswith('http'):
+                        results.append({'title': item.get('title', ''), 'href': href, 'body': item.get('snippet', '')})
+                if len(results) >= max_results:
+                    break
+            elif r.status_code in (401, 402, 403, 429) or 'credit' in r.text.lower():
+                mark_provider_down('searlo', 12 if r.status_code != 429 else 1,
+                                   'creditos esgotados' if (r.status_code == 402 or 'credit' in r.text.lower()) else f'recusado (HTTP {r.status_code})')
+                break
+            else:
+                logger.warning(f"Searlo API returned {r.status_code} for '{query}': {r.text[:200]}")
+                break
+    except Exception as e:
+        logger.warning(f"Searlo API search failed for '{query}': {e}")
+    return results[:max_results]
+
+
 def search_serper(query, max_results=20):
     """
     Executes a high-precision Google search using the Serper API with Brazilian localization.
     Uses page pagination (Serper rejects num > 10 with HTTP 400).
     """
     api_key = database.get_setting('serper_api_key', '')
-    if not api_key:
+    if not api_key or provider_down('serper'):
         return []
         
     try:
@@ -203,6 +287,8 @@ def search_serper(query, max_results=20):
                 'hl': 'pt-br',
                 'page': page
             }
+            if not _budget_ok('serper'):
+                break
             r = requests.post('https://google.serper.dev/search', headers=headers, json=payload, timeout=12)
             if r.status_code == 200:
                 data = r.json()
@@ -219,7 +305,9 @@ def search_serper(query, max_results=20):
                     break
             else:
                 if r.status_code == 400 and 'Not enough credits' in r.text:
-                    add_log("⚠️ Aviso: Créditos da API Serper (Google) esgotados no momento. Alternando automaticamente para DuckDuckGo.")
+                    mark_provider_down('serper', 12, 'créditos esgotados')
+                elif r.status_code in (401, 403):
+                    mark_provider_down('serper', 12, f'chave recusada (HTTP {r.status_code})')
                 logger.warning(f"Serper API returned {r.status_code} for '{query}': {r.text}")
                 break
         return results
@@ -232,7 +320,7 @@ def search_google_places(query):
     Directly queries Google Maps Places via Serper API to discover real local businesses.
     """
     api_key = database.get_setting('serper_api_key', '')
-    if not api_key:
+    if not api_key or provider_down('serper'):
         return []
     try:
         headers = {
@@ -244,9 +332,15 @@ def search_google_places(query):
             'gl': 'br',
             'hl': 'pt-br'
         }
+        if not _budget_ok('serper'):
+            return []
         r = requests.post('https://google.serper.dev/places', headers=headers, json=payload, timeout=15)
         if r.status_code == 200:
             return r.json().get('places', [])
+        if r.status_code == 400 and 'Not enough credits' in r.text:
+            mark_provider_down('serper', 12, 'créditos esgotados')
+        elif r.status_code in (401, 403):
+            mark_provider_down('serper', 12, f'chave recusada (HTTP {r.status_code})')
     except Exception as e:
         logger.warning(f"Google Places API search failed for '{query}': {e}")
     return []
@@ -340,7 +434,7 @@ def search_brave(query, max_results=20):
     Executes a high-precision search using the Brave Search API (2,000 free queries/month).
     """
     api_key = database.get_setting('brave_api_key', '')
-    if not api_key:
+    if not api_key or provider_down('brave'):
         return []
     url = 'https://api.search.brave.com/res/v1/web/search'
     headers = {
@@ -368,7 +462,7 @@ def search_brave(query, max_results=20):
                 })
             return results
         elif r.status_code in [401, 403, 429]:
-            add_log(f"⚠️ Aviso Brave Search API (status {r.status_code}). Alternando automaticamente para busca complementar.")
+            mark_provider_down('brave', 1 if r.status_code == 429 else 12, 'limite de uso atingido' if r.status_code == 429 else f'chave recusada (HTTP {r.status_code})')
             logger.warning(f"Brave Search API error {r.status_code}: {r.text}")
     except Exception as e:
         logger.warning(f"Brave Search API failed for '{query}': {e}")
@@ -379,7 +473,7 @@ def search_cloro(query, max_results=20):
     Executes a Google Search using the Cloro.dev API (500 free queries/month).
     """
     api_key = database.get_setting('cloro_api_key', '')
-    if not api_key:
+    if not api_key or provider_down('cloro'):
         return []
     url = 'https://api.cloro.dev/v1/monitor/google'
     headers = {
@@ -410,7 +504,7 @@ def search_cloro(query, max_results=20):
                     break
             return results
         elif r.status_code in [401, 403, 429]:
-            add_log(f"⚠️ Aviso Cloro.dev API (status {r.status_code}). Alternando automaticamente para outro buscador.")
+            mark_provider_down('cloro', 24, 'créditos esgotados' if 'CREDIT' in r.text.upper() else f'recusado (HTTP {r.status_code})')
             logger.warning(f"Cloro.dev API error {r.status_code}: {r.text}")
     except Exception as e:
         logger.warning(f"Cloro.dev API search failed for '{query}': {e}")
@@ -424,6 +518,12 @@ def search_web_candidates(query, max_results=20):
     3. Uses Google (Serper API) if configured and has credits.
     4. Falls back automatically to Free Bing + DuckDuckGo search with zero cost and no API keys required!
     """
+    # 0. Searlo (o mais barato dos pagos): primeiro, se houver chave
+    if database.get_setting('searlo_api_key', ''):
+        searlo_results = search_searlo(query, max_results=max_results)
+        if searlo_results:
+            return searlo_results
+
     # 1. Try Brave Search API
     brave_key = database.get_setting('brave_api_key', '')
     if brave_key:

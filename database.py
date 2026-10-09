@@ -129,6 +129,8 @@ def init_db():
         'gemini_model': 'gemini-2.5-flash-lite',
         'kipflow_api_key': '',   # NUNCA colocar chaves no codigo; cadastre na tela de configuracoes
         'serper_api_key': '',
+        'searlo_api_key': '',
+        'searlo_daily_budget': '1500',
         'brave_api_key': '',
         'cloro_api_key': '',
         'gosom_api_url': '',
@@ -166,6 +168,8 @@ def init_db():
         'mockup_daily_limit': '40',
         # C1: follow-up automatico (desligado ate o usuario ligar)
         'autopilot_auto_rotate': '1',
+        'cnpj_site_discovery': '1',
+        'serper_daily_budget': '800',
         'autopilot_search_min_gap_min': '2',
         'autopilot_queue_target': '60',
         'autopilot_search_daily_cap': '60',

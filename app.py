@@ -17,6 +17,7 @@ import inbox
 import alerts
 import painel
 import rotation
+import site_finder
 from mockups.blueprint import bp as mockups_bp, preview_gate
 from public_routes import bp as public_bp
 from whatsapp_routes import bp as whatsapp_bp, apply_generated_drafts
@@ -599,11 +600,44 @@ def autopilot_run_next_search(force=False):
     except Exception as e:
         autopilot_log(f"⚠️ Não consegui medir o rendimento da busca: {e}")
 
+_site_disc = {"t": 0.0}
+
+
+def autopilot_site_discovery():
+    """Leads do CNPJ da Receita: procura o site de cada um (lote pequeno por vez) e aprova os verificados com e-mail, conforme o estoque da fila.
+    So roda quando a fila esta abaixo da meta (com a fila cheia nao ha pressa)."""
+    if database.get_setting('cnpj_site_discovery', '1') != '1' or time.time() - _site_disc["t"] < 20:
+        return
+    _site_disc["t"] = time.time()
+    try:
+        target = int(database.get_setting('autopilot_queue_target', '60') or 60)
+    except Exception:
+        target = 60
+    if rotation.stock() >= target:
+        return
+    if site_finder.backlog() == 0 and site_finder.approve_waiting(max(0, target - rotation.stock())) == 0:
+        return
+    autopilot_status["search_status"] = "searching"
+    try:
+        st = site_finder.process_batch(limit=8)
+        if st["site"] or st["sem_site"] or st["aprovados"] or st["duplicado"]:
+            autopilot_log(f"🔎 CNPJ: {st['site']} com site, {st['sem_site']} sem site, {st['duplicado']} duplicados, {st['aprovados']} aprovados para envio ({st['restantes']} ainda por verificar).")
+    finally:
+        autopilot_status["search_status"] = "idle"
+
+
 def background_autopilot_search_scheduler():
     """Busca de leads em thread PROPRIA: uma busca longa nunca mais atrasa o envio de e-mails (nem o contrario)."""
     last_msg = {"t": None}
     while True:
         autopilot_status["search_heartbeat"] = time.time()
+        try:
+            autopilot_site_discovery()
+        except Exception as e:
+            msg = f"Erro na etapa 'sites do CNPJ': {type(e).__name__}: {str(e)[:200]}"
+            if last_msg["t"] != msg:
+                last_msg["t"] = msg
+                autopilot_log(f"❌ {msg}")
         try:
             autopilot_run_next_search()
         except Exception as e:

@@ -176,6 +176,13 @@ def piloto(status):
         problemas.append(f"O piloto está TRAVADO na etapa '{status.get('step')}' há {int(idade // 60)} min: uma operação (busca, envio, geração de esboço ou e-mail) não terminou. Reiniciar o serviço no EasyPanel destrava.")
     elif idade is not None and status.get("step") in ("envio", "busca") and idade > 90:
         problemas.append(f"Etapa '{status.get('step')}' demorando há {int(idade)} s (pode ser busca longa ou geração de esboço).")
+    try:
+        alerts_p = json.loads(gs("search_provider_alerts", "{}") or "{}")
+        ativos = [f"{n.title()} ({a['motivo']}, volta a tentar até {a['ate']})" for n, a in alerts_p.items() if a.get("ate", "") >= time.strftime("%Y-%m-%d %H:%M")]
+        if ativos:
+            problemas.append("Buscadores fora do ar: " + "; ".join(ativos) + ". A busca usa os demais e os gratuitos (Bing/DuckDuckGo), que rendem menos. Recarregue os créditos para voltar ao normal.")
+    except Exception:  # noqa: BLE001
+        pass
     sh = status.get("search_heartbeat")
     if sh and now - sh > 2700:
         problemas.append(f"A busca está sem sinal há {int((now - sh) // 60)} min (uma busca travada). Reiniciar o serviço no EasyPanel destrava.")
@@ -194,5 +201,5 @@ def piloto(status):
             "envio": {"estado": status.get("sender_status"), "texto": s_txt, "dica": s_fix},
             "busca": {"estado": status.get("search_status"), "texto": b_txt, "dica": b_fix},
             "ultima_busca": ultima_busca, "ultimo_envio": gs("autopilot_last_email_sent_at", ""),
-            "chaves": {"serper": bool(gs("serper_api_key", "")), "brave": bool(gs("brave_api_key", "")), "kipflow": bool(gs("kipflow_api_key", "")), "gemini": bool(gs("gemini_api_key", ""))},
+            "chaves": {"searlo": bool(gs("searlo_api_key", "")), "serper": bool(gs("serper_api_key", "")), "brave": bool(gs("brave_api_key", "")), "kipflow": bool(gs("kipflow_api_key", "")), "gemini": bool(gs("gemini_api_key", ""))},
             "problemas": problemas, "log": list(status.get("logs", []))[-10:], "serie": serie(), "rotacao": _rot()}
