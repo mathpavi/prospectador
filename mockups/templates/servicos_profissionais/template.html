@@ -153,7 +153,7 @@ footer{padding:24px var(--gutter);display:flex;justify-content:space-between;gap
       {% if s.specbar %}<div class="trust rv">{% for it in s.specbar %}<span><b>{{ it }}</b></span>{% endfor %}</div>{% endif %}
     </div>
     <div class="arch rv">
-      <div class="img">{% if images and images|length > 0 %}<img src="img/{{ images[0] }}" alt="{{ s.hero_alt or '' }}">{% endif %}</div>
+      <div class="img">{% if images and images|length > 0 %}<img src="img/{{ images[0] }}" alt="{{ s.hero_alt or '' }}">{% else %}{% with art_box='fill' %}{% include 'art.html' %}{% endwith %}{% endif %}</div>
       {% if s.phones %}<div class="card"><small>Atendimento</small><b>{{ s.phones[0] }}</b>{% if s.city_uf %}<br>{{ s.city_uf }}{% endif %}</div>{% endif %}
     </div>
   </div>
@@ -210,7 +210,7 @@ footer{padding:24px var(--gutter);display:flex;justify-content:space-between;gap
 <footer><span>© {{ s.brand_name }}</span><span>{{ s.city_uf }}</span></footer>
 
 <div class="proposal" role="note">
-  <span><b>Proposta visual</b> <span class="long">preparada por {{ proposal.author }} · não é o site oficial de {{ s.short_name }}</span></span>
+  <span><b>Proposta visual</b> <span class="long">preparada por {{ proposal.author }} · não é o site oficial de {{ s.short_name }}{% if s.sample_content %} · conteúdo de exemplo{% endif %}</span></span>
   <span class="pv-tag"><i class="on">Gostou, mas quer mudanças? Também fazemos!</i><i>Quer algo diferente? Criamos rapidamente para você!</i></span>
   <a href="{{ proposal.cta_url }}">{{ proposal.cta_label }}</a>
 </div>

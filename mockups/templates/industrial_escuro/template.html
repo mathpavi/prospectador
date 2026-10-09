@@ -163,7 +163,7 @@ footer{border-top:1px solid var(--line);padding:28px var(--gutter);color:var(--m
     </div>
   </div>
   <div class="photo">
-    {% if images and images|length > 0 %}<img src="img/{{ images[0] }}" alt="{{ s.hero_alt or '' }}">{% else %}<div class="blueprint"></div>{% endif %}
+    {% if images and images|length > 0 %}<img src="img/{{ images[0] }}" alt="{{ s.hero_alt or '' }}">{% else %}{% with art_box='absolute' %}{% include 'art.html' %}{% endwith %}{% endif %}
   </div>
   <div class="specbar">
     {% for it in s.specbar %}<span><b>{{ it }}</b></span>{% endfor %}
@@ -196,7 +196,7 @@ footer{border-top:1px solid var(--line);padding:28px var(--gutter);color:var(--m
 <section class="about" id="empresa">
   <div class="wrap grid">
     <div class="fig rv">
-      {% if images and images|length > 1 %}<img src="img/{{ images[1] }}" alt="">{% else %}<div class="blueprint" style="aspect-ratio:4/4.4"></div>{% endif %}
+      {% if images and images|length > 1 %}<img src="img/{{ images[1] }}" alt="">{% else %}{% with art_box='ratio' %}{% include 'art.html' %}{% endwith %}{% endif %}
     </div>
     <div class="rv">
       <div class="label">A empresa</div>
@@ -229,7 +229,7 @@ footer{border-top:1px solid var(--line);padding:28px var(--gutter);color:var(--m
 <footer><span>© {{ s.brand_name }}</span><span>{{ s.city_uf }}</span></footer>
 
 <div class="proposal" role="note">
-  <span><b>Proposta visual</b> <span class="long">preparada por {{ proposal.author }} · não é o site oficial de {{ s.short_name }}</span></span>
+  <span><b>Proposta visual</b> <span class="long">preparada por {{ proposal.author }} · não é o site oficial de {{ s.short_name }}{% if s.sample_content %} · conteúdo de exemplo{% endif %}</span></span>
   <span class="pv-tag"><i class="on">Gostou, mas quer mudanças? Também fazemos!</i><i>Quer algo diferente? Criamos rapidamente para você!</i></span>
   <a href="{{ proposal.cta_url }}">{{ proposal.cta_label }}</a>
 </div>

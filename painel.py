@@ -11,8 +11,8 @@ import database
 import whatsapp_msg as wm
 
 CLOSED = ("ganho", "perdido", "descadastrou", "invalido")
-SCORE = {"interessado": 100, "lead_hot": 90, "esboco_volta": 70, "esboco_abriu": 50, "respondeu": 40}
-WHY = {"interessado": "Marcado como interessado", "lead_hot": "Respondeu com interesse", "esboco_volta": "Voltou a ver o esboço",
+SCORE = {"lane_personalizada": 60, "interessado": 100, "lead_hot": 90, "esboco_volta": 70, "esboco_abriu": 50, "respondeu": 40}
+WHY = {"lane_personalizada": "Faixa personalizada (projeto sob medida): ligue", "interessado": "Marcado como interessado", "lead_hot": "Respondeu com interesse", "esboco_volta": "Voltou a ver o esboço",
        "esboco_abriu": "Abriu o esboço", "respondeu": "Respondeu"}
 
 
@@ -37,6 +37,8 @@ def chamar_hoje(limit=25):
         add(r["prospect_id"], "lead_hot")
     for r in conn.execute("SELECT DISTINCT prospect_id FROM events WHERE type='email_replied' AND created_at >= ?", (since7,)):
         add(r["prospect_id"], "respondeu")
+    for r in conn.execute("SELECT id FROM prospects WHERE lane='personalizada' AND status='sent' AND sent_at >= ?", (since7,)):
+        add(r["id"], "lane_personalizada")
     try:
         from mockups import store
         base = None
@@ -97,12 +99,13 @@ def build():
     enviados7 = one("SELECT COUNT(*) FROM events WHERE type IN ('email_sent','followup_sent') AND created_at >= ?", since7)
     rejeit7 = one("SELECT COUNT(*) FROM events WHERE type='email_bounced' AND created_at >= ?", since7)
     funil = {r["s"]: r["c"] for r in conn.execute("SELECT COALESCE(stage,'novo') s, COUNT(*) c FROM prospects GROUP BY 1")}
+    faixas = {r["l"]: r["c"] for r in conn.execute("SELECT lane l, COUNT(*) c FROM prospects WHERE lane IS NOT NULL GROUP BY 1")}
     conn.close()
     gs = database.get_setting
     sistema = {"piloto_envio": gs("autopilot_sender_enabled", "0") == "1", "piloto_busca": gs("autopilot_search_enabled", "0") == "1",
                "followup": gs("followup_enabled", "0") == "1", "caixa_entrada": gs("imap_enabled", "0") == "1", "alertas": gs("alerts_enabled", "1") == "1",
                "esbocos_no_email": gs("mockup_in_email", "1") == "1", "smtp": bool(gs("smtp_host", "") and gs("smtp_user", "") and gs("smtp_password", "")),
-               "fila_aprovados": fila, "pendentes_com_email": pendentes}
+               "fila_aprovados": fila, "pendentes_com_email": pendentes, "faixas": faixas}
     avisos = []
     if not sistema["smtp"]:
         avisos.append("E-mail (SMTP) não configurado: nada será enviado.")

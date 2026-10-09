@@ -104,7 +104,12 @@ def open_stage():
     con.execute("""CREATE TABLE IF NOT EXISTS estab (
         cnpj TEXT PRIMARY KEY, basico TEXT, fantasia TEXT, uf TEXT, mun TEXT, cnae TEXT, cnae_sec TEXT, segmento TEXT, email TEXT,
         ddd1 TEXT, tel1 TEXT, ddd2 TEXT, tel2 TEXT, inicio TEXT, cep TEXT, logradouro TEXT, numero TEXT, bairro TEXT,
-        razao TEXT, porte TEXT, natureza TEXT, importado INTEGER DEFAULT 0)""")
+        razao TEXT, porte TEXT, natureza TEXT, importado INTEGER DEFAULT 0, capital TEXT)""")
+    try:
+        con.execute("ALTER TABLE estab ADD COLUMN capital TEXT")        # banco de trabalho criado antes do capital social
+    except sqlite3.OperationalError:
+        pass
+    con.execute("CREATE INDEX IF NOT EXISTS idx_estab_basico ON estab(basico)")      # sem isto cada UPDATE da razao social varre a tabela inteira (horas)
     con.execute("CREATE TABLE IF NOT EXISTS efreq (email TEXT PRIMARY KEY, n INTEGER)")
     con.execute("CREATE TABLE IF NOT EXISTS dfreq (dom TEXT PRIMARY KEY, n INTEGER)")
     con.execute("CREATE TABLE IF NOT EXISTS done (arquivo TEXT PRIMARY KEY, linhas INTEGER, mantidas INTEGER)")
@@ -197,12 +202,13 @@ def scan_empresas(zip_path, con, name=None):
     upd = []
     for r in _rows(zip_path):
         if len(r) >= 6 and r[0] in basicos:
-            upd.append((r[1].strip(), r[5].strip(), r[2].strip(), r[0]))
+            upd.append((r[1].strip(), r[5].strip(), r[2].strip(), r[4].strip(), r[0]))
             n += 1
             if len(upd) >= 5000:
-                con.executemany("UPDATE estab SET razao=?, porte=?, natureza=? WHERE basico=?", upd)
+                con.executemany("UPDATE estab SET razao=?, porte=?, natureza=?, capital=? WHERE basico=?", upd)
+                con.commit()
                 upd = []
-    con.executemany("UPDATE estab SET razao=?, porte=?, natureza=? WHERE basico=?", upd)
+    con.executemany("UPDATE estab SET razao=?, porte=?, natureza=?, capital=? WHERE basico=?", upd)
     con.execute("INSERT OR REPLACE INTO done VALUES (?,?,?)", (name or os.path.basename(zip_path), n, n))
     con.commit()
     return n
@@ -213,8 +219,8 @@ def candidates(con, only_with_email=False):
     """Leads prontos: nome, segmento, cidade, contatos. E-mail de contador/intermediario e IGNORADO (o lead segue so com telefone)."""
     out = []
     mun = dict(con.execute("SELECT cod, nome FROM mun"))
-    for r in con.execute("SELECT cnpj, fantasia, razao, uf, mun, segmento, email, ddd1, tel1, ddd2, tel2, inicio, porte, natureza, logradouro, numero, bairro, cep FROM estab WHERE importado=0"):
-        cnpj, fant, razao, uf, mcod, seg, email, d1, t1, d2, t2, inicio, porte, nat, logr, num, bairro, cep = r
+    for r in con.execute("SELECT cnpj, fantasia, razao, uf, mun, segmento, email, ddd1, tel1, ddd2, tel2, inicio, porte, natureza, logradouro, numero, bairro, cep, capital FROM estab WHERE importado=0"):
+        cnpj, fant, razao, uf, mcod, seg, email, d1, t1, d2, t2, inicio, porte, nat, logr, num, bairro, cep, capital = r
         if (nat or "").strip() == "2135":                 # empresario individual (inclui MEI): fora do perfil
             continue
         name = titlecase_company(fant or razao or "")
@@ -236,7 +242,7 @@ def candidates(con, only_with_email=False):
         city = (mun.get(mcod) or "").title()
         out.append({"cnpj": cnpj, "company_name": name, "razao": razao, "segment": seg, "uf": uf, "city": city, "email": email,
                     "phone": phone1 or phone2, "whatsapp": mobile, "inicio": inicio, "porte": porte, "natureza": nat,
-                    "address": " ".join(x for x in (logr, num, bairro) if x).strip(), "cep": cep})
+                    "address": " ".join(x for x in (logr, num, bairro) if x).strip(), "cep": cep, "capital": capital})
     return out
 
 
@@ -250,24 +256,28 @@ def to_prospects(cands, limit=None, db_con=None):
     import database
     conn = database.get_db_connection()
     existing_cnpj = {r[0] for r in conn.execute("SELECT cnpj FROM prospects WHERE cnpj IS NOT NULL AND cnpj != ''")}
-    existing_names = {(r[0] or "").lower() for r in conn.execute("SELECT company_name FROM prospects")}
+    existing_names = {((r[0] or "").lower(), (r[1] or "").lower()) for r in conn.execute("SELECT company_name, region FROM prospects")}
     new = dup = 0
     now = database.get_now_str()
     for c in cands:
         if limit and new >= limit:
             break
-        if c["cnpj"] in existing_cnpj or c["company_name"].lower() in existing_names:
+        key_nr = (c["company_name"].lower(), f"{c['city']} - {c['uf']}".lower())
+        if c["cnpj"] in existing_cnpj or key_nr in existing_names:
             dup += 1
             continue
-        notes = f"[cnpj] {c['cnpj']} · aberta em {c['inicio']} · porte {c['porte']} · {c['address']}, CEP {c['cep']}"
+        cap = (c.get("capital") or "").replace(".", "").replace(",", ".")
+        notes = f"[cnpj] {c['cnpj']} · aberta em {c['inicio']} · porte {c['porte']}" + (f" · capital R$ {int(float(cap)):,}".replace(",", ".") if cap.replace(".", "", 1).isdigit() and float(cap) > 0 else "") + f" · {c['address']}, CEP {c['cep']}"
         conn.execute("""INSERT INTO prospects (company_name, website, segment, region, status, contact_email, contact_phone, contact_whatsapp, notes,
                         created_at, updated_at, cnpj, is_autopilot, directory_source, is_directory)
                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                      (c["company_name"], "", database.normalize_segment(c["segment"]), f"{c['city']} - {c['uf']}", "pending", c["email"],
                       _fmt_phone(c["phone"]), _fmt_phone(c["whatsapp"]) if c["whatsapp"] else "", notes, now, now, c["cnpj"], 1, "cnpj_receita", 0))
         existing_cnpj.add(c["cnpj"])
-        existing_names.add(c["company_name"].lower())
+        existing_names.add(key_nr)
         new += 1
+        if new % 200 == 0:
+            conn.commit()                                   # lotes pequenos: o painel nao fica esperando o banco liberar
     conn.commit()
     conn.close()
     return new, dup

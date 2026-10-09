@@ -1390,6 +1390,46 @@
                             Cada esboço custa centavos de IA e leva de 30 a 60 segundos. Se o esboço não ficar pronto, o e-mail sai sem o link, com uma oferta honesta de preparar um.
                         </div>
                     </div>
+                    <h3 class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 30px;">
+                        💰 Ofertas e faixas de abordagem
+                    </h3>
+                    <div class="form-group">
+                        <label for="lanes_enabled">Faixas de abordagem (direta, personalizada, descartar)</label>
+                        <select id="lanes_enabled" name="lanes_enabled">
+                            <option value="1">Ligadas: cada lead recebe a abordagem que vale a pena</option>
+                            <option value="0">Desligadas: todos recebem o mesmo e-mail</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="price_setup">Oferta direta: entrada a partir de (R$)</label>
+                        <input type="number" id="price_setup" name="price_setup" min="0" value="960">
+                    </div>
+                    <div class="form-group">
+                        <label for="price_monthly">Oferta direta: mensalidade (R$)</label>
+                        <input type="number" id="price_monthly" name="price_monthly" min="0" value="55">
+                    </div>
+                    <div class="form-group">
+                        <label for="price_subscription">Oferta direta: assinatura sem entrada (R$/mês)</label>
+                        <input type="number" id="price_subscription" name="price_subscription" min="0" value="149">
+                    </div>
+                    <div class="form-group">
+                        <label for="price_custom_from">Projeto sob medida a partir de (R$), no e-mail consultivo</label>
+                        <input type="number" id="price_custom_from" name="price_custom_from" min="0" value="2500">
+                    </div>
+                    <div class="form-group">
+                        <label for="mockup_nosite">Esboço para empresas sem site (conteúdo de exemplo)</label>
+                        <select id="mockup_nosite" name="mockup_nosite">
+                            <option value="1">Sim: ilustração e serviços típicos do segmento, avisando que é exemplo</option>
+                            <option value="0">Não</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="mockup_prefetch">Preparar os esboços antes do envio</label>
+                        <select id="mockup_prefetch" name="mockup_prefetch">
+                            <option value="1">Sim: o e-mail sai na hora, com o link já pronto</option>
+                            <option value="0">Não: gera na hora do envio (2 a 3 min por e-mail)</option>
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label for="autopilot_auto_rotate">Rotação automática de alvos de busca</label>
                         <select id="autopilot_auto_rotate" name="autopilot_auto_rotate">

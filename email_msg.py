@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 import whatsapp_msg as wm
 
 ESBOCO_TOKEN = "{{ESBOCO}}"
+PRECO_TOKEN = "{{PRECO}}"
 LEGACY_CLAIMS = re.compile(r"fiz esse material especificamente|elaborei uma proposta visual|"
                            r"qualidade e a seriedade do trabalho|me chamou a atenção a qualidade|gostei muito do trabalho de vocês", re.I)
 
@@ -88,11 +89,11 @@ def build_email(prospect, sender):
 
     shape = rng.randrange(3)
     if shape == 0:
-        blocks = [greeting, f"{intro} {look}", ESBOCO_TOKEN, value, f"{cta} {exit_line}".strip(), f"{signoff}\n{sig}"]
+        blocks = [greeting, f"{intro} {look}", ESBOCO_TOKEN, value, PRECO_TOKEN, f"{cta} {exit_line}".strip(), f"{signoff}\n{sig}"]
     elif shape == 1:
-        blocks = [greeting, look, intro, ESBOCO_TOKEN, f"{value} {cta}", exit_line, f"{signoff}\n{sig}"]
+        blocks = [greeting, look, intro, ESBOCO_TOKEN, f"{value}", PRECO_TOKEN, cta, exit_line, f"{signoff}\n{sig}"]
     else:
-        blocks = [greeting, f"{look} {intro}", f"{value}", ESBOCO_TOKEN, cta, f"{exit_line}\n\n{signoff}\n{sig}" if exit_line else f"{signoff}\n{sig}"]
+        blocks = [greeting, f"{look} {intro}", f"{value}", ESBOCO_TOKEN, PRECO_TOKEN, cta, f"{exit_line}\n\n{signoff}\n{sig}" if exit_line else f"{signoff}\n{sig}"]
     body = "\n\n".join(b for b in blocks if b)
     return subject, body
 
@@ -102,6 +103,11 @@ def esboco_paragraph(prospect, url, days=21):
     rng = _rng(prospect, "esboco")
     pick = lambda opts: opts[rng.randrange(len(opts))]  # noqa: E731
     company = wm.clean_company_name(prospect.get("company_name"), prospect.get("website"))
+    if url and not wm.has_own_site(prospect):
+        return pick([
+            f"Para você visualizar, montei um esboço de como o site da {company} poderia ficar:\n{url}\n(São textos e ilustrações de exemplo: o site de verdade leva as informações e as fotos da empresa. Não está publicado e fica disponível por {days} dias.)",
+            f"Preparei um esboço de como a {company} poderia aparecer na internet, sem compromisso:\n{url}\n(Conteúdo de exemplo, só para dar uma ideia; no site real entram as fotos e os dados da empresa. Fica no ar por {days} dias.)",
+        ])
     if url:
         return pick([
             f"Para facilitar a conversa, montei um esboço de como o site da {company} poderia ficar:\n{url}\n(É apenas um estudo visual, não é um site publicado, e fica disponível por {days} dias.)",
@@ -118,4 +124,54 @@ def esboco_paragraph(prospect, url, days=21):
 def finalize(body, paragraph):
     """Troca o marcador pelo paragrafo e arruma as linhas em branco."""
     out = (body or "").replace(ESBOCO_TOKEN, paragraph or "")
+    return re.sub(r"\n{3,}", "\n\n", out).strip()
+
+
+def _brl(v):
+    try:
+        n = float(str(v).replace(",", "."))
+    except ValueError:
+        return str(v)
+    return "R$ " + f"{n:,.0f}".replace(",", ".")
+
+
+def price_line(get_setting, rng=None):
+    """Oferta direta com PRECO na primeira mensagem (planos Essencial e Assinatura). Valores vem das configuracoes (price_*)."""
+    setup, monthly, sub = get_setting("price_setup", "960"), get_setting("price_monthly", "55"), get_setting("price_subscription", "149")
+    opts = [f"Se preferir algo direto: site pronto a partir de {_brl(setup)} + {_brl(monthly)}/mês (hospedagem, domínio e suporte), ou {_brl(sub)}/mês sem entrada.",
+            f"Valores: a partir de {_brl(setup)} + {_brl(monthly)}/mês com hospedagem e suporte inclusos, ou {_brl(sub)}/mês sem pagar nada na entrada.",
+            f"Para ficar claro desde já: o site sai a partir de {_brl(setup)} + {_brl(monthly)}/mês, ou {_brl(sub)}/mês sem entrada."]
+    return opts[rng.randrange(len(opts))] if rng else opts[0]
+
+
+def build_consultive(prospect, sender, custom_from="2500"):
+    """Faixa PERSONALIZADA: e-mail curto e consultivo, sem esboco, apontando um problema REAL do site e convidando para uma conversa."""
+    rng = _rng(prospect, "consultivo")
+    pick = lambda opts: opts[rng.randrange(len(opts))]  # noqa: E731
+    company = wm.clean_company_name(prospect.get("company_name"), prospect.get("website"))
+    sname = wm.first_name(sender.get("name")) or "Matheus"
+    full = (sender.get("name") or "Matheus Paviani").strip()
+    wa = (sender.get("whatsapp") or "").strip()
+    portfolio = (sender.get("portfolio") or "").strip()
+    pn = wm.partner_first_name(prospect.get("socios"))
+    seg = (prospect.get("segment") or "").strip().lower() or "seu segmento"
+    site = wm._domain(prospect.get("website"))
+    obs = real_issue(prospect.get("detected_issues"))
+    subject = pick([f"Sobre o site da {company}", f"{company}: uma ideia para o site", f"Pergunta sobre o site da {company}"])
+    greeting = pick([f"Olá, {pn}," if pn else "Olá,", f"Olá, {pn}, tudo bem?" if pn else "Olá, tudo bem?"])
+    look = pick([f"Estive no site {site} e notei que {obs}.", f"Ao abrir o site {site}, reparei que {obs}."]) if obs else f"Dei uma olhada no site {site}."
+    intro = pick([f"Sou {sname} e desenvolvo sites sob medida para empresas do segmento de {seg}.", f"Meu nome é {sname}: projeto e desenvolvo sites sob medida para empresas de {seg}."])
+    offer = pick([f"Faço projetos personalizados, pensados para o jeito de vender da {company}, a partir de {_brl(custom_from)}.",
+                  f"Trabalho com projetos sob medida (identidade da {company}, foco em gerar contatos), a partir de {_brl(custom_from)}."])
+    cta = pick([f"Posso te mostrar em 15 minutos o que eu faria no site da {company}?" + (f" Responda aqui ou me chame no WhatsApp {wa}." if wa else " Responda aqui."),
+                f"Se fizer sentido, marcamos uma conversa rápida para eu apresentar a ideia." + (f" Meu WhatsApp é {wa}." if wa else "")])
+    exit_line = "Se não for o momento, sem problema: é só me avisar."
+    sig = full + (f"\nPortfólio: {portfolio}" if portfolio else "")
+    body = "\n\n".join([greeting, f"{look} {intro}", offer, cta, exit_line, f"{pick(['Abraço,', 'Atenciosamente,'])}\n{sig}"])
+    return subject, body
+
+
+def finalize_all(body, esboco_paragraph, price):
+    """Resolve os marcadores {{ESBOCO}} e {{PRECO}} e arruma as linhas em branco."""
+    out = (body or "").replace(ESBOCO_TOKEN, esboco_paragraph or "").replace(PRECO_TOKEN, price or "")
     return re.sub(r"\n{3,}", "\n\n", out).strip()

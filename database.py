@@ -115,7 +115,7 @@ def init_db():
         cursor.execute("ALTER TABLE prospects ADD COLUMN whatsapp_custom_draft TEXT")
     # PLANO_PROSPECTADOR T1/Q2: estagio do funil, resultado comercial e qualificacao
     for col, ddl in (('stage', 'TEXT'), ('deal_value', 'REAL'), ('closed_at', 'DATETIME'),
-                     ('win_source', 'TEXT'), ('qualification', 'TEXT')):
+                     ('win_source', 'TEXT'), ('qualification', 'TEXT'), ('lane', 'TEXT')):
         if col not in columns:
             cursor.execute(f"ALTER TABLE prospects ADD COLUMN {col} {ddl}")
 
@@ -165,6 +165,14 @@ def init_db():
         # E4/M1: e-mail honesto e variado (template) ou geracao livre antiga (ai); esboco automatico no envio
         'email_generation_mode': 'template',
         'mockup_in_email': '1',
+        'mockup_prefetch': '1',
+        'mockup_nosite': '1',
+        # faixas de abordagem (lanes.py) e precos da oferta direta (decisao do usuario em 09/10/2026)
+        'lanes_enabled': '1',
+        'price_setup': '960',
+        'price_monthly': '55',
+        'price_subscription': '149',
+        'price_custom_from': '2500',
         'mockup_daily_limit': '40',
         # C1: follow-up automatico (desligado ate o usuario ligar)
         'autopilot_auto_rotate': '1',

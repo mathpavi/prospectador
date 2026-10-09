@@ -8,7 +8,6 @@ import math
 import urllib.parse
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin, quote
-import google.generativeai as genai
 import json
 import logging
 try:

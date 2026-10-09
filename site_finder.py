@@ -104,7 +104,7 @@ def _write_email(pid, compose):
 
 
 def check_one(p, search=None, analyze=None, compose=None):
-    """Procura e analisa o site de um lead. Devolve 'site' | 'sem_site' | 'duplicado'."""
+    """Procura e analisa o site de um lead. Devolve 'site' | 'sem_site' | 'duplicado' | 'adiado' (busca vazia: tenta de novo depois)."""
     search = search or _default_search
     analyze = analyze or _default_analyze
     city = (p.get("region") or "").split(" - ")[0]
@@ -114,6 +114,15 @@ def check_one(p, search=None, analyze=None, compose=None):
         results = search(query, 10) or []
     except Exception:  # noqa: BLE001
         results = []
+    if not results:
+        # busca vazia = provavel falha do buscador (cota, bloqueio), NAO prova de que a empresa nao tem site: tenta de novo mais tarde
+        # e so conclui "sem site" depois de 3 buscas vazias seguidas
+        conn = database.get_db_connection()
+        n = conn.execute("SELECT COUNT(*) FROM events WHERE prospect_id=? AND type='site_search_empty'", (p["id"],)).fetchone()[0]
+        conn.close()
+        if n < 2:
+            database.add_event(p["id"], "site_search_empty", query, {})
+            return "adiado"
     url = pick_site(p["company_name"], results, city)
     if not url:
         database.add_event(p["id"], "site_checked", "nenhum site proprio encontrado", {"found": False, "q": query})
@@ -179,7 +188,7 @@ def process_batch(limit=8, search=None, analyze=None, compose=None):
                            AND p.status='pending' AND NOT EXISTS (SELECT 1 FROM events e WHERE e.prospect_id=p.id AND e.type='site_checked')
                            ORDER BY (p.contact_email IS NOT NULL AND p.contact_email != '') DESC, p.id LIMIT ?""", (limit,)).fetchall()
     conn.close()
-    stats = {"site": 0, "sem_site": 0, "duplicado": 0}
+    stats = {"site": 0, "sem_site": 0, "duplicado": 0, "adiado": 0}
     for r in rows:
         p = database.get_prospect(r["id"])
         if p:

@@ -187,15 +187,39 @@ def _sender_info():
             "portfolio": database.get_setting("sender_portfolio", "")}
 
 
+class LaneSkip(Exception):
+    """Lead na faixa 'descartar': nao deve receber e-mail."""
+
+
 def finalize_email(prospect, subject, body):
     """E4/M1, NO MOMENTO DO ENVIO: (assunto, corpo, url_do_esboco|None, regenerado).
     1) corpo antigo com promessa falsa ("desenvolvi um estudo visual"...) e regenerado com o modelo honesto;
-    2) o marcador {{ESBOCO}} vira o link do esboco (gerado na hora, se preciso) ou uma oferta honesta se nao houver esboco."""
+    2) FAIXAS (lanes.py): descartar (levanta LaneSkip), personalizada (e-mail consultivo, sem esboco) ou direta (esboco + preco na 1a mensagem);
+    3) o marcador {{ESBOCO}} vira o link do esboco (gerado na hora, se preciso) ou uma oferta honesta se nao houver esboco."""
+    import lanes
+    from mockups import store
     regenerated = False
-    if database.get_setting("email_generation_mode", "template") != "ai" and email_msg.is_legacy_body(body):
+    template_mode = database.get_setting("email_generation_mode", "template") != "ai"
+    if template_mode and email_msg.is_legacy_body(body):
         subject, body = email_msg.build_email(prospect, _sender_info())
         regenerated = True
     url = None
+    if template_mode and lanes.enabled() and prospect.get("id"):
+        url = mockup_runner.ensure_mockup(prospect)                 # gera ou reaproveita o esboco: o veredito do juiz decide a faixa
+        lane, why = lanes.classify(prospect, store.latest(prospect["id"]), mockup_runner.state(prospect))
+        database.update_prospect(prospect["id"], {"lane": lane})
+        database.add_event(prospect["id"], "lane_assigned", why, {"lane": lane})
+        if lane == "descartar":
+            raise LaneSkip(why)
+        if lane == "personalizada":
+            subject, body = email_msg.build_consultive(prospect, _sender_info(), database.get_setting("price_custom_from", "2500"))
+            return subject, body, None, True
+        if email_msg.PRECO_TOKEN not in body:                        # e-mail ja gravado antes dos precos: refaz no modelo atual (mesmos fatos)
+            subject, body = email_msg.build_email(prospect, _sender_info())
+            regenerated = True
+        price = email_msg.price_line(database.get_setting, __import__("random").Random(prospect["id"]))
+        body = email_msg.finalize_all(body, email_msg.esboco_paragraph(prospect, url), price)
+        return subject, body, url, regenerated
     if email_msg.ESBOCO_TOKEN in body:
         url = mockup_runner.ensure_mockup(prospect)
         body = email_msg.finalize(body, email_msg.esboco_paragraph(prospect, url))
@@ -253,7 +277,10 @@ def send_prospect_email(prospect_id, bypass_limit=False):
         _reject(prospect_id, 'rejected', f"fora do perfil: {q_why}", 'email_not_qualified', email_to)
 
     # 2b. E4/M1: corpo finalizado (esboco automatico ou oferta honesta; corpo antigo com promessa falsa e regenerado)
-    subject, body, mockup_url, regenerated = finalize_email(prospect, subject, body)
+    try:
+        subject, body, mockup_url, regenerated = finalize_email(prospect, subject, body)
+    except LaneSkip as skip:
+        _reject(prospect_id, 'rejected', f"faixa 'descartar': {skip}", 'lane_skipped', email_to)
 
     # 3. Corpo com rodape de identificacao/descadastro e cabecalhos de descadastro de um clique
     footer, unsub_url = build_footer(prospect_id, email_to)

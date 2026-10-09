@@ -1,0 +1,66 @@
+{# Ilustracao em linha (SVG) para esbocos de empresas SEM site/fotos: honesta (nao finge ser foto da empresa) e na cor da marca. s.art = tipo; art_box = absolute | ratio | wide | fill #}
+<style>
+.art{position:relative;display:grid;place-items:center;color:var(--accent);overflow:hidden;background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.art-absolute{position:absolute;inset:0}.art-ratio{aspect-ratio:4/3.7;width:100%}.art-wide{aspect-ratio:16/8;width:100%}.art-fill{width:100%;height:100%;min-height:300px}
+.art svg{width:min(82%,460px);height:auto;max-height:92%;overflow:visible}
+.art svg *{vector-effect:non-scaling-stroke}
+.art .g{stroke:currentColor;opacity:.16;stroke-width:1}
+.art .l{stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.art .f{fill:currentColor;opacity:.12;stroke:none}
+.art .d{stroke:currentColor;stroke-width:1.4;stroke-dasharray:6 6;fill:none;opacity:.55}
+.art small{position:absolute;left:12px;bottom:10px;font:500 .7rem/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;opacity:.55;color:inherit}
+@media (prefers-reduced-motion:no-preference){.art svg .draw{stroke-dasharray:900;stroke-dashoffset:900;animation:artDraw 2.4s .3s var(--ease,ease) forwards}@keyframes artDraw{to{stroke-dashoffset:0}}}
+</style>
+<div class="art art-{{ art_box|default('fill') }}" role="img" aria-label="Ilustração">
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  {% for i in range(1, 8) %}<line class="g" x1="{{ i*50 }}" y1="0" x2="{{ i*50 }}" y2="400"/><line class="g" x1="0" y1="{{ i*50 }}" x2="400" y2="{{ i*50 }}"/>{% endfor %}
+  {% set kind = s.art|default('cubos') %}
+  {% if kind == 'estrutura' %}
+    <path class="l draw" d="M70 120 L135 90 L200 60 L265 90 L330 120 M90 140 H310 M90 140 L135 90 L145 140 L200 60 L200 140 L255 140 L200 60 L265 90 L310 140 L330 120"/>
+    <path class="l draw" d="M70 120 V330 M90 140 V330 M330 120 V330 M310 140 V330 M30 330 H370"/>
+    {% for x in (70,135,200,265,330) %}<circle class="l" cx="{{ x }}" cy="{{ 120 if x in (70,330) else (90 if x in (135,265) else 60) }}" r="5"/>{% endfor %}
+    <path class="d" d="M70 365 H330 M70 355 V375 M330 355 V375"/>
+    {% for x in range(30, 371, 20) %}<path class="l" d="M{{ x }} 330 l-10 12"/>{% endfor %}
+  {% elif kind == 'engrenagem' %}
+    <circle class="l draw" cx="190" cy="200" r="78"/><circle class="l" cx="190" cy="200" r="26"/><circle class="f" cx="190" cy="200" r="78"/>
+    {% for i in range(12) %}<rect class="l" x="176" y="106" width="28" height="22" transform="rotate({{ i*30 }} 190 200)"/>{% endfor %}
+    {% for i in range(6) %}<circle class="l" cx="190" cy="152" r="6" transform="rotate({{ i*60 }} 190 200)"/>{% endfor %}
+    <circle class="l draw" cx="318" cy="302" r="40"/><circle class="l" cx="318" cy="302" r="13"/>
+    {% for i in range(8) %}<rect class="l" x="310" y="254" width="16" height="14" transform="rotate({{ i*45 }} 318 302)"/>{% endfor %}
+    <path class="d" d="M190 80 V40 M190 320 V360 M60 200 H20"/>
+  {% elif kind == 'esquadria' %}
+    <rect class="l draw" x="95" y="60" width="210" height="280"/><rect class="l" x="113" y="78" width="174" height="244"/>
+    <path class="l" d="M200 78 V322 M113 200 H287"/>
+    {% for p in ((125,90),(212,90),(125,212),(212,212)) %}<path class="l" d="M{{ p[0]+8 }} {{ p[1]+60 }} L{{ p[0]+52 }} {{ p[1]+14 }} M{{ p[0]+30 }} {{ p[1]+76 }} L{{ p[0]+64 }} {{ p[1]+40 }}" opacity=".7"/>{% endfor %}
+    <path class="l" d="M80 340 H320 M90 350 H310"/>
+    <circle class="l" cx="190" cy="205" r="4"/><circle class="l" cx="210" cy="205" r="4"/>
+  {% elif kind == 'trigo' %}
+    <path class="l draw" d="M200 340 C198 280 202 200 200 80"/>
+    {% for i in range(6) %}<ellipse class="l" cx="178" cy="{{ 118 + i*32 }}" rx="10" ry="22" transform="rotate(-32 178 {{ 118 + i*32 }})"/><ellipse class="l" cx="222" cy="{{ 118 + i*32 }}" rx="10" ry="22" transform="rotate(32 222 {{ 118 + i*32 }})"/>{% endfor %}
+    <ellipse class="l" cx="200" cy="70" rx="9" ry="22"/>
+    <path class="l" d="M80 340 H320 M110 340 C110 300 170 290 200 290 C230 290 290 300 290 340"/><path class="d" d="M150 318 L170 300 M190 322 L210 300 M232 318 L250 300"/>
+  {% elif kind == 'balanca' %}
+    <path class="l draw" d="M200 70 V320 M120 330 H280 M140 330 L150 310 H250 L260 330"/>
+    <path class="l" d="M105 135 H295"/><circle class="l" cx="200" cy="64" r="9"/>
+    <path class="l" d="M105 135 L75 215 M105 135 L135 215 M295 135 L265 215 M295 135 L325 215"/>
+    <path class="l" d="M65 215 Q105 255 145 215 Z M255 215 Q295 255 335 215 Z"/>
+    <path class="d" d="M80 290 H320"/>
+  {% elif kind == 'folha' %}
+    <path class="l draw" d="M200 310 C140 255 140 165 200 90 C260 165 260 255 200 310 Z"/>
+    <path class="l" d="M200 310 C130 300 90 250 100 190 C150 200 190 250 200 310 Z"/>
+    <path class="l" d="M200 310 C270 300 310 250 300 190 C250 200 210 250 200 310 Z"/>
+    <path class="d" d="M200 310 V120"/><circle class="l" cx="200" cy="330" r="8"/><path class="l" d="M110 345 H290"/>
+  {% elif kind == 'rota' %}
+    <path class="d" d="M60 310 C120 250 140 340 200 285 S300 210 340 110"/>
+    <circle class="l" cx="60" cy="310" r="9"/><circle class="f" cx="60" cy="310" r="9"/><path class="l draw" d="M340 70 C318 70 308 86 308 98 C308 118 340 150 340 150 C340 150 372 118 372 98 C372 86 362 70 340 70 Z"/><circle class="l" cx="340" cy="98" r="9"/>
+    <rect class="l" x="130" y="130" width="86" height="48"/><path class="l" d="M216 144 H248 L266 164 V178 H216 Z"/><circle class="l" cx="156" cy="184" r="10"/><circle class="l" cx="240" cy="184" r="10"/>
+    <path class="l" d="M146 150 H200 M146 162 H190"/>
+  {% else %}
+    <path class="l draw" d="M200 90 L270 128 L200 166 L130 128 Z M130 128 V212 L200 250 V166 M270 128 V212 L200 250"/>
+    <path class="l" d="M110 214 L180 252 L110 290 L40 252 Z M40 252 V318 L110 356 V290 M180 252 V318 L110 356"/>
+    <path class="l" d="M290 214 L360 252 L290 290 L220 252 Z M220 252 V318 L290 356 V290 M360 252 V318 L290 356"/>
+    <path class="f" d="M200 90 L270 128 L200 166 L130 128 Z"/>
+  {% endif %}
+</svg>
+<small>Ilustração</small>
+</div>

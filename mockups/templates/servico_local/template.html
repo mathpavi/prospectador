@@ -183,7 +183,7 @@ footer{padding:28px var(--gutter);display:flex;justify-content:space-between;gap
       {% if s.services %}<div class="quick rv">{% for sv in s.services[:5] %}<span>{{ sv.name }}</span>{% endfor %}</div>{% endif %}
     </div>
     <div class="photo rv">
-      <div class="img">{% if images and images|length > 0 %}<img src="img/{{ images[0] }}" alt="{{ s.hero_alt or '' }}">{% endif %}</div>
+      <div class="img">{% if images and images|length > 0 %}<img src="img/{{ images[0] }}" alt="{{ s.hero_alt or '' }}">{% else %}{% with art_box='fill' %}{% include 'art.html' %}{% endwith %}{% endif %}</div>
       {% if s.city_uf %}<div class="badge"><small>Atendemos em</small><b>{{ s.city_uf }}</b></div>{% endif %}
     </div>
   </div>
@@ -245,7 +245,7 @@ footer{padding:28px var(--gutter);display:flex;justify-content:space-between;gap
 <a class="fab" href="{{ s.wa_url or s.tel_url or '#ferramenta' }}" aria-label="Chamar no WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.2 14.2c-.2.6-1.300 1.200-1.800 1.200-.5.100-1 .2-3.300-.7-2.800-1.100-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.8 2c.1.200.1.400 0 .6l-.4.600c-.1.200-.3.300-.1.600.2.300.8 1.300 1.700 2.100 1.200 1 2.100 1.300 2.400 1.500.3.100.5.100.7-.1l1-1.200c.2-.3.400-.2.700-.1l1.900.9c.3.100.5.200.5.300.1.200.1.800-.1 1.400z"/></svg></a>
 
 <div class="proposal" role="note">
-  <span><b>Proposta visual</b> <span class="long">preparada por {{ proposal.author }} · não é o site oficial de {{ s.short_name }}</span></span>
+  <span><b>Proposta visual</b> <span class="long">preparada por {{ proposal.author }} · não é o site oficial de {{ s.short_name }}{% if s.sample_content %} · conteúdo de exemplo{% endif %}</span></span>
   <span class="pv-tag"><i class="on">Gostou, mas quer mudanças? Também fazemos!</i><i>Quer algo diferente? Criamos rapidamente para você!</i></span>
   <a href="{{ proposal.cta_url }}">{{ proposal.cta_label }}</a>
 </div>

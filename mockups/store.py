@@ -42,6 +42,13 @@ def set_status(token, status, reason=""):
         c.execute("update mockups set status=?, reason=? where token=?", (status, reason, token))
 
 
+def latest(prospect_id):
+    """Ultima linha de esboco do lead (qualquer status) ou None: serve para saber o veredito do juiz."""
+    with _conn() as c:
+        r = c.execute("select * from mockups where prospect_id=? order by created_at desc limit 1", (prospect_id,)).fetchone()
+    return dict(r) if r else None
+
+
 def extend(token, days=7):
     """C3: prorroga a validade de um esboco (a partir de agora ou do vencimento, o que for maior)."""
     now = int(time.time())

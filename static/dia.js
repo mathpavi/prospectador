@@ -91,6 +91,10 @@ async function loadDia() {
     const fila = diaEl('div', `Fila de envio: ${s.fila_aprovados} aprovado(s) · ${s.pendentes_com_email} pendente(s) com e-mail aguardando aprovação`);
     fila.style.marginTop = '10px';
     sv.appendChild(fila);
+    const fx = s.faixas || {};
+    const fxl = diaEl('div', `Faixas de abordagem: direta ${fx.direta || 0} · personalizada ${fx.personalizada || 0} · descartada ${fx.descartar || 0}`);
+    fxl.style.marginTop = '6px';
+    sv.appendChild(fxl);
 
     const fn = document.getElementById('dia-funil');
     fn.innerHTML = '';

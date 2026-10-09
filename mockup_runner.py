@@ -26,12 +26,20 @@ def _url_for(prospect_id):
     return f"{mailer.public_base_url()}/p/{token}/" if token else None
 
 
+def _eligible(prospect):
+    """Tem site proprio (esboco real) OU e lead do CNPJ sem site ja verificado (esboco com conteudo de exemplo, M5)."""
+    if whatsapp_msg.has_own_site(prospect):
+        return True
+    return (database.get_setting("mockup_nosite", "1") == "1" and prospect.get("directory_source") == "cnpj_receita"
+            and not (prospect.get("website") or "").strip())
+
+
 def ensure_mockup(prospect, timeout=300):
     try:
         if database.get_setting("mockup_in_email", "1") == "0":
             return None
         pid = prospect.get("id")
-        if not pid or not whatsapp_msg.has_own_site(prospect):
+        if not pid or not _eligible(prospect):
             return None
         url = _url_for(pid)
         if url:
@@ -65,3 +73,40 @@ def ensure_mockup(prospect, timeout=300):
         return url
     except Exception:  # noqa: BLE001
         return None
+
+
+def state(prospect):
+    """Situacao do esboco de um lead: 'ready' (pronto, no ar), 'na' (nao se aplica: sem site proprio, sem template, esboco desligado),
+    'tried' (ja tentou nos ultimos 7 dias, nao insistir) ou 'pending' (pode e deve ser gerado)."""
+    try:
+        if database.get_setting("mockup_in_email", "1") == "0":
+            return "na"
+        pid = prospect.get("id")
+        if not pid or not _eligible(prospect):
+            return "na"
+        if _url_for(pid):
+            return "ready"
+        from mockups import store
+        sys.path.insert(0, os.path.join(ROOT, "mockups"))
+        import make_mockup
+        if not make_mockup.pick_template(prospect.get("segment"), pid):
+            return "na"
+        if store.recent_attempt(pid, 7):
+            return "tried"
+        return "pending"
+    except Exception:  # noqa: BLE001
+        return "na"
+
+
+def prefetch_enabled():
+    return database.get_setting("mockup_prefetch", "1") == "1" and database.get_setting("mockup_in_email", "1") == "1"
+
+
+def prefetch_next(queue, ahead=10):
+    """Gera (em processo separado, um por vez) o esboco do PRIMEIRO lead da fila que ainda precisa. `queue` = leads aprovados na ordem de envio.
+    Devolve o id do lead trabalhado ou None. Assim, na hora do envio o link ja esta pronto e o e-mail sai na hora."""
+    for lead in queue[:ahead]:
+        if state(lead) == "pending":
+            ensure_mockup(lead)
+            return lead.get("id")
+    return None

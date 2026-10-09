@@ -60,13 +60,42 @@ def load_prospect(pid):
     db = os.environ.get("DB_PATH") or os.path.join(os.environ.get("DATA_DIR", ROOT), "prospector.db")
     con = sqlite3.connect("file:" + db.replace("\\", "/") + "?mode=ro", uri=True)   # somente leitura
     con.row_factory = sqlite3.Row
-    r = con.execute("select id, company_name, website, segment, region, screenshot from prospects where id=?", (pid,)).fetchone()
+    r = con.execute("select id, company_name, website, segment, region, screenshot, notes, contact_email, contact_phone, contact_whatsapp, directory_source from prospects where id=?", (pid,)).fetchone()
     if not r:
         sys.exit(f"prospect {pid} nao encontrado")
     return dict(r)
 
 
+def make_nosite(prospect, days=21, forced_template=None):
+    """M5: esboco para empresa SEM site (so fatos reais do cadastro + ilustracao + servicos tipicos do segmento). Sem juiz: nao ha site para comparar."""
+    import nosite
+    token = secrets.token_urlsafe(12)
+    out_dir = os.path.join(store.data_dir(), token)
+    work = tempfile.mkdtemp(prefix="mk_")
+    try:
+        template = forced_template or pick_template(prospect.get("segment"), prospect["id"])
+        if not template:
+            why = f"sem template para o segmento '{prospect.get('segment')}'"
+            store.create(token, prospect["id"], prospect["company_name"], "-", "review", why, 0, days)
+            return token, "review", [why]
+        if not (prospect.get("contact_email") or prospect.get("contact_phone") or prospect.get("contact_whatsapp")):
+            why = "sem nenhum contato conhecido para mostrar na pagina"
+            store.create(token, prospect["id"], prospect["company_name"], template, "review", why, 0, days)
+            return token, "review", [why]
+        slots = nosite.build_slots(prospect)
+        og = {"title": f"Proposta visual · {slots.get('brand_name', '')}", "image": f"{BASE_URL}/p/{token}/thumb.png", "url": f"{BASE_URL}/p/{token}/"}
+        idx = render_mod.render(template, slots, work, out_dir, og=og)
+        render_mod.screenshot(idx, os.path.join(out_dir, "thumb.png"), 1200, 630, full=False)
+        store.create(token, prospect["id"], prospect["company_name"], template, "ready", "", 0, days)
+        print("esboco sem site (conteudo de exemplo): sem custo de IA")
+        return token, "ready", []
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def make(prospect, provider=None, slots_file=None, days=21, forced_template=None, judge=None):
+    if not (prospect.get("website") or "").strip() and not slots_file:
+        return make_nosite(prospect, days, forced_template)
     token = secrets.token_urlsafe(12)
     out_dir = os.path.join(store.data_dir(), token)
     work = tempfile.mkdtemp(prefix="mk_")

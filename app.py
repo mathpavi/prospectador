@@ -18,6 +18,7 @@ import alerts
 import painel
 import rotation
 import site_finder
+import mockup_runner
 from mockups.blueprint import bp as mockups_bp, preview_gate
 from public_routes import bp as public_bp
 from whatsapp_routes import bp as whatsapp_bp, apply_generated_drafts
@@ -423,6 +424,15 @@ def autopilot_send_next_email(force=False):
     # C8: o melhor potencial primeiro (e-mail do dominio da empresa, dono conhecido, segmento do nucleo...), com bonus de espera
     approved_leads.sort(key=lambda x: (-prioritize.email_priority(x), x.get('created_at', '')))
     target_lead = approved_leads[0]
+    try:
+        # esbocos gerados ANTES do envio: prefere o primeiro lead da fila que ja esta pronto (ou nao precisa de esboco); o e-mail sai na hora
+        if mockup_runner.prefetch_enabled():
+            for cand in approved_leads[:30]:
+                if mockup_runner.state(cand) in ('ready', 'na', 'tried'):
+                    target_lead = cand
+                    break
+    except Exception:
+        pass
     
     autopilot_status["sender_status"] = "sending"
     autopilot_log(f"Enviando e-mail automático para: {target_lead['company_name']} ({target_lead['contact_email']})...")
@@ -624,6 +634,22 @@ def autopilot_site_discovery():
             autopilot_log(f"🔎 CNPJ: {st['site']} com site, {st['sem_site']} sem site, {st['duplicado']} duplicados, {st['aprovados']} aprovados para envio ({st['restantes']} ainda por verificar).")
     finally:
         autopilot_status["search_status"] = "idle"
+
+
+def background_mockup_prefetch():
+    """Gera os esbocos da fila em segundo plano (thread propria), para o envio nao esperar 2-3 minutos por e-mail."""
+    while True:
+        did = None
+        try:
+            if mockup_runner.prefetch_enabled():
+                leads = database.get_prospects(status_filter='approved')
+                leads.sort(key=lambda x: (-prioritize.email_priority(x), x.get('created_at', '')))
+                did = mockup_runner.prefetch_next(leads, ahead=10)
+                if did:
+                    autopilot_log(f"🖼️ Esboço preparado com antecedência para o lead {did}.")
+        except Exception as e:
+            autopilot_log(f"❌ Erro na etapa 'esboços antecipados': {type(e).__name__}: {str(e)[:160]}")
+        time.sleep(5 if did else 30)
 
 
 def background_autopilot_search_scheduler():
@@ -1429,6 +1455,9 @@ try:
         search_thread = threading.Thread(target=background_autopilot_search_scheduler)
         search_thread.daemon = True
         search_thread.start()
+        prefetch_thread = threading.Thread(target=background_mockup_prefetch)
+        prefetch_thread.daemon = True
+        prefetch_thread.start()
         print("[Autopilot] Threads do Piloto Automático (envio e busca) iniciadas com sucesso.")
 except Exception as e:
     print(f"[Autopilot] Aviso ao iniciar thread: {e}")
