@@ -70,7 +70,7 @@ async function loadDia() {
     d.chamar.forEach(l => {
         const row = diaEl('div', null, 'dia-lead');
         const left = diaEl('div');
-        const t = diaEl('div'); t.appendChild(diaEl('strong', l.empresa)); t.appendChild(diaEl('span', '  ' + l.segmento)); left.appendChild(t);
+        const t = diaEl('div'); const nm = diaEl('strong', l.empresa); nm.style.cursor = 'pointer'; nm.style.textDecoration = 'underline'; nm.title = 'Abrir a ficha'; nm.onclick = () => openLeadSheet(l.id); t.appendChild(nm); t.appendChild(diaEl('span', '  ' + l.segmento)); left.appendChild(t);
         left.appendChild(diaEl('small', `${l.motivo} · estágio: ${l.estagio}${l.email ? ' · ' + l.email : ''}${l.telefone ? ' · ' + l.telefone : ''}`));
         if (l.resposta) left.appendChild(diaEl('small', '“' + l.resposta + '”'));
         const acts = diaEl('div', null, 'acts');

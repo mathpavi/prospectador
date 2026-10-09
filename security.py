@@ -45,7 +45,7 @@ def diag_token():
     return os.environ.get("DIAGNOSTICS_TOKEN", "").strip()
 
 
-DIAG_READONLY_PATHS = ("/api/dia", "/api/autopilot/diagnostics", "/api/autopilot/status", "/api/prospect/status", "/api/surgical/status", "/api/directories/status")
+DIAG_READONLY_PATHS = ("/api/dia", "/api/fila", "/api/fontes", "/api/resultados", "/api/autopilot/diagnostics", "/api/autopilot/status", "/api/prospect/status", "/api/surgical/status", "/api/directories/status")
 
 
 def diag_authorized(req):
@@ -54,7 +54,7 @@ def diag_authorized(req):
     token = diag_token()
     if not token:
         return False
-    if req.method not in ("GET", "HEAD") or req.path.rstrip("/") not in DIAG_READONLY_PATHS:
+    if req.method not in ("GET", "HEAD") or not (req.path.rstrip("/") in DIAG_READONLY_PATHS or req.path.startswith("/api/lead/")):
         return False
     sent = (req.headers.get("X-Diag-Key") or "").strip()
     return bool(sent) and safe_equal(sent, token)

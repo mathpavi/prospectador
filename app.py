@@ -16,6 +16,9 @@ import followup
 import inbox
 import alerts
 import painel
+import crm
+import queue_tools
+import cnpj_runner
 import rotation
 import site_finder
 import mockup_runner
@@ -114,6 +117,91 @@ def api_set_prospect_stage(prospect_id):
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
     return jsonify({"success": True})
+
+@app.route('/api/fila')
+def api_fila():
+    # Fila de envio: onde estao os leads, proximos a sair, follow-ups devidos e estado da caixa de entrada (substitui diagnostico_fila/followups/ler_caixa)
+    try:
+        snap = queue_tools.snapshot()
+        return jsonify({"grupos": snap["grupos"], "aprovaveis": len(snap["aprovaveis"]), "temporarias": len(snap["temporarias"]),
+                        "fila": queue_tools.next_in_queue(15), "followups": queue_tools.followups_due(10),
+                        "caixa_ligada": database.get_setting('imap_enabled', '0') == '1'})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/fila/aprovar', methods=['POST'])
+def api_fila_aprovar():
+    return jsonify({"success": True, "aprovados": queue_tools.approve_pending()})
+
+@app.route('/api/fila/reenviar', methods=['POST'])
+def api_fila_reenviar():
+    return jsonify({"success": True, "devolvidos": queue_tools.retry_temporary_failures()})
+
+@app.route('/api/fila/remover/<int:prospect_id>', methods=['POST'])
+def api_fila_remover(prospect_id):
+    return jsonify({"success": queue_tools.remove_from_queue(prospect_id)})
+
+@app.route('/api/caixa/ler', methods=['POST'])
+def api_caixa_ler():
+    dry = bool((request.get_json(silent=True) or {}).get('simular'))
+    return jsonify(queue_tools.read_inbox(dry=dry))
+
+@app.route('/api/fontes')
+def api_fontes():
+    # Fontes de leads: CNPJ da Receita (importacao e descoberta de site) e a busca automatica na internet
+    try:
+        busca = rotation.summary()
+        try:
+            alerts_p = json.loads(database.get_setting('search_provider_alerts', '{}') or '{}')
+        except Exception:
+            alerts_p = {}
+        now_s = time.strftime("%Y-%m-%d %H:%M")
+        return jsonify({"cnpj": cnpj_runner.status(),
+                        "busca": {"ligada": database.get_setting('autopilot_search_enabled', '0') == '1', "buscas_hoje": rotation.searches_today(),
+                                  "teto_dia": database.get_setting('autopilot_search_daily_cap', '60'), "estoque_fila": rotation.stock(),
+                                  "meta_fila": database.get_setting('autopilot_queue_target', '60'), "em_descanso": busca["em_descanso"][:12],
+                                  "buscadores_fora": [{"nome": k, "motivo": v.get("motivo"), "ate": v.get("ate")} for k, v in alerts_p.items() if v.get("ate", "") >= now_s],
+                                  "aviso": rotation.stall_message()}})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/fontes/cnpj/importar', methods=['POST'])
+def api_fontes_cnpj_importar():
+    limite = (request.get_json(silent=True) or {}).get('limite', 3000)
+    try:
+        ok, msg = cnpj_runner.start(int(limite))
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Não consegui iniciar: {e}"}), 500
+    return jsonify({"success": ok, "message": msg})
+
+@app.route('/api/esboco/prorrogar', methods=['POST'])
+def api_esboco_prorrogar():
+    from mockups import store
+    data = request.get_json(silent=True) or {}
+    m = store.latest(int(data.get('prospect_id', 0)))
+    if not m or m.get('status') != 'ready':
+        return jsonify({"success": False, "message": "Este lead não tem esboço no ar."}), 400
+    new = store.extend(m['token'], max(1, min(60, int(data.get('dias', 7)))))
+    database.add_event(m['prospect_id'], 'mockup_extended', f"esboco prorrogado ate {datetime.fromtimestamp(new):%d/%m}", {})
+    return jsonify({"success": True, "vence": datetime.fromtimestamp(new).strftime('%d/%m/%Y')})
+
+@app.route('/api/lead/<int:prospect_id>')
+def api_lead_sheet(prospect_id):
+    # Ficha do lead: contatos, e-mail enviado, esboco (aberturas) e linha do tempo em portugues
+    try:
+        sheet = crm.lead_sheet(prospect_id)
+        return (jsonify(sheet), 200) if sheet else (jsonify({"error": "lead nao encontrado"}), 404)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/resultados')
+def api_resultados():
+    # Resultados da campanha: enviados, esboco aberto, cliques, respostas, interessados, ganhos, por faixa/segmento/cidade
+    try:
+        days = max(1, min(180, request.args.get('dias', 30, type=int)))
+        return jsonify(crm.resultados(days))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/dia')
 def api_dia():

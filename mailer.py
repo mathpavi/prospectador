@@ -281,6 +281,11 @@ def send_prospect_email(prospect_id, bypass_limit=False):
         subject, body, mockup_url, regenerated = finalize_email(prospect, subject, body)
     except LaneSkip as skip:
         _reject(prospect_id, 'rejected', f"faixa 'descartar': {skip}", 'lane_skipped', email_to)
+    try:
+        import crm
+        body = crm.track_links(prospect_id, body, public_base_url(), database.get_setting('sender_portfolio', ''))     # clique no portfolio (sem pixel de abertura)
+    except Exception:
+        pass
 
     # 3. Corpo com rodape de identificacao/descadastro e cabecalhos de descadastro de um clique
     footer, unsub_url = build_footer(prospect_id, email_to)

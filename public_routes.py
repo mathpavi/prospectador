@@ -4,7 +4,7 @@
 - POST descadastra (botao da pagina OU clique unico do provedor de e-mail, RFC 8058, cabecalho List-Unsubscribe-Post).
 O token e assinado (HMAC) e so vale para o e-mail atual do prospect.
 """
-from flask import Blueprint, Response, request
+from flask import Blueprint, Response, redirect, request
 
 import database
 import mailer
@@ -45,3 +45,18 @@ def unsubscribe(token):
                  f"<p style='color:#625b53'>Confirme para remover <b>{_mask(email)}</b> da nossa lista.</p>"
                  "<form method='post'><button style='font:inherit;padding:.8em 1.6em;border:0;border-radius:999px;"
                  "background:#1b1a18;color:#fff;cursor:pointer'>Confirmar descadastro</button></form>")
+
+
+@bp.route("/r/<token>")
+def click(token):
+    """Link do portfolio nos e-mails: registra o clique (evento link_clicked) e redireciona. Token assinado; robos e pre-visualizadores nao contam."""
+    import crm
+    from mockups.blueprint import BOT_RE
+    target = database.get_setting("sender_portfolio", "") or "https://paviani.net/portfolio/"
+    pid = crm.verify_click_token(token)
+    if pid and not BOT_RE.search(request.headers.get("User-Agent", "")):
+        database.add_event(pid, "link_clicked", target, {})
+    resp = redirect(target, code=302)
+    resp.headers["Referrer-Policy"] = "no-referrer"
+    resp.headers["Cache-Control"] = "no-store"
+    return resp

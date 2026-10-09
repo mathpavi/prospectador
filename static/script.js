@@ -11,6 +11,7 @@ let surgicalFilter = 'all';
 let intlFilter = 'all';
 let allProspects = [];
 let surgicalProspects = [];
+let sentProspects = [];      // lista do historico de enviados (Disparos em Lote): o botao 'Ver E-mail' tambem procura aqui
 let intlProspects = [];
 let systemSettings = {};
 
@@ -157,7 +158,13 @@ navItems.forEach(item => {
         
         try {
             // Tab specific loading
-            if (tabId === 'tab-dia') {
+            if (tabId === 'tab-fila') {
+                if (typeof loadFila === 'function') loadFila();
+            } else if (tabId === 'tab-fontes') {
+                if (typeof loadFontes === 'function') loadFontes();
+            } else if (tabId === 'tab-resultados') {
+                if (typeof loadResultados === 'function') loadResultados();
+            } else if (tabId === 'tab-dia') {
                 if (typeof loadDia === 'function') loadDia();
             } else if (tabId === 'tab-leads') {
                 if (typeof loadLeads === 'function') loadLeads();
@@ -824,7 +831,7 @@ function renderLeadCards(prospects) {
                 <span style="font-size:0.8rem; color:var(--success); font-weight:600; display:flex; align-items:center; gap:4px;">
                     ✅ Enviado com Sucesso
                 </span>
-                <button class="btn btn-secondary btn-sm" onclick="openEditModal(${lead.id})">👁️ Ver E-mail</button>
+                <button class="btn btn-secondary btn-sm" onclick="openLeadSheet(${lead.id})">👁️ Ver ficha e e-mail</button>
                 ${waButton}
                 <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="deleteLead(${lead.id})">Excluir</button>
             `;
@@ -1169,8 +1176,11 @@ const cancelEditBtn = document.getElementById('cancel-edit-btn');
 const saveLeadBtn = document.getElementById('save-lead-btn');
 
 function openEditModal(id) {
-    const lead = allProspects.find(l => l.id === id) || (typeof surgicalProspects !== 'undefined' ? surgicalProspects.find(l => l.id === id) : null);
-    if (!lead) return;
+    const lead = allProspects.find(l => l.id === id) || surgicalProspects.find(l => l.id === id) || sentProspects.find(l => l.id === id);
+    if (!lead) {
+        showToast('Não encontrei esse lead na lista carregada. Abra "Meus Leads" e tente de novo.', 'error');
+        return;
+    }
     
     document.getElementById('edit-lead-id').value = lead.id;
     const isSent = lead.status === 'sent';
@@ -1420,7 +1430,7 @@ async function loadSentHistory() {
                 <td style="padding: 12px; text-align: right;">
                     <div style="display:flex; gap:6px; justify-content:flex-end;">
                         ${waButton}
-                        <button class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size:0.75rem;" onclick="openEditModal(${lead.id})">Ver E-mail</button>
+                        <button class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size:0.75rem;" onclick="openLeadSheet(${lead.id})">Ver ficha e e-mail</button>
                     </div>
                 </td>
             `;
